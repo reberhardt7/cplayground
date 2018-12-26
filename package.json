@@ -1,0 +1,23 @@
+{
+    "name": "cppfiddle",
+    "version": "0.0.1",
+    "description": "",
+    "dependencies": {
+        "@babel/core": "^7.2.2",
+        "@babel/preset-env": "^7.2.3",
+        "babel-loader": "^8.0.4",
+        "bufferutil": "^4.0.1",
+        "css-element-queries": "^1.1.1",
+        "express": "^4.16.4",
+        "node-pty": "^0.8.0",
+        "socket.io": "^2.2.0",
+        "utf-8-validate": "^5.0.2",
+        "webpack": "^4.28.2",
+        "webpack-cli": "^3.1.2",
+        "xterm": "^3.9.1"
+    },
+    "scripts": {
+        "build": "webpack",
+        "serve": "node ./src/server/index.js"
+    }
+}
