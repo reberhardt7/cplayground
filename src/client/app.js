@@ -33,20 +33,28 @@ term.on('data', data => {
     socket.emit('data', data);
 });
 
+function printBanner(text, fg, bg, padToWidth) {
+    const lpad = ' '.repeat(Math.floor((padToWidth - text.length) / 2));
+    const rpad = ' '.repeat(Math.ceil((padToWidth - text.length) / 2));
+    term.write(fg + bg + lpad + text + rpad + '\x1b[0m');
+}
+
 socket.on('exit', exitInfo => {
     const colorCode = (exitInfo.signal === 0 && exitInfo.code === 0
-        ? '\x1b[32m'    // green
-        : '\x1b[33m');  // yellow
-    const resetCode = '\x1b[0m';
+        ? '\x1b[92m'    // green
+        : '\x1b[93m');  // yellow
+    const bgColor = '\x1b[100m';   // light gray
+    const bannerWidth = 52;     // should match run.sh
+    // TODO: make bannerWidth the width of the console
     if (exitInfo.signal) {
-        term.write(colorCode + 'Execution finished (program received signal '
-            + exitInfo.signal + ')' + resetCode);
+        printBanner('Execution finished (program received signal '
+            + exitInfo.signal + ')', colorCode, bgColor, bannerWidth);
     } else {
-        term.write(colorCode + 'Execution finished (status code '
-            + exitInfo.code + ')' + resetCode);
+        printBanner('Execution finished (status code ' + exitInfo.code + ')',
+            colorCode, bgColor, bannerWidth);
     }
 });
 
 socket.emit('run', {
-    cmd: ['zsh'],
+    code: 'int main() { printf("hello world\\n"); return 0; }',
 });
