@@ -11,6 +11,9 @@ var port = process.env.PORT || 3000;
 app.get('/', function(req, res){
     res.sendFile(path.resolve(__dirname + '/../client/index.html'));
 });
+app.get('/styles.css', function(req, res){
+    res.sendFile(path.resolve(__dirname + '/../client/styles.css'));
+});
 app.get('/app.js', function(req, res){
     res.sendFile(path.resolve(__dirname + '/../../dist/client/bundle.js'));
 });

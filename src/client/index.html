@@ -1,23 +1,29 @@
 <!doctype html>
 <html>
-  <head>
-    <title>Socket.IO chat</title>
-    <!-- TODO: host xterm styles ourselves -->
-    <link rel="stylesheet" type="text/css" href="xterm.css" />
-    <style>
-
-    </style>
-  </head>
-  <body>
-      <div id="terminal-container"></div>
-    <script src="/socket.io/socket.io.js"></script>
-      <script src="app.js"></script>
-    <script>
-      //var socket = io();
-      //socket.emit('message', 'hello');
-      //  socket.on('incoming', (data) => {
-      //    console.log(data);
-      //  });
-    </script>
-  </body>
+    <head>
+        <title>C++ Fiddle</title>
+        <link href="https://fonts.googleapis.com/css?family=Ubuntu+Mono:400,400i,700,700i|Montserrat" rel="stylesheet">
+        <link rel="stylesheet" type="text/css" href="xterm.css" />
+        <link rel="stylesheet" type="text/css" href="styles.css" />
+    </head>
+    <body>
+        <div class="topbar">
+            <div class="btn" id="run-btn">
+                <div class="main-text">&#9655; Run</div>
+                <div class="shortcut">shift+enter</div>
+            </div>
+        </div>
+        <div class="primary-container">
+            <div class="code-container">
+                <div class="editor">
+                    <textarea id="editor"></textarea>
+                </div>
+            </div>
+            <div class="terminal-container">
+                <div id="terminal"></div>
+            </div>
+        </div>
+        <script src="/socket.io/socket.io.js"></script>
+        <script src="app.js"></script>
+    </body>
 </html>

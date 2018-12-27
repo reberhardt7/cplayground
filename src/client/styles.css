@@ -1,0 +1,114 @@
+html {
+    box-sizing: border-box;
+    font-family: 'Montserrat', sans-serif;
+}
+
+*, *:before, *:after {
+    box-sizing: inherit;
+}
+
+html, body {
+    margin: 0;
+    width: 100%;
+    height: 100%;
+    background: #352e3c;
+    color: #d6dbd8;
+}
+
+.topbar {
+    height: 60px;
+    width: 100%;
+    background-color: #4f495f;
+    border-bottom: 3px solid #5c517b;
+    color: #fff;
+}
+
+.topbar .btn {
+    height: 100%;
+    width: 120px;
+    position: relative;
+    text-align: center;
+    display: inline-block;
+    cursor: pointer;
+    background-color: #4f495f;
+    transition: background-color 0.3s ease-out;
+}
+
+.btn .main-text {
+    position: relative;
+    top: 50%;
+    transform: translateY(-50%);
+    transition: top 0.3s ease-out;
+}
+
+.btn .shortcut {
+    position: absolute;
+    top: 65%;
+    transform: translateY(-50%);
+    font-size: 0.7em;
+    width: 100%;
+    opacity: 0;
+    transition: top 0.3s ease-out, opacity 0.3s ease-out;
+}
+
+.topbar .btn:hover {
+    background-color: #5c517b;
+}
+
+.btn:hover .main-text {
+    top: 40%;
+}
+
+.btn:hover .shortcut {
+    top: 75%;
+    opacity: 1;
+}
+
+.primary-container {
+    height: calc( 100% - 60px );
+    width: 100%;
+}
+
+.code-container, .terminal-container {
+    width: 50%;
+    height: 100%;
+    padding: 15px;
+}
+
+#terminal {
+    width: 100%;
+    height: 100%;
+}
+
+.code-container {
+    border-right: 1px solid #5c517b;
+    float: left;
+}
+
+.terminal-container {
+    float: right;
+}
+
+.editor {
+    /* box-shadow: inset 0px 0px 19px -9px rgba(0,0,0,0.75);
+    border-radius: 3px;
+    border: 1px solid #aaa; */
+    height: 100%;
+}
+
+.editor textarea {
+    color: #fff;
+    border: none;
+    background: none;
+    resize: none;
+    width: 100%;
+    height: 100%;
+    font-family: 'Ubuntu Mono', monospace;
+    color: #d6dbd8;
+}
+
+textarea, pre {
+    -moz-tab-size : 4;
+      -o-tab-size : 4;
+         tab-size : 4;
+}
