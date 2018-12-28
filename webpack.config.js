@@ -4,7 +4,7 @@ module.exports = [{
   target: "web",
   mode: 'development',
   entry: [
-    './src/client/app.js'
+    './src/client/main.js'
   ],
   output: {
     path: path.resolve(__dirname, 'dist', 'client'),
