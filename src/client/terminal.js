@@ -22,14 +22,14 @@ export function makeTerminal(terminalElem, appState) {
             blue: "#5b81a0",
             magenta: "#85678f",
             cyan: "#5e8d87",
-            white: "#707880",
+            white: "#818890",
             brightBlack: "#4f495f",
             brightRed: "#d85b7b",
             brightGreen: "#92c74d",
             brightYellow: "#f0d974",
-            brightBlue: "#81a2be",
+            brightBlue: "#7daad1",
             brightMagenta: "#b294bb",
-            brightCyan: "#8abeb7",
+            brightCyan: "#87c6be",
             brightWhite: "#c5c8c6"
         }
     });

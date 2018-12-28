@@ -5,6 +5,33 @@ let appState = {};
 
 makeTerminal(document.getElementById('terminal'), appState);
 
+const editor = ace.edit("editor");
+editor.session.setMode("ace/mode/c_cpp");
+editor.focus();
+editor.setValue(`// Hello world!
+
+// This is a handy environment for quickly testing out C/C++ code. It
+// supports multiprocessing, multithreading, and any other low-level
+// fanciness you might like to try. It also supports streaming stdin
+// from your browser, so you can even run something like a shell from
+// here!
+
+#include <stdio.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <sys/wait.h>
+
+int main() {
+    printf("Hello world! I am process %d\\n", getpid());
+    pid_t pid = fork();
+    printf("Hello again! I am process %d\\n", getpid());
+    if (pid == 0) {
+        return 0;
+    }
+    waitpid(pid, 0, 0);
+    system("apt-get install -y nsnake && /usr/games/nsnake");
+}`);
+
 function compileAndExec(code) {
     appState.term.reset();
     makeDockerSocket(appState);
@@ -20,7 +47,7 @@ function compileAndExec(code) {
 
 function handleRunBtnClick() {
     if (!appState.socket) {
-        compileAndExec(document.getElementById('editor').value);
+        compileAndExec(editor.getValue());
     }
 }
 
@@ -32,15 +59,5 @@ document.onkeydown = function(e) {
     if (e.keyCode === 13 && e.shiftKey) {
         handleRunBtnClick();
         return false;
-    }
-}
-
-document.getElementById('editor').onkeydown = function(e) {
-    e = e || window.event;
-    if(e.keyCode==9 || e.which==9){
-        e.preventDefault();
-        var s = this.selectionStart;
-        this.value = this.value.substring(0,this.selectionStart) + "\t" + this.value.substring(this.selectionEnd);
-        this.selectionEnd = s + 1;
     }
 }

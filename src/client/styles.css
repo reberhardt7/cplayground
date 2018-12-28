@@ -152,26 +152,106 @@ html, body {
     float: right;
 }
 
-.editor {
-    /* box-shadow: inset 0px 0px 19px -9px rgba(0,0,0,0.75);
-    border-radius: 3px;
-    border: 1px solid #aaa; */
+#editor {
     height: 100%;
 }
 
-.editor textarea {
-    color: #fff;
-    border: none;
-    background: none;
-    resize: none;
-    width: 100%;
-    height: 100%;
+/* ACE editor */
+.ace-tm {
     font-family: 'Ubuntu Mono', monospace;
-    color: #d6dbd8;
+    font-size: 12pt;
+}
+.ace-tm .ace_gutter {
+ background: #352e3c;
+ color: #7f8180;
+}
+.ace-tm .ace_print-margin {
+ width: 0px;
+ background: #FFF;
+}
+.ace-tm .ace_fold {
+ background-color: #4f495f;
+}
+.ace-tm {
+ background-color: #352e3c;
+ color: #d6dbd8;
+}
+.ace-tm .ace_cursor {
+ color: #eee;
+}
+.ace-tm .ace_entity.ace_name.ace_tag,
+.ace-tm .ace_keyword,
+.ace-tm .ace_meta.ace_tag,
+.ace-tm .ace_storage {
+ color: #7daad1;
 }
 
-textarea, pre {
-    -moz-tab-size : 4;
-      -o-tab-size : 4;
-         tab-size : 4;
+.ace-tm .ace_constant.ace_character,
+.ace-tm .ace_constant.ace_language,
+.ace-tm .ace_constant.ace_numeric,
+.ace-tm .ace_constant.ace_other {
+ color: #b294bb;
+}
+
+.ace-tm .ace_support.ace_constant,
+.ace-tm .ace_support.ace_function {
+ color: #87c6be;
+}
+.ace-tm .ace_support.ace_type,
+.ace-tm .ace_support.ace_class {
+    font-style: italic;
+ color: #87c6be;
+}
+.ace-tm .ace_keyword.ace_operator {
+ color: inherit;
+}
+.ace-tm .ace_string {
+ color: #f0d974;
+}
+.ace-tm .ace_comment {
+ color: #707880;
+}
+
+.ace-tm .ace_variable {
+ color: #d85b7b;
+}
+
+.ace-tm .ace_entity.ace_name.ace_function,
+.ace-tm .ace_entity.ace_other,
+.ace-tm .ace_entity.ace_other.ace_attribute-name {
+ color: #92c74d;
+}
+
+.ace-monokai .ace_entity.ace_name.ace_tag,
+.ace-monokai .ace_keyword,
+.ace-monokai .ace_meta.ace_tag,
+.ace-monokai .ace_storage {
+ color:#d85b7b;
+}
+
+.ace-tm .ace_marker-layer .ace_selection {
+ background: #4f495f;
+}
+
+.ace-tm.ace_multiselect .ace_selection.ace_start {
+ box-shadow: 0 0 3px 0px white;
+}
+.ace-tm .ace_marker-layer .ace_step {
+ background: rgb(33, 0, 102)
+}
+.ace-tm .ace_marker-layer .ace_bracket {
+ margin: -1px 0px 0px -1px;
+ border: 1px solid #c5c8c6;
+}
+.ace-tm .ace_marker-layer .ace_active-line,
+.ace-tm .ace_gutter-active-line{
+ background: rgba(0, 0, 0, 0.07);
+}
+.ace-tm .ace_marker-layer .ace_selected-word {
+ background: none;
+ border: 1px solid #707880;
+ border-radius: 2px;
+}
+.ace-tm .ace_indent-guide {
+ background: none;
 }

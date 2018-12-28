@@ -17,6 +17,12 @@ app.get('/styles.css', function(req, res){
 app.get('/app.js', function(req, res){
     res.sendFile(path.resolve(__dirname + '/../../dist/client/bundle.js'));
 });
+app.get('/ace-builds/src-noconflict/ace.js', function(req, res){
+    res.sendFile(path.resolve(__dirname + '/../../node_modules/ace-builds/src-noconflict/ace.js'));
+});
+app.get('/ace-builds/src-noconflict/mode-c_cpp.js', function(req, res){
+    res.sendFile(path.resolve(__dirname + '/../../node_modules/ace-builds/src-noconflict/mode-c_cpp.js'));
+});
 app.get('/xterm.css', function(req, res){
     res.sendFile(path.resolve(__dirname + '/../../node_modules/xterm/dist/xterm.css'));
 });
