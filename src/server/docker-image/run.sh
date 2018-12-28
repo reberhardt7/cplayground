@@ -3,6 +3,6 @@
 set -e
 
 echo -e "\e[100m\e[96m                    Compiling...                    \e[0m"
-gcc -o /compiled /code.c
+gcc -o /cppfiddle/output /cppfiddle/code.c
 echo -e "\e[100m\e[96m                    Executing...                    \e[0m"
-/compiled
+/cppfiddle/output

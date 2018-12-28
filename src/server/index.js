@@ -61,7 +61,7 @@ io.on('connection', function(socket){
         }
 
         // Create data directory and save code from request
-        const containerCodePath = '/code.c';
+        const containerCodePath = '/cppfiddle/code.c';
         if (!fs.existsSync(dataPath)) fs.mkdirSync(dataPath);
         fs.writeFileSync(codePath, cmdInfo.code);
 
@@ -73,7 +73,7 @@ io.on('connection', function(socket){
         // TODO: deal with cppfiddle Docker image as part of build process
         const args = ['run', '-it', '--name', containerName,
             '-v', `${codePath}:${containerCodePath}:ro`,
-            'cppfiddle', '/run.sh']
+            'cppfiddle', '/cppfiddle/run.sh']
         pty = ptylib.spawn('docker', args, {
           name: 'xterm-color',
           cols: cols,
