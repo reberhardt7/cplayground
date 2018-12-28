@@ -55,13 +55,76 @@ html, body {
     background-color: #5c517b;
 }
 
-.btn:hover .main-text {
+.topbar .btn.disabled:hover {
+    background-color: #555065;
+    cursor: default;
+}
+
+.btn:hover:not(.disabled) .main-text {
     top: 40%;
 }
 
-.btn:hover .shortcut {
+.btn:hover:not(.disabled) .shortcut {
     top: 75%;
     opacity: 1;
+}
+
+#run-btn .play-icon {
+    display: inline-block;
+    position: relative;
+    margin-right: 10px;
+}
+
+#run-btn .play-icon .filled {
+    position: absolute;
+    top: 0;
+    left: 2px;
+    opacity: 0;
+    transition: opacity 0.3s ease-out, transform 0.3s ease-out;
+}
+
+#run-btn .play-icon:after {
+    content: " ";
+    position: absolute;
+    top: -3px;
+    left: -4px;
+    display: block;
+    width: 25px;
+    height: 25px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    border-color: #fff transparent #fff transparent;
+    opacity: 0;
+    transition: opacity 0.2s ease-out 0s;
+}
+
+#run-btn.disabled .play-icon:after {
+    opacity: 1;
+    animation: loading-spinner 1.2s linear infinite;
+    transition: opacity 0.3s ease-out 0.2s;
+}
+
+@keyframes loading-spinner {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+#run-btn.disabled .play-icon .filled {
+    opacity: 1;
+    transform: scale(0.75, 0.75);
+}
+
+#run-btn .play-icon .outline {
+    transition: opacity 0.3s ease-out, transform 0.3s ease-out;
+}
+
+#run-btn.disabled .play-icon .outline {
+    opacity: 0;
+    transform: scale(0.75, 0.75);
 }
 
 .primary-container {

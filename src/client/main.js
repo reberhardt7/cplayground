@@ -8,13 +8,20 @@ makeTerminal(document.getElementById('terminal'), appState);
 function compileAndExec(code) {
     appState.term.reset();
     makeDockerSocket(appState);
+    appState.socket.on('disconnect', function() {
+        document.getElementById('run-btn').classList.remove('disabled');
+        appState.socket = null;
+    });
+    document.getElementById('run-btn').classList.add('disabled');
     appState.socket.emit('run', {
         code: code,
     });
 }
 
 function handleRunBtnClick() {
-    compileAndExec(document.getElementById('editor').value);
+    if (!appState.socket) {
+        compileAndExec(document.getElementById('editor').value);
+    }
 }
 
 document.getElementById('run-btn').onclick = handleRunBtnClick;
