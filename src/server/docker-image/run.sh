@@ -36,16 +36,33 @@ SUCCESS_EXIT_BANNER=$(print_banner \
 print_banner "Compiling..." $CYAN $LIGHT_GRAY
 gcc -o /cppfiddle/output /cppfiddle/code.c              \
     && print_banner "Executing..." $CYAN $LIGHT_GRAY    \
+    && START_TIME_NS=$(date +%s%N)                      \
     && /cppfiddle/output
 STATUS_CODE=$?
+END_TIME_NS=$(date +%s%N)
 
 # Print the final banner
 if [ $STATUS_CODE = 0 ]
 then
+    DONE_BANNER_COLOR=$GREEN
     printf "$SUCCESS_EXIT_BANNER\n"
 else
+    DONE_BANNER_COLOR=$YELLOW
     print_banner "Execution finished (exit status $STATUS_CODE)" \
         $YELLOW $LIGHT_GRAY
+fi
+
+if [ -n "$START_TIME_NS" ]
+then
+    RUN_TIME_NS=$(($END_TIME_NS - $START_TIME_NS))
+    if [ $RUN_TIME_NS -gt 1000000000 ]; then
+        RUN_TIME_S=$(bc <<< "scale = 10; $RUN_TIME_NS / 1000000000")
+        RUN_TIME="$(printf %.3f $RUN_TIME_S) seconds"
+    else
+        RUN_TIME_MS=$(bc <<< "scale = 10; $RUN_TIME_NS / 1000000")
+        RUN_TIME="$(printf %.3f $RUN_TIME_MS) ms"
+    fi
+    print_banner "Executed in $RUN_TIME" $DONE_BANNER_COLOR $LIGHT_GRAY
 fi
 
 # Wait for 0.1 seconds to give any lingering child processes a chance to print
