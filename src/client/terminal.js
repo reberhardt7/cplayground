@@ -52,9 +52,3 @@ export function makeTerminal(terminalElem, appState) {
         if (appState.socket) appState.socket.emit('data', data);
     });
 }
-
-export function printBanner(term, text, fg, bg, padToWidth) {
-    const lpad = ' '.repeat(Math.floor((padToWidth - text.length) / 2));
-    const rpad = ' '.repeat(Math.ceil((padToWidth - text.length) / 2));
-    term.write(fg + bg + lpad + text + rpad + '\x1b[0m');
-}
