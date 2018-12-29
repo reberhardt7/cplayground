@@ -37,12 +37,9 @@ function compileAndExec(code) {
     makeDockerSocket(appState);
     appState.socket.on('disconnect', function() {
         document.getElementById('run-btn').classList.remove('disabled');
-        document.getElementsByClassName('code-container')[0]
-            .classList.remove('running');
         appState.socket = null;
     });
     document.getElementById('run-btn').classList.add('disabled');
-    document.getElementsByClassName('code-container')[0].classList.add('running');
     appState.socket.emit('run', {
         code: code,
     });
