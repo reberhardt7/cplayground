@@ -22,6 +22,19 @@ function print_banner {
     printf "\e[0m\n"
 }
 
+# Syntax: format_execution_time <start time in ns> <end time in ns>
+# Returns $RUN_TIME
+function format_execution_time {
+    RUN_TIME_NS=$(($2 - $1))
+    if [ $RUN_TIME_NS -gt 1000000000 ]; then
+        RUN_TIME_S=$(bc <<< "scale = 10; $RUN_TIME_NS / 1000000000")
+        RUN_TIME="$(printf %.3f $RUN_TIME_S) seconds"
+    else
+        RUN_TIME_MS=$(bc <<< "scale = 10; $RUN_TIME_NS / 1000000")
+        RUN_TIME="$(printf %.3f $RUN_TIME_MS) ms"
+    fi
+}
+
 # Precompute the successful "Execution finished" banner so that when execution
 # finishes, we can print these as fast as possible. (This is because I want to
 # be able to show race conditions where users' code doesn't properly wait for
@@ -34,12 +47,16 @@ SUCCESS_EXIT_BANNER=$(print_banner \
 
 # Compile and run the user program
 print_banner "Compiling..." $CYAN $LIGHT_GRAY
+START_COMP_TIME_NS=$(date +%s%N)
 gcc -o /cppfiddle/output /cppfiddle/code.c              \
+    && END_COMP_TIME_NS=$(date +%s%N)                   \
+    && format_execution_time $START_COMP_TIME_NS $END_COMP_TIME_NS  \
+    && print_banner "Compiled in $RUN_TIME" $GREEN $LIGHT_GRAY      \
     && print_banner "Executing..." $CYAN $LIGHT_GRAY    \
-    && START_TIME_NS=$(date +%s%N)                      \
+    && START_EXEC_TIME_NS=$(date +%s%N)                 \
     && /cppfiddle/output
 STATUS_CODE=$?
-END_TIME_NS=$(date +%s%N)
+END_EXEC_TIME_NS=$(date +%s%N)
 
 # Print the final banner
 if [ $STATUS_CODE = 0 ]
@@ -52,16 +69,9 @@ else
         $YELLOW $LIGHT_GRAY
 fi
 
-if [ -n "$START_TIME_NS" ]
+if [ -n "$START_EXEC_TIME_NS" ]
 then
-    RUN_TIME_NS=$(($END_TIME_NS - $START_TIME_NS))
-    if [ $RUN_TIME_NS -gt 1000000000 ]; then
-        RUN_TIME_S=$(bc <<< "scale = 10; $RUN_TIME_NS / 1000000000")
-        RUN_TIME="$(printf %.3f $RUN_TIME_S) seconds"
-    else
-        RUN_TIME_MS=$(bc <<< "scale = 10; $RUN_TIME_NS / 1000000")
-        RUN_TIME="$(printf %.3f $RUN_TIME_MS) ms"
-    fi
+    format_execution_time $START_EXEC_TIME_NS $END_EXEC_TIME_NS
     print_banner "Executed in $RUN_TIME" $DONE_BANNER_COLOR $LIGHT_GRAY
 fi
 
