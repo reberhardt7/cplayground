@@ -29,7 +29,7 @@ int main() {
         return 0;
     }
     waitpid(pid, 0, 0);
-    system("apt-get install -y nsnake && /usr/games/nsnake");
+    system("/usr/games/nsnake");
 }`);
 
 function compileAndExec(code) {

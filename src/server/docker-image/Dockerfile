@@ -1,5 +1,5 @@
 FROM ubuntu:latest
-RUN apt-get update && apt-get install -y apt-utils build-essential bc
+RUN apt-get update && apt-get install -y apt-utils build-essential bc nsnake
 
 RUN groupadd -g 999 cppfiddle && \
     useradd -r -u 999 -g cppfiddle cppfiddle
