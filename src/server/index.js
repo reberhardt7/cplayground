@@ -73,6 +73,12 @@ io.on('connection', function(socket){
         // TODO: deal with cppfiddle Docker image as part of build process
         const args = ['run', '-it', '--name', containerName,
             '-v', `${codePath}:${containerCodePath}:ro`,
+            '--memory', '48mb',
+            '--memory-swap', '64mb',
+            '--memory-reservation', '32mb',
+            '--cpu-shares', '512',
+            // TODO: reinstate storage limits
+            //'--storage-opt', 'size=8M',
             'cppfiddle', '/cppfiddle/run.sh']
         pty = ptylib.spawn('docker', args, {
           name: 'xterm-color',
