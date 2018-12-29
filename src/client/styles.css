@@ -144,8 +144,40 @@ html, body {
 }
 
 .code-container {
+    position: relative;
     border-right: 1px solid #5c517b;
     float: left;
+}
+
+.code-container::after, .code-container::before {
+    content: ' ';
+    position: absolute;
+    top: 50%;
+    bottom: 50%;
+    right: -1px;
+    width: 0;
+    border-right: 1px solid #fff;
+    opacity: 0;
+    transition: top 0.3s ease-out, bottom 0.3s ease-out, opacity 0.3s ease-out;
+}
+
+.code-container.running::after {
+    opacity: 1;
+    animation: fade-wipe-up 0.3s ease-out 0.3s forwards;
+    top: 0;
+}
+.code-container.running::before {
+    opacity: 1;
+    animation: fade-wipe-down 0.3s ease-out 0.3s forwards;
+    bottom: 0;
+}
+@keyframes fade-wipe-up {
+    0% {    opacity: 1; bottom: 50%;    }
+    100% {  opacity: 0; bottom: 100%;   }
+}
+@keyframes fade-wipe-down {
+    0% {    opacity: 1; top: 50%;   }
+    100% {  opacity: 0; top: 100%;  }
 }
 
 .terminal-container {
