@@ -77,6 +77,9 @@ io.on('connection', function(socket){
             '--memory-swap', '64mb',
             '--memory-reservation', '32mb',
             '--cpu-shares', '512',
+            '--ulimit', 'cpu=15',
+            '--ulimit', 'nproc=32',
+            '--ulimit', 'nofile=1024',
             // TODO: reinstate storage limits
             //'--storage-opt', 'size=8M',
             'cppfiddle', '/cppfiddle/run.sh']
