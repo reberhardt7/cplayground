@@ -77,9 +77,12 @@ io.on('connection', function(socket){
             '--memory-swap', '64mb',
             '--memory-reservation', '32mb',
             '--cpu-shares', '512',
-            '--ulimit', 'cpu=15',
-            '--ulimit', 'nproc=32',
-            '--ulimit', 'nofile=1024',
+            '--ulimit', 'cpu=10:11',
+            '--ulimit', 'nproc=24',
+            '--ulimit', 'nofile=512',
+            //  run.sh kills the executable after 60 seconds, but we add some
+            //  extra leeway here for compilation and other overhead
+            '--stop-timeout', '80',
             // TODO: reinstate storage limits
             //'--storage-opt', 'size=8M',
             'cppfiddle', '/cppfiddle/run.sh']
