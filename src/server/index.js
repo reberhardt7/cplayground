@@ -8,6 +8,8 @@ var http = require('http').Server(app);
 var io = require('socket.io')(http);
 var port = process.env.PORT || 3000;
 
+const SUPPORTED_VERSIONS = ['C99', 'C11', 'C++11', 'C++14', 'C++17'];
+
 app.get('/', function(req, res){
     res.sendFile(path.resolve(__dirname + '/../client/index.html'));
 });
@@ -60,19 +62,27 @@ io.on('connection', function(socket){
             return;
         }
 
+        const lang = SUPPORTED_VERSIONS.includes(cmdInfo.language)
+            ? cmdInfo.language : 'C++17';
+        const extension = ['C99', 'C11'].indexOf(lang) > -1
+            ? '.c' : '.cpp';
+
         // Create data directory and save code from request
-        const containerCodePath = '/cppfiddle/code.c';
+        const containerCodePath = '/cppfiddle/code' + extension;
         if (!fs.existsSync(dataPath)) fs.mkdirSync(dataPath);
         fs.writeFileSync(codePath, cmdInfo.code);
 
         // Spawn pty/subprocess
         // TODO: clean up container/files even if the server crashes
-        // TODO: allow selection of C++ compiler
-        // TODO: separate user in container (don't use root)
-        // TODO: performance quotas
         // TODO: deal with cppfiddle Docker image as part of build process
+        const compiler = ['C99', 'C11'].indexOf(lang) > -1
+            ? 'gcc' : 'g++';
+        const cflags = '-std=' + lang.toLowerCase();
         const args = ['run', '-it', '--name', containerName,
             '-v', `${codePath}:${containerCodePath}:ro`,
+            '-e', 'COMPILER=' + compiler,
+            '-e', 'CFLAGS=' + cflags,
+            '-e', 'SRCPATH=' + containerCodePath,
             '--memory', '48mb',
             '--memory-swap', '64mb',
             '--memory-reservation', '32mb',
