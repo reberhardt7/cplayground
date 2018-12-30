@@ -80,9 +80,6 @@ io.on('connection', function(socket){
             '--ulimit', 'cpu=10:11',
             '--ulimit', 'nproc=24',
             '--ulimit', 'nofile=512',
-            //  run.sh kills the executable after 60 seconds, but we add some
-            //  extra leeway here for compilation and other overhead
-            '--stop-timeout', '80',
             // TODO: reinstate storage limits
             //'--storage-opt', 'size=8M',
             'cppfiddle', '/cppfiddle/run.sh']
@@ -91,6 +88,18 @@ io.on('connection', function(socket){
           cols: cols,
           rows: rows,
         });
+
+        // Kill the container if it doesn't finish running within 90 seconds.
+        // (There is already a 60-second timeout in run.sh, but this is here in
+        // case the userspace timeout program is somehow circumvented within
+        // the container.)
+        const runTimeoutTimer = setTimeout(
+            () => {
+                console.log('Container ' + containerName + ' hasn\'t finished '
+                    + 'running in time! Killing container');
+                child_process.execFile('docker', ['kill', containerName]);
+            },
+            90000);
 
         // Send process output to websocket
         pty.on('data', data => {
@@ -105,6 +114,7 @@ io.on('connection', function(socket){
         // Close the websocket when process exits
         pty.on('exit', (code, signal) => {
             console.log('Process exited (' + [code, signal] + ')');
+            clearTimeout(runTimeoutTimer);
             pty = null;
             if (socket.connected) {
                 socket.emit('exit', {code, signal});
