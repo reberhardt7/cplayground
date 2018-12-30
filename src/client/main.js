@@ -31,6 +31,9 @@ int main() {
     waitpid(pid, 0, 0);
     system("/usr/games/nsnake");
 }`);
+// Disable ACE custom cmd+l (goto line)
+delete editor.keyBinding.$defaultHandler.commandKeyBinding["cmd-l"];
+delete editor.keyBinding.$defaultHandler.commandKeyBinding["ctrl-l"];
 
 function compileAndExec(code) {
     appState.term.reset();
