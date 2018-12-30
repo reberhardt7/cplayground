@@ -72,6 +72,13 @@ else
     # SIGXCPU signal 24 or 30
     elif [ $STATUS_CODE = 152 ] || [ $STATUS_CODE = 158 ]; then
         print_banner "The program exceeded its CPU quota." $RED $LIGHT_GRAY
+    # SIGKILL (possibly from OOM killer?)
+    elif [ $STATUS_CODE = 137 ]; then
+        print_banner \
+            "The program was killed by SIGKILL. If you aren't sure" \
+            $RED $LIGHT_GRAY
+        print_banner "why, it was probably using too much memory." \
+            $RED $LIGHT_GRAY
     fi
     print_banner "Execution finished (exit status $STATUS_CODE)" \
         $YELLOW $LIGHT_GRAY
