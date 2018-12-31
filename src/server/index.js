@@ -14,7 +14,7 @@ const WHITELISTED_CFLAGS = [
     '-Wall',
     '-fpie -Wl,-pie',   // ASLR
     '-fstack-protector-strong', // Anti stack smashing
-    '-lm', '-lpthread', '-lcrypt', '-lrt'
+    '-lm', '-pthread', '-lcrypt', '-lrt'
 ];
 
 app.get('/', function(req, res){
