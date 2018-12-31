@@ -40,6 +40,17 @@ editor.commands.addCommand({
     exec: toggleSettingsSidebar,
 });
 
+function getCompilerFlags() {
+    const flags = [];
+    for (let el of document.querySelectorAll('#compiler-flags select,'
+                                           + '#compiler-flags input')) {
+        if (el.tagName.toLowerCase() === 'select' || el.checked) {
+            flags.push(el.value);
+        }
+    }
+    return flags;
+}
+
 function compileAndExec(code) {
     appState.term.reset();
     makeDockerSocket(appState);
@@ -51,6 +62,7 @@ function compileAndExec(code) {
     appState.socket.emit('run', {
         code: code,
         language: document.getElementById('language-select').value,
+        flags: getCompilerFlags(),
     });
 }
 

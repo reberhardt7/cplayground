@@ -33,6 +33,48 @@
                     <option value="C++14">C++14</option>
                     <option value="C++17" selected>C++17</option>
                 </select>
+
+                <h3>Compiler flags</h3>
+                <div id="compiler-flags">
+                    <select id="compiler-optimization">
+                        <option value="-O0">-O0</option>
+                        <option value="-O1">-O1</option>
+                        <option value="-O2" selected>-O2</option>
+                        <option value="-O3">-O3</option>
+                    </select>
+                    <div class="flag-spacer"></div>
+                    <!-- NOTE: If you change any of the below flags, make sure to
+                         whitelist them in index.js -->
+                    <input type="checkbox" id="compile-wall" value="-Wall" checked />
+                    <label for="compile-wall">-Wall (recommended warnings)</label>
+                    <br />
+                    <input type="checkbox" id="compile-aslr" value="-fpie -Wl,-pie" />
+                    <label for="compile-aslr">-fpie -Wl,-pie (ASLR)</label>
+                    <br />
+                    <input type="checkbox" id="compile-stack-smashing"
+                                           value="-fstack-protector-strong" />
+                    <label for="compile-stack-smashing">
+                        -fstack-protector-strong (anti-stack smashing)
+                    </label>
+
+                    <div class="flag-spacer"></div>
+
+                    <input type="checkbox" id="link-lm" value="-lm" checked />
+                    <label for="link-lm">-lm (math)</label>
+                    <br />
+                    <input type="checkbox" id="link-lpthread" value="-lpthread"
+                           checked />
+                    <label for="link-lpthread">-lpthread (threading)</label>
+                    <br />
+                    <input type="checkbox" id="link-lcrypt" value="-lcrypt" />
+                    <label for="link-lcrypt">-lcrypt (crypto)</label>
+                    <br />
+                    <input type="checkbox" id="link-lreadline" value="-lreadline" />
+                    <label for="link-lreadline">-lreadline</label>
+                    <br />
+                    <input type="checkbox" id="link-lrt" value="-lrt" />
+                    <label for="link-lrt">-lrt</label>
+                </div>
             </div>
             <div class="code-container">
                 <div id="editor"></div>

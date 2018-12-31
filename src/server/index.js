@@ -9,6 +9,13 @@ var io = require('socket.io')(http);
 var port = process.env.PORT || 3000;
 
 const SUPPORTED_VERSIONS = ['C99', 'C11', 'C++11', 'C++14', 'C++17'];
+const WHITELISTED_CFLAGS = [
+    '-O0', '-O1', '-O2', '-O3',
+    '-Wall',
+    '-fpie -Wl,-pie',   // ASLR
+    '-fstack-protector-strong', // Anti stack smashing
+    '-lm', '-lpthread', '-lcrypt', '-lrt'
+];
 
 app.get('/', function(req, res){
     res.sendFile(path.resolve(__dirname + '/../client/index.html'));
@@ -66,6 +73,12 @@ io.on('connection', function(socket){
             ? cmdInfo.language : 'C++17';
         const extension = ['C99', 'C11'].indexOf(lang) > -1
             ? '.c' : '.cpp';
+        const suppliedCflags = (cmdInfo.flags || []).filter(
+            flag => WHITELISTED_CFLAGS.includes(flag));
+        if (suppliedCflags.length != (cmdInfo.flags || []).length) {
+            console.log('Warning: someone passed non-whitelisted flags! '
+                + cmdInfo.flags);
+        }
 
         // Create data directory and save code from request
         const containerCodePath = '/cppfiddle/code' + extension;
@@ -77,7 +90,8 @@ io.on('connection', function(socket){
         // TODO: deal with cppfiddle Docker image as part of build process
         const compiler = ['C99', 'C11'].indexOf(lang) > -1
             ? 'gcc' : 'g++';
-        const cflags = '-std=' + lang.toLowerCase();
+        const cflags = ('-std=' + lang.toLowerCase()
+            + ' ' + suppliedCflags.join(' ')).trim();
         const args = ['run', '-it', '--name', containerName,
             '-v', `${codePath}:${containerCodePath}:ro`,
             '-e', 'COMPILER=' + compiler,
