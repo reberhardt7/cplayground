@@ -57,7 +57,7 @@ $COMPILE_CMD                                            \
     && print_banner "Compiled in $RUN_TIME" $GREEN $LIGHT_GRAY      \
     && print_banner "Executing..." $CYAN $LIGHT_GRAY    \
     && START_EXEC_TIME_NS=$(date +%s%N)                 \
-    && timeout --foreground 60 /cppfiddle/output
+    && timeout --foreground 60 /cppfiddle/output "$@"
 STATUS_CODE=$?
 END_EXEC_TIME_NS=$(date +%s%N)
 

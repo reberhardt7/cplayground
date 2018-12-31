@@ -63,6 +63,7 @@ function compileAndExec(code) {
         code: code,
         language: document.getElementById('language-select').value,
         flags: getCompilerFlags(),
+        args: document.getElementById('runtime-args').value,
     });
 }
 

@@ -3,6 +3,7 @@ const child_process = require('child_process');
 const ptylib = require('node-pty');
 const uuidv4 = require('uuid/v4');
 const fs = require('fs');
+const stringArgv = require('string-argv');
 var app = require('express')();
 var http = require('http').Server(app);
 var io = require('socket.io')(http);
@@ -106,7 +107,11 @@ io.on('connection', function(socket){
             '--ulimit', 'nofile=64',
             // TODO: reinstate storage limits
             //'--storage-opt', 'size=8M',
-            'cppfiddle', '/cppfiddle/run.sh']
+            'cppfiddle', '/cppfiddle/run.sh'
+        ].concat(
+            // Safely parse argument string from user
+            stringArgv.parseArgsStringToArgv(cmdInfo.args || '')
+        )
         pty = ptylib.spawn('docker', args, {
           name: 'xterm-color',
           cols: cols,

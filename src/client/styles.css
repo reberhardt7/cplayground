@@ -169,6 +169,7 @@ html, body {
     padding: 15px;
     float: left;
     font-size: 0.8rem;
+    overflow-y: auto;
 }
 
 .sidebar h3 {
@@ -180,7 +181,7 @@ html, body {
     margin-top: 0px;
 }
 
-.sidebar select {
+.sidebar select, .sidebar input[type=text] {
     width: 100%;
     background-color: #4f495f;
     border: none;
