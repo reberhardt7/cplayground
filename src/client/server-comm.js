@@ -11,4 +11,13 @@ export function makeDockerSocket(appState) {
     socket.on('data', data => {
         appState.term.write(decoder.decode(data));
     });
+
+    socket.on('saved', alias => {
+        // We use replaceState here (instead of pushState) because we don't
+        // want to blow up a user's history if they spend a while in the editor
+        // making several runs. (It would be pretty hard to use the back button
+        // to get back to whatever site directed them here, if they've run 100
+        // iterations of some program.)
+        history.replaceState(null, null, '?p=' + alias);
+    });
 }

@@ -8,29 +8,10 @@ makeTerminal(document.getElementById('terminal'), appState);
 const editor = ace.edit("editor");
 editor.session.setMode("ace/mode/c_cpp");
 editor.focus();
-editor.setValue(`// Hello world!
-
-// This is a handy environment for quickly testing out C/C++ code. It
-// supports multiprocessing, multithreading, and any other low-level
-// fanciness you might like to try. It also supports streaming stdin
-// from your browser, so you can even run something like a shell from
-// here!
-
-#include <stdio.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <sys/wait.h>
-
-int main() {
-    printf("Hello world! I am process %d\\n", getpid());
-    pid_t pid = fork();
-    printf("Hello again! I am process %d\\n", getpid());
-    if (pid == 0) {
-        return 0;
-    }
-    waitpid(pid, 0, 0);
-    system("/usr/games/nsnake");
-}`);
+// In the CSS, we set the font color equal to the background color so that the
+// initial code doesn't show as unformatted while we load JS. Now that we've
+// loaded, set it to the proper color
+document.getElementById('editor').style.color = 'inherit';
 // Disable ACE custom cmd+l (goto line)
 delete editor.keyBinding.$defaultHandler.commandKeyBinding["cmd-l"];
 delete editor.keyBinding.$defaultHandler.commandKeyBinding["ctrl-l"];

@@ -10,6 +10,8 @@
         "bufferutil": "^4.0.1",
         "css-element-queries": "^1.1.1",
         "express": "^4.16.4",
+        "mysql": "^2.16.0",
+        "mysql-migrations": "^1.0.6",
         "node-pty": "^0.8.0",
         "socket.io": "^2.2.0",
         "string-argv": "^0.1.1",
