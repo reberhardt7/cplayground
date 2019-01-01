@@ -91,7 +91,8 @@ function getRunParams(request) {
 }
 
 io.on('connection', function(socket){
-    const sourceIP = socket.handshake.headers['x-real-ip']
+    const sourceIP = socket.handshake.headers['cf-connecting-ip']
+        || socket.handshake.headers['x-real-ip']
         || socket.conn.remoteAddress;
     console.log('Connection received from ' + sourceIP);
     let rows = parseInt(socket.handshake.query.rows, 10) || 80;
