@@ -9,7 +9,7 @@ const ANIMALS = fs.readFileSync(path.resolve(__dirname + '/animals.txt'))
     .toString().split('\n').filter(str => str.length > 0);
 
 const CODE_MAX_LEN = 65535;         // TEXT
-const OUTPUT_MAX_LEN = 16777215;    // MEDIUMTEXT
+const OUTPUT_MAX_LEN = 16777215;    // MEDIUMBLOB
 const CFLAGS_MAX_LEN = 100;
 const ARGS_MAX_LEN = 100;
 
