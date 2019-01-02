@@ -10,6 +10,9 @@ var http = require('http').Server(app);
 var io = require('socket.io')(http);
 var port = process.env.PORT || 3000;
 
+// Add timestamps to log messages
+require('console-stamp')(console, 'isoDateTime');
+
 const db = require('./db');
 
 const SUPPORTED_VERSIONS = ['C99', 'C11', 'C++11', 'C++14', 'C++17'];
@@ -29,15 +32,19 @@ const DEFAULT_INDEX_HTML = INDEX_HTML_CODE
     .replace('{{INITIAL_CODE}}', DEFAULT_CODE);
 
 app.get('/', function(req, res){
+    console.info('Incoming request for ' + req.originalUrl);
     if (!req.query.p) {
         res.send(DEFAULT_INDEX_HTML);
     } else {
         db.getProgramByAlias(req.query.p).then(result => {
             if (result) {
+                console.log('Returning program ' + result.id);
                 res.send(INDEX_HTML_CODE.replace('{{INITIAL_CODE}}',
                     result.code.replace(/&/g, '&amp;').replace(/</g, '&lt;')
                         .replace(/>/g, '&gt;')));
             } else {
+                console.info('Program not found, sending default!');
+                // TODO: send redirect to /
                 res.send(DEFAULT_INDEX_HTML);
             }
         });
@@ -70,12 +77,14 @@ function getRunParams(request) {
     const suppliedCflags = (request.flags || []).filter(
         flag => WHITELISTED_CFLAGS.includes(flag));
     if (suppliedCflags.length != (request.flags || []).length) {
-        console.log('Warning: someone passed non-whitelisted flags! '
+        console.warn('Warning: someone passed non-whitelisted flags! '
             + request.flags);
     }
     const cflags = ('-std=' + lang.toLowerCase()
         + ' ' + suppliedCflags.join(' ')).trim();
-    assert(cflags.length <= db.CFLAGS_MAX_LEN);
+    if (cflags.length > db.CFLAGS_MAX_LEN) {
+        throw 'Submitted cflags exceeds max length!';
+    }
 
     const code = request.code || '';
     if (code.length > db.CODE_MAX_LEN) {
@@ -94,7 +103,9 @@ io.on('connection', function(socket){
     const sourceIP = socket.handshake.headers['cf-connecting-ip']
         || socket.handshake.headers['x-real-ip']
         || socket.conn.remoteAddress;
-    console.log('Connection received from ' + sourceIP);
+    const connIdPrefix = '[' + socket.conn.id + '] ';
+    console.info(connIdPrefix + 'Websocket connection received from ' + sourceIP);
+
     let rows = parseInt(socket.handshake.query.rows, 10) || 80;
     let cols = parseInt(socket.handshake.query.cols, 10) || 80;
     let pty;
@@ -136,6 +147,9 @@ io.on('connection', function(socket){
             // Safely parse argument string from user
             stringArgv.parseArgsStringToArgv(argsStr)
         )
+
+        console.log(connIdPrefix + 'Starting container: docker ' + args.join(' '));
+        console.log(connIdPrefix + 'Terminal size ' + rows + 'x' + cols);
         pty = ptylib.spawn('docker', args, {
           name: 'xterm-color',
           cols: cols,
@@ -150,8 +164,8 @@ io.on('connection', function(socket){
         // the container.)
         const runTimeoutTimer = setTimeout(
             () => {
-                console.log('Container ' + containerName + ' hasn\'t finished '
-                    + 'running in time! Killing container');
+                console.warn(connIdPrefix + 'Container ' + containerName
+                    + ' hasn\'t finished running in time! Killing container');
                 child_process.execFile('docker', ['kill', containerName]);
             },
             90000);
@@ -159,9 +173,16 @@ io.on('connection', function(socket){
         // Send process output to websocket, and save to a server buffer that
         // we can later log to the database
         let outputBuf = '';
+        let warnOutputMaxSizeExceeded = true;
         pty.on('data', data => {
+            if (!outputBuf) console.log(connIdPrefix
+                + 'Data received from terminal output');
             if (outputBuf.length + data.length < db.OUTPUT_MAX_LEN) {
                 outputBuf += data;
+            } else if (warnOutputMaxSizeExceeded) {
+                console.warn(connIdPrefix
+                    + 'Program output exceeded max length for db storage!');
+                warnOutputMaxSizeExceeded = false;
             }
             socket.emit('data', Buffer.from(data));
         });
@@ -175,10 +196,13 @@ io.on('connection', function(socket){
         pty.on('exit', (code, signal) => {
             const runtime_ht = process.hrtime(startTime);
             const runtime_ms = runtime_ht[0] * 1000 + runtime_ht[1] / 1000000;
-            console.log('Process exited (' + [code, signal] + ')');
+            console.info(connIdPrefix + 'Container exited! Status ' + code
+                + ', signal ' + signal + ', node-side runtime measured at '
+                + runtime_ms + 'ms');
             clearTimeout(runTimeoutTimer);
             pty = null;
             if (socket.connected) {
+                console.log(connIdPrefix + 'Sending client exit info');
                 socket.emit('exit', {code, signal});
             }
             exitCallback({runtime_ms: runtime_ms, output: outputBuf});
@@ -187,6 +211,7 @@ io.on('connection', function(socket){
     }
 
     function shutdown() {
+        console.log(connIdPrefix + 'Stopping container and cleaning up...');
         child_process.execFile('docker', ['stop', containerName], {},
             () => child_process.execFile('docker', ['rm', containerName]));
         // force kill after 1 second
@@ -200,13 +225,16 @@ io.on('connection', function(socket){
         // with)
         try { fs.unlinkSync(codePath); } catch {}
 
-        if (socket.connected) socket.disconnect();
+        if (socket.connected) {
+            console.log(connIdPrefix + 'Closing socket');
+            socket.disconnect();
+        }
     }
 
     socket.on('run', cmdInfo => {
         if (pty) {
-            console.log('Warning: Got run command even though we '
-                + 'already have a pty');
+            console.warn(connIdPrefix + 'Got run command even though we '
+                + 'already have a pty in use');
             return;
         }
 
@@ -216,14 +244,15 @@ io.on('connection', function(socket){
             ({ compiler, cflags, code, fileExt, argsStr }
                 = getRunParams(cmdInfo));
         } catch (e) {
-            log.error('Failed to get valid run params!');
-            log.error(e);
+            console.error(connIdPrefix + 'Failed to get valid run params!');
+            console.error(e);
             // TODO: send client an explanation
             shutdown();
         }
 
         // Create data directory and save code from request
         const containerCodePath = '/cppfiddle/code' + fileExt;
+        console.log(connIdPrefix + 'Saving code to ' + codePath);
         if (!fs.existsSync(dataPath)) fs.mkdirSync(dataPath);
         fs.writeFileSync(codePath, code);
 
@@ -231,9 +260,11 @@ io.on('connection', function(socket){
         let alias, runId;
         db.insertProgram(compiler, cflags, code, argsStr, sourceIP).then(row => {
             alias = row.alias;
+            console.log(connIdPrefix + 'Program is at alias ' + alias);
             return db.createRun(row.id, sourceIP);
         }).then(id => {
             runId = id;
+            console.log(connIdPrefix + 'Run logged with ID ' + runId);
             socket.emit('saved', alias);
             return new Promise(resolve => {
                 startContainer(compiler, cflags, containerCodePath, argsStr,
@@ -248,15 +279,17 @@ io.on('connection', function(socket){
     socket.on('resize', data => {
         cols = data.cols;
         rows = data.rows;
+        console.log(connIdPrefix + 'Resize info received: '
+            + rows + 'x' + cols);
         if (pty) pty.resize(data.cols, data.rows);
     });
 
     socket.on('disconnect', function(){
-        console.log('user disconnected');
+        console.info(connIdPrefix + 'Client disconnected');
         shutdown();
     });
 });
 
 http.listen(port, function(){
-    console.log('listening on *:' + port);
+    console.log('Server listening on *:' + port);
 });

@@ -8,6 +8,7 @@
         "ace-builds": "^1.4.2",
         "babel-loader": "^8.0.4",
         "bufferutil": "^4.0.1",
+        "console-stamp": "^0.2.7",
         "css-element-queries": "^1.1.1",
         "express": "^4.16.4",
         "mysql": "^2.16.0",
