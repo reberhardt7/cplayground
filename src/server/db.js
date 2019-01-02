@@ -127,5 +127,16 @@ function updateRun(id, runtime_ms, output) {
     });
 }
 
+function logView(program_id, source_ip) {
+    return new Promise((resolve, reject) => {
+        pool.query('INSERT INTO views SET ?', { program_id, source_ip },
+            (err, res) => {
+                if (err) throw err;
+                resolve(res.insertId);
+            }
+        );
+    });
+}
+
 module.exports = { CODE_MAX_LEN, OUTPUT_MAX_LEN, CFLAGS_MAX_LEN, ARGS_MAX_LEN,
-    insertProgram, getProgramByAlias, createRun, updateRun };
+    insertProgram, getProgramByAlias, createRun, updateRun, logView };

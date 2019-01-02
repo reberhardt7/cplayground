@@ -39,6 +39,10 @@ app.get('/', function(req, res){
         db.getProgramByAlias(req.query.p).then(result => {
             if (result) {
                 console.log('Returning program ' + result.id);
+                const sourceIP = req.headers['cf-connecting-ip']
+                    || req.headers['x-real-ip']
+                    || req.connection.remoteAddress;
+                db.logView(result.id, sourceIP);
                 res.send(INDEX_HTML_CODE.replace('{{INITIAL_CODE}}',
                     result.code.replace(/&/g, '&amp;').replace(/</g, '&lt;')
                         .replace(/>/g, '&gt;')));
