@@ -106,10 +106,23 @@ io.on('connection', function(socket){
             exitCallback) {
         // TODO: clean up container/files even if the server crashes
         const args = ['run', '-it', '--name', containerName,
+            // Make the entire FS read-only, except for the home directory
+            // /cppfiddle, which we impose a 32MB storage quota on.
+            // NOTE: In the future, it may be easier to impose a disk quota
+            // using the --storage-opt flag. However, this currently requires
+            // use of a specific storage driver and backing filesystem, and
+            // it's too complicated to set up on the host. Links for future
+            // reference:
+            // https://forums.docker.com/t/./37653
+            // https://github.com/machinelabs/machinelabs/issues/703
+            '--read-only',
+            '--tmpfs', '/cppfiddle:mode=0777,size=32m,exec',
+            // Add the code to the container and set options
             '-v', `${codePath}:${containerCodePath}:ro`,
             '-e', 'COMPILER=' + compiler,
             '-e', 'CFLAGS=' + cflags,
             '-e', 'SRCPATH=' + containerCodePath,
+            // Set more resource limits and disable networking
             '--memory', '96mb',
             '--memory-swap', '128mb',
             '--memory-reservation', '32mb',
@@ -117,9 +130,8 @@ io.on('connection', function(socket){
             '--pids-limit', '16',
             '--ulimit', 'cpu=10:11',
             '--ulimit', 'nofile=64',
-            // TODO: reinstate storage limits
-            //'--storage-opt', 'size=8M',
-            'cppfiddle', '/cppfiddle/run.sh'
+            '--network', 'none',
+            'cppfiddle', '/run.sh'
         ].concat(
             // Safely parse argument string from user
             stringArgv.parseArgsStringToArgv(argsStr)
