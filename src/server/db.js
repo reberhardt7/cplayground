@@ -31,7 +31,7 @@ const pool = mysql.createPool({
   host: dbUrl.host,
   user: dbUrl.username,
   password: dbUrl.password,
-  database: 'cppfiddle',
+  database: 'cfiddle',
 });
 
 function genProgramId(compiler, cflags, code, args) {

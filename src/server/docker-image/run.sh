@@ -48,7 +48,7 @@ SUCCESS_EXIT_BANNER=$(print_banner \
 
 # Compile and run the user program
 print_banner "Compiling..." $CYAN $LIGHT_GRAY
-COMPILE_CMD="$COMPILER $CFLAGS -o /cppfiddle/output $SRCPATH"
+COMPILE_CMD="$COMPILER $CFLAGS -o /cfiddle/output $SRCPATH"
 echo $COMPILE_CMD
 START_COMP_TIME_NS=$(date +%s%N)
 $COMPILE_CMD                                            \
@@ -57,7 +57,7 @@ $COMPILE_CMD                                            \
     && print_banner "Compiled in $RUN_TIME" $GREEN $LIGHT_GRAY      \
     && print_banner "Executing..." $CYAN $LIGHT_GRAY    \
     && START_EXEC_TIME_NS=$(date +%s%N)                 \
-    && timeout --foreground 60 /cppfiddle/output "$@"
+    && timeout --foreground 60 /cfiddle/output "$@"
 STATUS_CODE=$?
 END_EXEC_TIME_NS=$(date +%s%N)
 

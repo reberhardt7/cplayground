@@ -122,7 +122,7 @@ io.on('connection', function(socket){
         // TODO: clean up container/files even if the server crashes
         const args = ['run', '-it', '--name', containerName,
             // Make the entire FS read-only, except for the home directory
-            // /cppfiddle, which we impose a 32MB storage quota on.
+            // /cfiddle, which we impose a 32MB storage quota on.
             // NOTE: In the future, it may be easier to impose a disk quota
             // using the --storage-opt flag. However, this currently requires
             // use of a specific storage driver and backing filesystem, and
@@ -131,7 +131,7 @@ io.on('connection', function(socket){
             // https://forums.docker.com/t/./37653
             // https://github.com/machinelabs/machinelabs/issues/703
             '--read-only',
-            '--tmpfs', '/cppfiddle:mode=0777,size=32m,exec',
+            '--tmpfs', '/cfiddle:mode=0777,size=32m,exec',
             // Add the code to the container and set options
             '-v', `${codePath}:${containerCodePath}:ro`,
             '-e', 'COMPILER=' + compiler,
@@ -146,7 +146,7 @@ io.on('connection', function(socket){
             '--ulimit', 'cpu=10:11',
             '--ulimit', 'nofile=64',
             '--network', 'none',
-            'cppfiddle', '/run.sh'
+            'cfiddle', '/run.sh'
         ].concat(
             // Safely parse argument string from user
             stringArgv.parseArgsStringToArgv(argsStr)
@@ -255,7 +255,7 @@ io.on('connection', function(socket){
         }
 
         // Create data directory and save code from request
-        const containerCodePath = '/cppfiddle/code' + fileExt;
+        const containerCodePath = '/cfiddle/code' + fileExt;
         console.log(connIdPrefix + 'Saving code to ' + codePath);
         if (!fs.existsSync(dataPath)) fs.mkdirSync(dataPath);
         fs.writeFileSync(codePath, code);
