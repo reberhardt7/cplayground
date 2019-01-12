@@ -284,7 +284,8 @@ html, body {
 .ace-tm .ace_string {
  color: #f0d974;
 }
-.ace-tm .ace_comment {
+.ace-tm .ace_comment,
+.ace-tm .ace_doc {
  color: #707880;
 }
 
