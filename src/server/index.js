@@ -42,7 +42,8 @@ app.get('/', function(req, res){
                 const sourceIP = req.headers['cf-connecting-ip']
                     || req.headers['x-real-ip']
                     || req.connection.remoteAddress;
-                db.logView(result.id, sourceIP);
+                const sourceUA = req.headers['user-agent'] || '';
+                db.logView(result.id, sourceIP, sourceUA);
                 res.send(INDEX_HTML_CODE.replace('{{INITIAL_CODE}}',
                     result.code.replace(/&/g, '&amp;').replace(/</g, '&lt;')
                         .replace(/>/g, '&gt;')));
@@ -107,6 +108,7 @@ io.on('connection', function(socket){
     const sourceIP = socket.handshake.headers['cf-connecting-ip']
         || socket.handshake.headers['x-real-ip']
         || socket.conn.remoteAddress;
+    const sourceUA = socket.handshake.headers['user-agent'] || '';
     const connIdPrefix = '[' + socket.conn.id + '] ';
     console.info(connIdPrefix + 'Websocket connection received from ' + sourceIP);
 
@@ -209,7 +211,11 @@ io.on('connection', function(socket){
                 console.log(connIdPrefix + 'Sending client exit info');
                 socket.emit('exit', {code, signal});
             }
-            exitCallback({runtime_ms: runtime_ms, output: outputBuf});
+            exitCallback({
+                runtime_ms: runtime_ms,
+                exit_status: code,
+                output: outputBuf,
+            });
             shutdown();
         });
     }
@@ -262,10 +268,10 @@ io.on('connection', function(socket){
 
         // Log to db and start running the container
         let alias, runId;
-        db.insertProgram(compiler, cflags, code, argsStr, sourceIP).then(row => {
+        db.insertProgram(compiler, cflags, code, argsStr, sourceIP, sourceUA).then(row => {
             alias = row.alias;
             console.log(connIdPrefix + 'Program is at alias ' + alias);
-            return db.createRun(row.id, sourceIP);
+            return db.createRun(row.id, sourceIP, sourceUA);
         }).then(id => {
             runId = id;
             console.log(connIdPrefix + 'Run logged with ID ' + runId);
@@ -276,7 +282,8 @@ io.on('connection', function(socket){
             });
         }).then(results => {
             // When the container exits, log the running time and output
-            db.updateRun(runId, results.runtime_ms, results.output);
+            db.updateRun(runId, results.runtime_ms, results.exit_status,
+                results.output);
         });
     });
 

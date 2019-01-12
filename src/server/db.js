@@ -61,7 +61,7 @@ function getProgramByAlias(alias) {
     });
 }
 
-function insertProgram(compiler, cflags, code, args, source_ip) {
+function insertProgram(compiler, cflags, code, args, source_ip, source_user_agent) {
     // When storing a program, we generate its id as a SHA-256 hash of all the
     // parameters the client sent us. The chance of a collision is extremely
     // low, and this allows us to not add duplicate entries in the database if
@@ -82,7 +82,7 @@ function insertProgram(compiler, cflags, code, args, source_ip) {
             ).join('-');
             pool.query(
                 'INSERT INTO programs SET ?',
-                { id, alias, compiler, cflags, code, args, source_ip },
+                { id, alias, compiler, cflags, code, args, source_ip, source_user_agent },
                 error => {
                     if (error && error.sqlMessage === "Duplicate entry '"
                         + alias + "' for key 'alias'") {
@@ -105,9 +105,9 @@ function insertProgram(compiler, cflags, code, args, source_ip) {
     });
 }
 
-function createRun(program_id, source_ip) {
+function createRun(program_id, source_ip, source_user_agent) {
     return new Promise((resolve, reject) => {
-        pool.query('INSERT INTO runs SET ?', { program_id, source_ip },
+        pool.query('INSERT INTO runs SET ?', { program_id, source_ip, source_user_agent },
             (err, res) => {
                 if (err) throw err;
                 resolve(res.insertId);
@@ -116,9 +116,10 @@ function createRun(program_id, source_ip) {
     });
 }
 
-function updateRun(id, runtime_ms, output) {
+function updateRun(id, runtime_ms, exit_status, output) {
     return new Promise((resolve, reject) => {
-        pool.query('UPDATE runs SET ? WHERE id = ?', [{runtime_ms, output}, id],
+        pool.query('UPDATE runs SET ? WHERE id = ?',
+            [{runtime_ms, exit_status, output}, id],
             (err, res) => {
                 if (err) throw err;
                 resolve();
@@ -127,9 +128,9 @@ function updateRun(id, runtime_ms, output) {
     });
 }
 
-function logView(program_id, source_ip) {
+function logView(program_id, source_ip, source_user_agent) {
     return new Promise((resolve, reject) => {
-        pool.query('INSERT INTO views SET ?', { program_id, source_ip },
+        pool.query('INSERT INTO views SET ?', { program_id, source_ip, source_user_agent },
             (err, res) => {
                 if (err) throw err;
                 resolve(res.insertId);

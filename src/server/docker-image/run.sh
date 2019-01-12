@@ -94,3 +94,5 @@ fi
 
 # Wait for 0.1 seconds to give any lingering child processes a chance to print
 sleep 0.1
+
+exit $STATUS_CODE
