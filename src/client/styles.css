@@ -153,18 +153,18 @@ html, body {
 
 .primary-container.open-sidebar .code-container,
 .primary-container.open-sidebar .terminal-container {
-    width: 42%;
+    width: calc(50% - 112.5px);
 }
 
 .primary-container.open-sidebar .code-container {
-    margin-left: 16%;
+    margin-left: 225px;
 }
 
 .sidebar {
     position: absolute;
     top: 0;
     left: 0;
-    width: 16%;
+    width: 225px;
     height: 100%;
     padding: 15px;
     float: left;
