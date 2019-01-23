@@ -15,6 +15,24 @@ html, body {
     color: #d6dbd8;
 }
 
+/* Make scrollbar background more subtle */
+* {
+    /* Firefox: */
+    scrollbar-color: #cdc6d4 rgba(0, 0, 0, 0.08);
+}
+*::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+*::-webkit-scrollbar-track {
+    box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.2);
+    background-color: rgba(0, 0, 0, 0.08);
+}
+*::-webkit-scrollbar-thumb {
+    background-color: #cdc6d4;
+    border-radius: 5px;
+}
+
 .topbar {
     height: 60px;
     width: 100%;
