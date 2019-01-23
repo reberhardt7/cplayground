@@ -23,6 +23,7 @@ const WHITELISTED_CFLAGS = [
     '-fstack-protector-strong', // Anti stack smashing
     '-lm', '-pthread', '-lcrypt', '-lrt'
 ];
+
 const INDEX_HTML_CODE = fs.readFileSync(
     path.resolve(__dirname + '/../client/index.html')).toString();
 const DEFAULT_CODE = fs.readFileSync(path.join(__dirname, 'default-code.cpp'))
@@ -31,10 +32,15 @@ const DEFAULT_CODE = fs.readFileSync(path.join(__dirname, 'default-code.cpp'))
 const DEFAULT_INDEX_HTML = INDEX_HTML_CODE
     .replace('{{INITIAL_CODE}}', DEFAULT_CODE);
 
-app.get('/', function(req, res){
+const EMBED_HTML_CODE = fs.readFileSync(
+    path.resolve(__dirname + '/../client/embed.html')).toString();
+const DEFAULT_EMBED_HTML = EMBED_HTML_CODE
+    .replace('{{INITIAL_CODE}}', DEFAULT_CODE);
+
+function handleLoadProgram(req, res, defaultCode, templateCode) {
     console.info('Incoming request for ' + req.originalUrl);
     if (!req.query.p) {
-        res.send(DEFAULT_INDEX_HTML);
+        res.send(defaultCode);
     } else {
         db.getProgramByAlias(req.query.p).then(result => {
             if (result) {
@@ -50,11 +56,16 @@ app.get('/', function(req, res){
             } else {
                 console.info('Program not found, sending default!');
                 // TODO: send redirect to /
-                res.send(DEFAULT_INDEX_HTML);
+                res.send(defaultCode);
             }
         });
     }
-});
+}
+
+app.get('/',
+    (req, res) => handleLoadProgram(req, res, DEFAULT_INDEX_HTML, INDEX_HTML_CODE));
+app.get('/embed',
+    (req, res) => handleLoadProgram(req, res, DEFAULT_EMBED_HTML, EMBED_HTML_CODE));
 app.get('/styles.css', function(req, res){
     res.sendFile(path.resolve(__dirname + '/../client/styles.css'));
 });

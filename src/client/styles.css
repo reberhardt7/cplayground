@@ -87,16 +87,16 @@ html, body {
     cursor: default;
 }
 
-.btn:hover:not(.disabled) .main-text {
+.btn.has-shortcut:hover:not(.disabled) .main-text {
     top: 40%;
 }
 
-.btn:hover:not(.disabled) .shortcut {
+.btn.has-shortcut:hover:not(.disabled) .shortcut {
     top: 75%;
     opacity: 1;
 }
 
-#run-btn .play-icon {
+.btn .icon {
     display: inline-block;
     position: relative;
     margin-right: 10px;
@@ -154,6 +154,19 @@ html, body {
     transform: scale(0.75, 0.75);
 }
 
+#open-in-cfiddle-btn {
+    font-size: 0.8em;
+    float: right;
+    width: 160px;
+}
+
+body:not(.embedded) #edit-btn,
+body:not(.embedded) #split-pane-btn,
+.show-code-only #edit-btn,
+.show-split #split-pane-btn {
+    display: none;
+}
+
 .primary-container {
     height: calc( 100% - 60px );
     width: 100%;
@@ -178,6 +191,17 @@ html, body {
     margin-left: 225px;
 }
 
+/* Single-pane (non-split) view: */
+
+.show-code-only .code-container { width: 100%; padding: 0px; }
+.show-code-only .open-sidebar .code-container { width: calc(100% - 225px) }
+.show-code-only .terminal-container { position: absolute; visibility: hidden; }
+.show-term-only .terminal-container { width: 100%; }
+.show-term-only .open-sidebar .terminal-container { width: calc(100% - 225px) }
+.show-term-only .code-container { position: absolute; visibility: hidden; }
+
+/* Sidebar code: */
+
 .sidebar {
     position: absolute;
     top: 0;
@@ -188,6 +212,12 @@ html, body {
     float: left;
     font-size: 0.8rem;
     overflow-y: auto;
+    opacity: 0;
+    transition: opacity 0.3s ease-out;
+}
+
+.open-sidebar .sidebar {
+    opacity: 1;
 }
 
 .sidebar h3 {
