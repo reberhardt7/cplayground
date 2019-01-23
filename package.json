@@ -24,7 +24,8 @@
         "xterm-webfont": "^1.1.1"
     },
     "scripts": {
-        "build": "webpack --watch",
+        "build": "webpack",
+        "watch": "webpack --watch",
         "serve": "node ./src/server/index.js"
     }
 }
