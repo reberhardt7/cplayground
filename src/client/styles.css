@@ -15,6 +15,10 @@ html, body {
     color: #d6dbd8;
 }
 
+a, a:visited {
+    color: #d6dbd8;
+}
+
 /* Make scrollbar background more subtle */
 * {
     /* Firefox: */
@@ -214,6 +218,23 @@ body:not(.embedded) #split-pane-btn,
     overflow-y: auto;
     opacity: 0;
     transition: opacity 0.3s ease-out;
+}
+
+.sidebar-footer-spacer {
+    width: 100%;
+    height: 75px;  /* Should match footer height */
+}
+
+.sidebar-footer {
+    background: linear-gradient(to top, #352e3c 0%, #352e3c 50%, rgba(0,0,0,0) 100%);
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 225px;
+    height: 75px;
+    padding: 15px;
+    padding-top: 25px;
+    text-align: center;
 }
 
 .open-sidebar .sidebar {
