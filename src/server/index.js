@@ -30,12 +30,14 @@ const DEFAULT_CODE = fs.readFileSync(path.join(__dirname, 'default-code.cpp'))
     .toString().trim().replace(/&/g, '&amp;').replace(/</g, '&lt;')
     .replace(/>/g, '&gt;');
 const DEFAULT_INDEX_HTML = INDEX_HTML_CODE
-    .replace('{{INITIAL_CODE}}', DEFAULT_CODE);
+    .replace('{{INITIAL_CODE}}', DEFAULT_CODE)
+    .replace('{{RUNTIME_ARGS}}', '');
 
 const EMBED_HTML_CODE = fs.readFileSync(
     path.resolve(__dirname + '/../client/embed.html')).toString();
 const DEFAULT_EMBED_HTML = EMBED_HTML_CODE
-    .replace('{{INITIAL_CODE}}', DEFAULT_CODE);
+    .replace('{{INITIAL_CODE}}', DEFAULT_CODE)
+    .replace('{{RUNTIME_ARGS}}', '');
 
 function handleLoadProgram(req, res, defaultCode, templateCode) {
     console.info('Incoming request for ' + req.originalUrl);
@@ -50,9 +52,16 @@ function handleLoadProgram(req, res, defaultCode, templateCode) {
                     || req.connection.remoteAddress;
                 const sourceUA = req.headers['user-agent'] || '';
                 db.logView(result.id, sourceIP, sourceUA);
-                res.send(INDEX_HTML_CODE.replace('{{INITIAL_CODE}}',
-                    result.code.replace(/&/g, '&amp;').replace(/</g, '&lt;')
-                        .replace(/>/g, '&gt;')));
+                res.send(INDEX_HTML_CODE
+                    .replace('{{RUNTIME_ARGS}}',
+                        result.args.replace(/&/g, '&amp;')
+                                   .replace(/"/g, '&quot;')
+                                   .replace(/</g, '&lt;')
+                                   .replace(/>/g, '&gt;'))
+                    .replace('{{INITIAL_CODE}}',
+                        result.code.replace(/&/g, '&amp;')
+                                   .replace(/</g, '&lt;')
+                                   .replace(/>/g, '&gt;')));
             } else {
                 console.info('Program not found, sending default!');
                 // TODO: send redirect to /
