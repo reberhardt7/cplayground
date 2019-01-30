@@ -13,9 +13,12 @@ editor.focus();
 // initial code doesn't show as unformatted while we load JS. Now that we've
 // loaded, set it to the proper color
 document.getElementById('editor').style.color = 'inherit';
-// Add 8px of padding on the bottom of the editor. This makes things look nicer
-// in the embedded code-only view, where we reduce the editor margin to 0
-editor.renderer.setScrollMargin(0, 8);
+if (bodyTag.classList.contains('embedded')) {
+    // Add 8px of padding at the top and bottom of the editor. This makes things
+    // look nicer in the embedded code-only view, where we reduce the editor margin
+    // to 0
+    editor.renderer.setScrollMargin(8, 8);
+}
 // Disable ACE custom cmd+l (goto line)
 delete editor.keyBinding.$defaultHandler.commandKeyBinding["cmd-l"];
 delete editor.keyBinding.$defaultHandler.commandKeyBinding["ctrl-l"];
@@ -92,17 +95,22 @@ function showSplitView() {
     setTimeout(() => editor.resize(), 300);
 }
 
-document.getElementById('run-btn').onclick = handleRunBtnClick;
-
-document.getElementById('settings-btn').onclick = toggleSettingsSidebar;
-
-document.getElementById('edit-btn').onclick = showEditorPane;
-
-document.getElementById('split-pane-btn').onclick = showSplitView;
-
-document.getElementById('open-in-cfiddle-btn').onclick = () => {
-    window.open(window.location.href.replace('/embed', '/'), "_blank");
+const buttonHandlers = {
+    'run-btn': handleRunBtnClick,
+    'settings-btn': toggleSettingsSidebar,
+    'edit-btn': showEditorPane,
+    'split-pane-btn': showSplitView,
+    'open-in-cfiddle-btn': () => {
+        window.open(window.location.href.replace('/embed', '/'), "_blank");
+    },
 };
+
+document.getElementById('run-btn').onclick = handleRunBtnClick;
+for (let btnId in buttonHandlers) {
+    if (document.getElementById(btnId)) {
+        document.getElementById(btnId).onclick = buttonHandlers[btnId];
+    }
+}
 
 document.onkeydown = function(e) {
     const event = e || window.event;
