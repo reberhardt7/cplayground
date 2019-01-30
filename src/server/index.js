@@ -52,7 +52,7 @@ function handleLoadProgram(req, res, defaultCode, templateCode) {
                     || req.connection.remoteAddress;
                 const sourceUA = req.headers['user-agent'] || '';
                 db.logView(result.id, sourceIP, sourceUA);
-                res.send(INDEX_HTML_CODE
+                res.send(templateCode
                     .replace('{{RUNTIME_ARGS}}',
                         result.args.replace(/&/g, '&amp;')
                                    .replace(/"/g, '&quot;')
