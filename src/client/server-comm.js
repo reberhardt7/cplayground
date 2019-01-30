@@ -19,5 +19,11 @@ export function makeDockerSocket(appState) {
         // to get back to whatever site directed them here, if they've run 100
         // iterations of some program.)
         history.replaceState(null, null, '?p=' + alias);
+        // Inform the parent of this iframe (if this is an embed) that we've
+        // loaded new saved code
+        window.parent.postMessage({
+            eventType: 'cfiddle-updated',
+            location: window.location.href,
+        }, '*');
     });
 }
