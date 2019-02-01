@@ -51,9 +51,11 @@ if [ -f /cfiddle/include.zip ]; then
     unzip -q /cfiddle/include.zip -d /cfiddle/
 fi
 
+STATIC_LIBRARIES=$(find /cfiddle/lib -name "*.a")
+
 # Compile and run the user program
 print_banner "Compiling..." $CYAN $LIGHT_GRAY
-COMPILE_CMD="$COMPILER -o /cfiddle/output $SRCPATH -I/cfiddle/include/ -L/cfiddle/lib/ /cfiddle/lib/*.a $CFLAGS"
+COMPILE_CMD="$COMPILER -o /cfiddle/output $SRCPATH -I/cfiddle/include/ -L/cfiddle/lib/ $STATIC_LIBRARIES $CFLAGS"
 echo $COMPILE_CMD
 START_COMP_TIME_NS=$(date +%s%N)
 $COMPILE_CMD                                            \

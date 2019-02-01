@@ -22,7 +22,7 @@ const WHITELISTED_CFLAGS = [
     '-no-pie',
     '-fpie -Wl,-pie',   // ASLR
     '-fstack-protector-strong', // Anti stack smashing
-    '-lm', '-lrand', '-pthread', '-lcrypt', '-lreadline', '-lrt'
+    '-lm', '-pthread', '-lcrypt', '-lreadline', '-lrt'
 ];
 
 function sanitizeHtml(str) {
