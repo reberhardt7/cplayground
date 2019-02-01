@@ -376,6 +376,7 @@ body:not(.embedded) #split-pane-btn,
  color: #f0d974;
 }
 .ace-tm .ace_comment,
+.ace-tm .ace_comment.ace_doc,
 .ace-tm .ace_doc {
  color: #707880;
 }
