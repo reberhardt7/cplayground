@@ -7,6 +7,7 @@
         <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.3/css/all.css" integrity="sha384-UHRtZLI+pbxtHCWp1t77Bi1L4ZtiqrqD80Kn4Z8NTSRyMA2Fd33n5dQ8lWUE00s/" crossorigin="anonymous">
         <link rel="stylesheet" type="text/css" href="xterm.css" />
         <link rel="stylesheet" type="text/css" href="styles.css" />
+        <script>{{INJECT_INCLUDE_FILE}}</script>
     </head>
     <body class="embedded show-code-only">
         <div class="topbar">
@@ -87,6 +88,14 @@
 
                 <h3>Program arguments</h3>
                 <input type="text" id="runtime-args" value="{{RUNTIME_ARGS}}" />
+
+                <h3>Include files</h3>
+                <p><small>You can upload a .zip file containing files you'd like to use
+                with your program. It will be unzipped to the same directory as
+                the source code.</small></p>
+                <p id="uploaded-filename">{{INCLUDE_FILE_NAME}}</p>
+                <i class="fas fa-times" id="btn-remove-uploaded-file"></i>
+                <input id="input-include-file" type="file" accept=".zip, application/zip" />
 
                 <div class="sidebar-footer-spacer"></div>
                 <div class="sidebar-footer">

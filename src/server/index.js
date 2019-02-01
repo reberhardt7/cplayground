@@ -24,6 +24,13 @@ const WHITELISTED_CFLAGS = [
     '-lm', '-pthread', '-lcrypt', '-lrt'
 ];
 
+function sanitizeHtml(str) {
+    return (str.replace(/&/g, '&amp;')
+               .replace(/"/g, '&quot;')
+               .replace(/</g, '&lt;')
+               .replace(/>/g, '&gt;'));
+}
+
 const INDEX_HTML_CODE = fs.readFileSync(
     path.resolve(__dirname + '/../client/index.html')).toString();
 const DEFAULT_CODE = fs.readFileSync(path.join(__dirname, 'default-code.cpp'))
@@ -31,13 +38,17 @@ const DEFAULT_CODE = fs.readFileSync(path.join(__dirname, 'default-code.cpp'))
     .replace(/>/g, '&gt;');
 const DEFAULT_INDEX_HTML = INDEX_HTML_CODE
     .replace('{{INITIAL_CODE}}', DEFAULT_CODE)
-    .replace('{{RUNTIME_ARGS}}', '');
+    .replace('{{RUNTIME_ARGS}}', '')
+    .replace('{{INCLUDE_FILE_NAME}}', '')
+    .replace('{{INJECT_INCLUDE_FILE}}', '');
 
 const EMBED_HTML_CODE = fs.readFileSync(
     path.resolve(__dirname + '/../client/embed.html')).toString();
 const DEFAULT_EMBED_HTML = EMBED_HTML_CODE
     .replace('{{INITIAL_CODE}}', DEFAULT_CODE)
-    .replace('{{RUNTIME_ARGS}}', '');
+    .replace('{{RUNTIME_ARGS}}', '')
+    .replace('{{INCLUDE_FILE_NAME}}', '')
+    .replace('{{INJECT_INCLUDE_FILE}}', '');
 
 function handleLoadProgram(req, res, defaultCode, templateCode) {
     console.info('Incoming request for ' + req.originalUrl);
@@ -52,16 +63,25 @@ function handleLoadProgram(req, res, defaultCode, templateCode) {
                     || req.connection.remoteAddress;
                 const sourceUA = req.headers['user-agent'] || '';
                 db.logView(result.id, sourceIP, sourceUA);
+                const includeFileName = sanitizeHtml(result.include_file_name || '');
+                const includeFileData = result.include_file_data.toString('base64');
+                const includeFileInjectJs = result.include_file_name
+                    ? `function _base64ToArrayBuffer(base64) {
+                           const binary_string = window.atob(base64);
+                           const bytes = new Uint8Array(binary_string.length);
+                           for (let i = 0; i < binary_string.length; i++) {
+                               bytes[i] = binary_string.charCodeAt(i);
+                           }
+                           return bytes.buffer;
+                       }
+                       window.includeFileFromServer = {name: "${includeFileName}",
+                           data: _base64ToArrayBuffer("${includeFileData}")};`
+                    : '';
                 res.send(templateCode
-                    .replace('{{RUNTIME_ARGS}}',
-                        result.args.replace(/&/g, '&amp;')
-                                   .replace(/"/g, '&quot;')
-                                   .replace(/</g, '&lt;')
-                                   .replace(/>/g, '&gt;'))
-                    .replace('{{INITIAL_CODE}}',
-                        result.code.replace(/&/g, '&amp;')
-                                   .replace(/</g, '&lt;')
-                                   .replace(/>/g, '&gt;')));
+                    .replace('{{RUNTIME_ARGS}}', sanitizeHtml(result.args))
+                    .replace('{{INITIAL_CODE}}', sanitizeHtml(result.code))
+                    .replace('{{INCLUDE_FILE_NAME}}', includeFileName)
+                    .replace('{{INJECT_INCLUDE_FILE}}', includeFileInjectJs));
             } else {
                 console.info('Program not found, sending default!');
                 // TODO: send redirect to /
@@ -121,7 +141,19 @@ function getRunParams(request) {
         throw 'Submitted args exceed max length!';
     }
 
-    return { compiler, cflags, code, fileExt, argsStr };
+    const requestIncludeFile = request.includeFile || {};
+    const includeFile = {};
+    includeFile.name = requestIncludeFile.name || '';
+    includeFile.data = (requestIncludeFile.data instanceof Buffer)
+        ? requestIncludeFile.data : Buffer.alloc(0);
+    if (includeFile.name.length > db.INCLUDE_FILE_NAME_MAX_LEN) {
+        throw 'Include file name exceeds max length!';
+    }
+    if (includeFile.data.length > db.INCLUDE_FILE_DATA_MAX_LEN) {
+        throw 'Include file data exceeds max size!';
+    }
+
+    return { compiler, cflags, code, fileExt, argsStr, includeFile };
 }
 
 io.on('connection', function(socket){
@@ -138,6 +170,7 @@ io.on('connection', function(socket){
     const containerName = uuidv4();
     const dataPath = path.resolve(__dirname + '/../../data');
     const codePath = path.join(dataPath, containerName);
+    const includeDataPath = path.join(dataPath, containerName + '-include.zip');
 
     function startContainer(compiler, cflags, containerCodePath, argsStr,
             exitCallback) {
@@ -156,6 +189,7 @@ io.on('connection', function(socket){
             '--tmpfs', '/cfiddle:mode=0777,size=32m,exec',
             // Add the code to the container and set options
             '-v', `${codePath}:${containerCodePath}:ro`,
+            '-v', `${includeDataPath}:/cfiddle/include.zip:ro`,
             '-e', 'COMPILER=' + compiler,
             '-e', 'CFLAGS=' + cflags,
             '-e', 'SRCPATH=' + containerCodePath,
@@ -254,6 +288,7 @@ io.on('connection', function(socket){
         // was already removed (or was never successfully created to begin
         // with)
         try { fs.unlinkSync(codePath); } catch {}
+        try { fs.unlinkSync(includeDataPath); } catch {}
 
         if (socket.connected) {
             console.log(connIdPrefix + 'Closing socket');
@@ -271,7 +306,7 @@ io.on('connection', function(socket){
         // Parse info from run request
         let compiler, cflags, code, fileExt, argsStr;
         try {
-            ({ compiler, cflags, code, fileExt, argsStr }
+            ({ compiler, cflags, code, fileExt, argsStr, includeFile }
                 = getRunParams(cmdInfo));
         } catch (e) {
             console.error(connIdPrefix + 'Failed to get valid run params!');
@@ -285,10 +320,14 @@ io.on('connection', function(socket){
         console.log(connIdPrefix + 'Saving code to ' + codePath);
         if (!fs.existsSync(dataPath)) fs.mkdirSync(dataPath);
         fs.writeFileSync(codePath, code);
+        if (includeFile.name) {
+            console.log('Writing include file to ' + includeDataPath);
+            fs.writeFileSync(includeDataPath, includeFile.data);
+        }
 
         // Log to db and start running the container
         let alias, runId;
-        db.insertProgram(compiler, cflags, code, argsStr, sourceIP, sourceUA).then(row => {
+        db.insertProgram(compiler, cflags, code, argsStr, includeFile, sourceIP, sourceUA).then(row => {
             alias = row.alias;
             console.log(connIdPrefix + 'Program is at alias ' + alias);
             return db.createRun(row.id, sourceIP, sourceUA);

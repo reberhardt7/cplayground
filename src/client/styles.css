@@ -250,6 +250,10 @@ body:not(.embedded) #split-pane-btn,
     margin-top: 0px;
 }
 
+.sidebar p {
+    margin: 8px 0;
+}
+
 .sidebar select, .sidebar input[type=text] {
     width: 100%;
     background-color: #4f495f;
@@ -261,6 +265,24 @@ body:not(.embedded) #split-pane-btn,
 
 .flag-spacer {
     height: 0.7em;
+}
+
+/* File uploads: */
+
+/* Don't show uploaded file status if nothing has been uploaded */
+#uploaded-filename:empty { display: none; }
+#uploaded-filename:empty + #btn-remove-uploaded-file { display: none; }
+
+#uploaded-filename {    float: left;    }
+#btn-remove-uploaded-file {
+    float: right;
+    cursor: pointer;
+    line-height: 1.3em;
+}
+
+#uploaded-filename, #btn-remove-uploaded-file {
+    margin-top: 0;  /* The preceding paragraph already has a bottom margin */
+    margin-bottom: 8px;
 }
 
 .primary-container .code-container::before {

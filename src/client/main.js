@@ -28,6 +28,29 @@ editor.commands.addCommand({
     exec: toggleSettingsSidebar,
 });
 
+// Handle uploaded include files
+const includeFile = window.includeFileFromServer || {name: '', data: new ArrayBuffer(0)};
+window.includeFile = includeFile;
+document.getElementById('input-include-file').addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (file.size > 1 * Math.pow(10, 6)) {
+        alert('The file you uploaded is too big! Max filesize 1MB');
+        return;
+    }
+    includeFile.name = file.name;
+    document.getElementById('uploaded-filename').innerText = file.name;
+    const fileReader = new FileReader();
+    fileReader.onload = () => {
+        includeFile.data = fileReader.result;
+        e.target.value = '';
+    };
+    fileReader.readAsArrayBuffer(file);
+});
+document.getElementById('btn-remove-uploaded-file').addEventListener('click', e => {
+    includeFile.name = '';
+    includeFile.data = new ArrayBuffer(0);
+});
+
 function getCompilerFlags() {
     const flags = [];
     for (let el of document.querySelectorAll('#compiler-flags select,'
@@ -52,6 +75,7 @@ function compileAndExec(code) {
         language: document.getElementById('language-select').value,
         flags: getCompilerFlags(),
         args: document.getElementById('runtime-args').value,
+        includeFile: includeFile,
     });
 }
 

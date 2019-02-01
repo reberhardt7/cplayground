@@ -1,5 +1,5 @@
 FROM ubuntu:latest
-RUN apt-get update && apt-get install -y apt-utils build-essential bc nsnake
+RUN apt-get update && apt-get install -y apt-utils build-essential bc unzip nsnake
 
 RUN groupadd -g 999 cfiddle \
     && useradd -r -u 999 -g cfiddle -d /cfiddle cfiddle

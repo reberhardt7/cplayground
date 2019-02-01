@@ -46,9 +46,14 @@ SUCCESS_EXIT_BANNER=$(print_banner \
     "Execution finished (exit status 0)" \
     $GREEN $LIGHT_GRAY)
 
+mkdir -p /cfiddle/include /cfiddle/lib
+if [ -f /cfiddle/include.zip ]; then
+    unzip -q /cfiddle/include.zip -d /cfiddle/
+fi
+
 # Compile and run the user program
 print_banner "Compiling..." $CYAN $LIGHT_GRAY
-COMPILE_CMD="$COMPILER $CFLAGS -o /cfiddle/output $SRCPATH"
+COMPILE_CMD="$COMPILER -o /cfiddle/output $SRCPATH -I/cfiddle/include/ -L/cfiddle/lib/ /cfiddle/lib/*.a $CFLAGS"
 echo $COMPILE_CMD
 START_COMP_TIME_NS=$(date +%s%N)
 $COMPILE_CMD                                            \

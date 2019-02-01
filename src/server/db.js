@@ -12,6 +12,8 @@ const CODE_MAX_LEN = 65535;         // TEXT
 const OUTPUT_MAX_LEN = 16777215;    // MEDIUMBLOB
 const CFLAGS_MAX_LEN = 100;
 const ARGS_MAX_LEN = 100;
+const INCLUDE_FILE_NAME_MAX_LEN = 20;
+const INCLUDE_FILE_DATA_MAX_LEN = 1 * Math.pow(10, 6);  // be sure to update this client-side too
 
 if (!process.env.DB_URL) {
     console.error('Error! Must specify DB_URL enviroment variable');
@@ -34,14 +36,15 @@ const pool = mysql.createPool({
   database: 'cfiddle',
 });
 
-function genProgramId(compiler, cflags, code, args) {
+function genProgramId(compiler, cflags, code, args, includeFile) {
     const hash = crypto.createHash('sha256');
-    hash.update(JSON.stringify({ compiler, cflags, code, args }));
+    const include = {name: includeFile.name, data: includeFile.data.toString('hex')};
+    hash.update(JSON.stringify({ compiler, cflags, code, args, include }));
     return hash.digest('base64');
 }
 
-function getProgram(compiler, cflags, code, args) {
-    const id = genProgramId(compiler, cflags, code, args);
+function getProgram(compiler, cflags, code, args, includeFile) {
+    const id = genProgramId(compiler, cflags, code, args, includeFile);
     return new Promise((resolve, reject) => {
         pool.query('SELECT * FROM programs WHERE id = ?', id, (err, res) => {
             if (err) throw err;
@@ -61,7 +64,8 @@ function getProgramByAlias(alias) {
     });
 }
 
-function insertProgram(compiler, cflags, code, args, source_ip, source_user_agent) {
+function insertProgram(compiler, cflags, code, args, includeFile,
+        source_ip, source_user_agent) {
     // When storing a program, we generate its id as a SHA-256 hash of all the
     // parameters the client sent us. The chance of a collision is extremely
     // low, and this allows us to not add duplicate entries in the database if
@@ -69,7 +73,7 @@ function insertProgram(compiler, cflags, code, args, source_ip, source_user_agen
     // doesn't make for a good URL for a program, we also generate a unique
     // "alias" containing 3 names of animals. This is what is shown to users
     // (the hash ID is never shown).
-    const id = genProgramId(compiler, cflags, code, args);
+    const id = genProgramId(compiler, cflags, code, args, includeFile);
     const alias = Array.from({length: 3},
         () => ANIMALS[Math.floor(Math.random() * ANIMALS.length)]
     ).join('-');
@@ -80,9 +84,12 @@ function insertProgram(compiler, cflags, code, args, source_ip, source_user_agen
             const alias = Array.from({length: 3},
                 () => ANIMALS[Math.floor(Math.random() * ANIMALS.length)]
             ).join('-');
+            const include_file_name = includeFile.name;
+            const include_file_data = includeFile.data;
             pool.query(
                 'INSERT INTO programs SET ?',
-                { id, alias, compiler, cflags, code, args, source_ip, source_user_agent },
+                { id, alias, compiler, cflags, code, args, include_file_name,
+                    include_file_data, source_ip, source_user_agent },
                 error => {
                     if (error && error.sqlMessage === "Duplicate entry '"
                         + alias + "' for key 'alias'") {
@@ -91,7 +98,7 @@ function insertProgram(compiler, cflags, code, args, source_ip, source_user_agen
                     } else if (error && error.sqlMessage === "Duplicate entry '"
                         + id + "' for key 'PRIMARY'") {
                         // Return the existing program info
-                        resolve(getProgram(compiler, cflags, code, args));
+                        resolve(getProgram(compiler, cflags, code, args, includeFile));
                     } else if (error) {
                         console.error('Error inserting program!');
                         console.error(error);
@@ -140,4 +147,5 @@ function logView(program_id, source_ip, source_user_agent) {
 }
 
 module.exports = { CODE_MAX_LEN, OUTPUT_MAX_LEN, CFLAGS_MAX_LEN, ARGS_MAX_LEN,
+    INCLUDE_FILE_NAME_MAX_LEN, INCLUDE_FILE_DATA_MAX_LEN,
     insertProgram, getProgramByAlias, createRun, updateRun, logView };
