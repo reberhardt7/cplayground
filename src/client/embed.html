@@ -58,6 +58,9 @@
                     <input type="checkbox" id="compile-wall" value="-Wall" checked />
                     <label for="compile-wall">-Wall (recommended warnings)</label>
                     <br />
+                    <input type="checkbox" id="compile-no-pie" value="-no-pie" checked />
+                    <label for="compile-no-pie">-no-pie (disable relocations)</label>
+                    <br />
                     <input type="checkbox" id="compile-aslr" value="-fpie -Wl,-pie" />
                     <label for="compile-aslr">-fpie -Wl,-pie (ASLR)</label>
                     <br />
@@ -71,6 +74,9 @@
 
                     <input type="checkbox" id="link-lm" value="-lm" checked />
                     <label for="link-lm">-lm (math)</label>
+                    <br />
+                    <input type="checkbox" id="link-lrand" value="-lrand" checked />
+                    <label for="link-lrand">-lrand (random)</label>
                     <br />
                     <input type="checkbox" id="link-pthread" value="-pthread"
                            checked />

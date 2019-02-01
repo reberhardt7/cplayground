@@ -19,9 +19,10 @@ const SUPPORTED_VERSIONS = ['C99', 'C11', 'C++11', 'C++14', 'C++17'];
 const WHITELISTED_CFLAGS = [
     '-O0', '-O1', '-O2', '-O3',
     '-Wall',
+    '-no-pie',
     '-fpie -Wl,-pie',   // ASLR
     '-fstack-protector-strong', // Anti stack smashing
-    '-lm', '-pthread', '-lcrypt', '-lrt'
+    '-lm', '-lrand', '-pthread', '-lcrypt', '-lreadline', '-lrt'
 ];
 
 function sanitizeHtml(str) {
