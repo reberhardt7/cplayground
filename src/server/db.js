@@ -12,7 +12,7 @@ const CODE_MAX_LEN = 65535;         // TEXT
 const OUTPUT_MAX_LEN = 16777215;    // MEDIUMBLOB
 const CFLAGS_MAX_LEN = 100;
 const ARGS_MAX_LEN = 100;
-const INCLUDE_FILE_NAME_MAX_LEN = 30;
+const INCLUDE_FILE_NAME_MAX_LEN = 40;
 const INCLUDE_FILE_DATA_MAX_LEN = 1 * Math.pow(10, 6);  // be sure to update this client-side too
 
 if (!process.env.DB_URL) {
