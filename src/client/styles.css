@@ -391,13 +391,6 @@ body:not(.embedded) #split-pane-btn,
  color: #92c74d;
 }
 
-.ace-monokai .ace_entity.ace_name.ace_tag,
-.ace-monokai .ace_keyword,
-.ace-monokai .ace_meta.ace_tag,
-.ace-monokai .ace_storage {
- color:#d85b7b;
-}
-
 .ace-tm .ace_marker-layer .ace_selection {
  background: #4f495f;
 }
