@@ -46,16 +46,18 @@ SUCCESS_EXIT_BANNER=$(print_banner \
     "Execution finished (exit status 0)" \
     $GREEN $LIGHT_GRAY)
 
-mkdir -p /cfiddle/include /cfiddle/lib
-if [ -f /cfiddle/include.zip ]; then
-    unzip -q /cfiddle/include.zip -d /cfiddle/
+mkdir -p /cplayground/include /cplayground/lib
+if [ -f /cplayground/include.zip ]; then
+    unzip -q /cplayground/include.zip -d /cplayground/
 fi
 
-STATIC_LIBRARIES=$(find /cfiddle/lib -name "*.a")
+STATIC_LIBRARIES=$(find /cplayground/lib -name "*.a")
 
 # Compile and run the user program
 print_banner "Compiling..." $CYAN $LIGHT_GRAY
-COMPILE_CMD="$COMPILER -o /cfiddle/output $SRCPATH -I/cfiddle/include/ -L/cfiddle/lib/ $STATIC_LIBRARIES $CFLAGS"
+COMPILE_CMD="$COMPILER -o /cplayground/output $SRCPATH \
+    -I/cplayground/include/ -L/cplayground/lib/ $STATIC_LIBRARIES \
+    $CFLAGS"
 echo $COMPILE_CMD
 START_COMP_TIME_NS=$(date +%s%N)
 $COMPILE_CMD                                            \
@@ -64,7 +66,7 @@ $COMPILE_CMD                                            \
     && print_banner "Compiled in $RUN_TIME" $GREEN $LIGHT_GRAY      \
     && print_banner "Executing..." $CYAN $LIGHT_GRAY    \
     && START_EXEC_TIME_NS=$(date +%s%N)                 \
-    && timeout --foreground 60 /cfiddle/output "$@"
+    && timeout --foreground 60 /cplayground/output "$@"
 STATUS_CODE=$?
 END_EXEC_TIME_NS=$(date +%s%N)
 

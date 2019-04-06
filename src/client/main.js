@@ -124,7 +124,7 @@ const buttonHandlers = {
     'settings-btn': toggleSettingsSidebar,
     'edit-btn': showEditorPane,
     'split-pane-btn': showSplitView,
-    'open-in-cfiddle-btn': () => {
+    'open-in-cplayground-btn': () => {
         window.open(window.location.href.replace('/embed', '/'), "_blank");
     },
 };

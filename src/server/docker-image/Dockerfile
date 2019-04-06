@@ -1,15 +1,15 @@
 FROM ubuntu:latest
 RUN apt-get update && apt-get install -y apt-utils build-essential bc unzip nsnake
 
-RUN groupadd -g 999 cfiddle \
-    && useradd -r -u 999 -g cfiddle -d /cfiddle cfiddle
+RUN groupadd -g 999 cplayground \
+    && useradd -r -u 999 -g cplayground -d /cplayground cplayground
 
 ADD run.sh /run.sh
-RUN mkdir -p /cfiddle \
-    && chmod 777 /cfiddle \
-    && chown -R cfiddle:cfiddle /cfiddle \
+RUN mkdir -p /cplayground \
+    && chmod 777 /cplayground \
+    && chown -R cplayground:cplayground /cplayground \
     && chmod +x run.sh
 
-USER cfiddle
-WORKDIR /cfiddle
+USER cplayground
+WORKDIR /cplayground
 CMD ["/run.sh"]

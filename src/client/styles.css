@@ -158,7 +158,7 @@ a, a:visited {
     transform: scale(0.75, 0.75);
 }
 
-#open-in-cfiddle-btn {
+#open-in-cplayground-btn {
     font-size: 0.8em;
     float: right;
     width: 160px;

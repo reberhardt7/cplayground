@@ -1,10 +1,10 @@
-cfiddle
-=======
+cplayground
+===========
 
-[cfiddle.com](https://cfiddle.com)
+[cplayground.com](https://cplayground.com)
 
-CFiddle is an online sandbox that makes it easy to quickly test out C or C++
-code. A specific goal of the project is to offer strong support for OS
+CPlayground is an online sandbox that makes it easy to quickly test out C or
+C++ code. A specific goal of the project is to offer strong support for OS
 constructs such as multiprocessing and multithreading.
 
 Build instructions
@@ -30,7 +30,7 @@ sudo apt update
 sudo apt install docker-ce
 ```
 
-You will probably want to add the user running cfiddle to the `docker` group,
+You will probably want to add the user running cplayground to the `docker` group,
 so that you don't need to run the server as root:
 
 ```
@@ -56,13 +56,13 @@ sudo reboot
 
 ```
 sudo apt-get install -y build-essential make
-cd cfiddle/
+cd cplayground/
 npm install
-sudo docker build -t cfiddle src/server/docker-image/
+sudo docker build -t cplayground src/server/docker-image/
 npm run-script build
 ```
 
-Create a MySQL database called `cfiddle` and add a user for this database.
+Create a MySQL database called `cplayground` and add a user for this database.
 Then run the server:
 
 ```

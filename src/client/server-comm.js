@@ -22,7 +22,7 @@ export function makeDockerSocket(appState) {
         // Inform the parent of this iframe (if this is an embed) that we've
         // loaded new saved code
         window.parent.postMessage({
-            eventType: 'cfiddle-updated',
+            eventType: 'cplayground-updated',
             location: window.location.href,
         }, '*');
     });
