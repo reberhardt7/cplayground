@@ -4,7 +4,8 @@ module.exports = [{
   target: "web",
   mode: 'development',
   entry: [
-    './src/client/main.js'
+    './src/client/main.js',
+    './src/client/styles/styles.scss',
   ],
   output: {
     path: path.resolve(__dirname, 'dist', 'client'),
@@ -16,6 +17,16 @@ module.exports = [{
         test: /\.js$/,
         exclude: /node_modules/,
         use: 'babel-loader'
+      },
+      {
+        test: /\.scss$/,
+        use: [
+          {
+            loader: 'file-loader',
+            options: { name: 'css/[name].css' }
+          },
+          { loader: 'sass-loader' },
+        ]
       }
     ]
   },

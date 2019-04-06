@@ -97,7 +97,7 @@ app.get('/',
 app.get('/embed',
     (req, res) => handleLoadProgram(req, res, DEFAULT_EMBED_HTML, EMBED_HTML_CODE));
 app.get('/styles.css', function(req, res){
-    res.sendFile(path.resolve(__dirname + '/../client/styles.css'));
+    res.sendFile(path.resolve(__dirname + '/../../dist/client/css/styles.css'));
 });
 app.get('/app.js', function(req, res){
     res.sendFile(path.resolve(__dirname + '/../../dist/client/bundle.js'));
