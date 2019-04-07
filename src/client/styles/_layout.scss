@@ -1,0 +1,93 @@
+html {
+    box-sizing: border-box;
+}
+
+*, *:before, *:after {
+    box-sizing: inherit;
+}
+
+html, body {
+    margin: 0;
+    width: 100%;
+    height: 100%;
+    background: $background-color;
+    color: $foreground-color;
+}
+
+.primary-container {
+    height: calc( 100% - #{$topbar-height} );
+    width: 100%;
+    position: relative;
+}
+
+.code-container, .terminal-container {
+    width: 50%;
+    height: 100%;
+    padding: $pane-padding;
+    transition: width $layout-transition-time ease-in-out,
+                margin-left $layout-transition-time ease-in-out;
+    position: relative;
+    background: $background-color;
+}
+
+.primary-container.open-sidebar .code-container,
+.primary-container.open-sidebar .terminal-container {
+    width: calc(50% - #{$sidebar-width / 2});
+}
+
+.code-container {
+    border-right: 1px solid $topbar-border-color;
+    float: left;
+}
+
+.terminal-container {
+    float: right;
+}
+
+.primary-container.open-sidebar .code-container {
+    margin-left: $sidebar-width;
+}
+
+.sidebar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: $sidebar-width;
+    height: 100%;
+    padding: $pane-padding;
+    float: left;
+    font-size: 0.8rem;
+    overflow-y: auto;
+    opacity: 0;
+    transition: opacity $layout-transition-time ease-out;
+}
+
+.open-sidebar .sidebar {
+    opacity: 1;
+}
+
+// Vertical border between sidebar and code container (appears when the sidebar
+// is expanded):
+.primary-container .code-container::before {
+    content: ' ';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 0;
+    border-left: 1px solid $topbar-border-color;
+    opacity: 0;
+    transition: opacity $layout-transition-time ease-out;
+}
+.primary-container.open-sidebar .code-container::before {
+    opacity: 1;
+}
+
+// Single-pane (non-split) view:
+
+.show-code-only .code-container { width: 100%; padding: 0px; }
+.show-code-only .open-sidebar .code-container { width: calc(100% - #{$sidebar-width}) }
+.show-code-only .terminal-container { position: absolute; visibility: hidden; }
+.show-term-only .terminal-container { width: 100%; }
+.show-term-only .open-sidebar .terminal-container { width: calc(100% - #{$sidebar-width}) }
+.show-term-only .code-container { position: absolute; visibility: hidden; }

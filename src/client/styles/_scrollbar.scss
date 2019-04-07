@@ -1,0 +1,17 @@
+/* Make scrollbar background more subtle */
+* {
+    /* Firefox: */
+    scrollbar-color: $scrollbar-color rgba(0, 0, 0, 0.08);
+}
+*::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+*::-webkit-scrollbar-track {
+    box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.2);
+    background-color: rgba(0, 0, 0, 0.08);
+}
+*::-webkit-scrollbar-thumb {
+    background-color: $scrollbar-color;
+    border-radius: 5px;
+}

@@ -1,0 +1,133 @@
+.topbar {
+    height: $topbar-height;
+    width: 100%;
+    background-color: $topbar-bg-color;
+    border-bottom: 3px solid $topbar-border-color;
+    color: $topbar-font-color;
+}
+
+.topbar .btn {
+    height: 100%;
+    width: 120px;
+    position: relative;
+    text-align: center;
+    display: inline-block;
+    cursor: pointer;
+    background-color: $topbar-bg-color;
+    transition: background-color 0.3s ease-out;
+}
+
+.topbar #settings-btn {
+    width: 65px;
+    border-right: 1px solid $topbar-border-color;
+}
+
+.btn i {
+    font-size: 1.1em;
+}
+
+.btn .main-text {
+    position: relative;
+    top: 50%;
+    transform: translateY(-50%);
+    transition: top 0.3s ease-out;
+}
+
+.btn .shortcut {
+    position: absolute;
+    top: 65%;
+    transform: translateY(-50%);
+    font-size: 0.7em;
+    width: 100%;
+    opacity: 0;
+    transition: top 0.3s ease-out, opacity 0.3s ease-out;
+}
+
+.topbar .btn:hover {
+    background-color: $topbar-border-color;
+}
+
+.topbar .btn.disabled:hover {
+    background-color: $topbar-disabled-color;
+    cursor: default;
+}
+
+.btn.has-shortcut:hover:not(.disabled) .main-text {
+    top: 40%;
+}
+
+.btn.has-shortcut:hover:not(.disabled) .shortcut {
+    top: 75%;
+    opacity: 1;
+}
+
+.btn .icon {
+    display: inline-block;
+    position: relative;
+    margin-right: 10px;
+}
+
+#run-btn .play-icon .filled {
+    position: absolute;
+    top: 0;
+    left: 2px;
+    opacity: 0;
+    transition: opacity 0.3s ease-out, transform 0.3s ease-out;
+}
+
+#run-btn .play-icon:after {
+    content: " ";
+    position: absolute;
+    top: -3px;
+    left: -4px;
+    display: block;
+    width: 25px;
+    height: 25px;
+    border-radius: 50%;
+    border: 2px solid $topbar-font-color;
+    border-color: $topbar-font-color transparent $topbar-font-color transparent;
+    opacity: 0;
+    transition: opacity 0.2s ease-out 0s;
+}
+
+#run-btn.disabled .play-icon:after {
+    opacity: 1;
+    animation: loading-spinner 1.2s linear infinite;
+    transition: opacity 0.3s ease-out 0.2s;
+}
+
+@keyframes loading-spinner {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+#run-btn.disabled .play-icon .filled {
+    opacity: 1;
+    transform: scale(0.75, 0.75);
+}
+
+#run-btn .play-icon .outline {
+    transition: opacity 0.3s ease-out, transform 0.3s ease-out;
+}
+
+#run-btn.disabled .play-icon .outline {
+    opacity: 0;
+    transform: scale(0.75, 0.75);
+}
+
+#open-in-cplayground-btn {
+    font-size: 0.8em;
+    float: right;
+    width: 160px;
+}
+
+body:not(.embedded) #edit-btn,
+body:not(.embedded) #split-pane-btn,
+.show-code-only #edit-btn,
+.show-split #split-pane-btn {
+    display: none;
+}

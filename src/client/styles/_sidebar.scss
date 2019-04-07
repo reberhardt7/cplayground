@@ -1,0 +1,65 @@
+// note: styles for main sidebar container are in _layout.scss
+
+.sidebar-footer-spacer {
+    width: 100%;
+    height: $sidebar-footer-height;
+}
+
+.sidebar-footer {
+    background: linear-gradient(to top, $background-color 0%, $background-color 50%,
+                                rgba(0,0,0,0) 100%);
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: $sidebar-width;
+    height: $sidebar-footer-height;
+    padding: $pane-padding;
+    padding-top: 25px;
+    text-align: center;
+}
+
+.sidebar h3 {
+    font-size: 1.2em;
+    font-weight: 400;
+    margin-bottom: $sidebar-spacing;
+}
+.sidebar h3:first-of-type {
+    margin-top: 0px;
+}
+
+.sidebar p {
+    margin: $sidebar-spacing 0;
+}
+
+.sidebar select, .sidebar input[type=text] {
+    width: 100%;
+    background-color: $accent-color;
+    border: none;
+    border-radius: 3px;
+    height: 25px;
+    color: inherit;
+}
+
+.flag-spacer {
+    height: 0.7em;
+}
+
+/* File uploads: */
+
+/* Don't show uploaded file status if nothing has been uploaded */
+#uploaded-filename:empty { display: none; }
+#uploaded-filename:empty + #btn-remove-uploaded-file { display: none; }
+
+#uploaded-filename {    float: left;    }
+#btn-remove-uploaded-file {
+    float: right;
+    cursor: pointer;
+    line-height: 1.3em;
+}
+
+#uploaded-filename, #btn-remove-uploaded-file {
+    margin-top: 0;  /* The preceding paragraph already has a bottom margin */
+    margin-bottom: $sidebar-spacing;
+}
+
+
