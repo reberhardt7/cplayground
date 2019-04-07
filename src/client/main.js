@@ -4,28 +4,30 @@ import {makeDockerSocket} from './server-comm';
 let appState = {};
 const bodyTag = document.getElementsByTagName('body')[0];
 
-makeTerminal(document.getElementById('terminal'), appState);
+window.addEventListener('load', () => {
+    makeTerminal(document.getElementById('terminal'), appState);
 
-const editor = ace.edit("editor");
-editor.session.setMode("ace/mode/c_cpp");
-editor.focus();
-// In the CSS, we set the font color equal to the background color so that the
-// initial code doesn't show as unformatted while we load JS. Now that we've
-// loaded, set it to the proper color
-document.getElementById('editor').style.color = 'inherit';
-if (bodyTag.classList.contains('embedded')) {
-    // Add 8px of padding at the top and bottom of the editor. This makes things
-    // look nicer in the embedded code-only view, where we reduce the editor margin
-    // to 0
-    editor.renderer.setScrollMargin(8, 8);
-}
-// Disable ACE custom cmd+l (goto line)
-delete editor.keyBinding.$defaultHandler.commandKeyBinding["cmd-l"];
-delete editor.keyBinding.$defaultHandler.commandKeyBinding["ctrl-l"];
-// Show settings pane on cmd+comma
-editor.commands.addCommand({
-    bindKey: {win: "Ctrl-,", mac: "Command-,"},
-    exec: toggleSettingsSidebar,
+    const editor = ace.edit("editor");
+    editor.session.setMode("ace/mode/c_cpp");
+    editor.focus();
+    // In the CSS, we set the font color equal to the background color so that
+    // the initial code doesn't show as unformatted while we load JS. Now that
+    // we've loaded, set it to the proper color
+    document.getElementById('editor').style.color = 'inherit';
+    if (bodyTag.classList.contains('embedded')) {
+        // Add 8px of padding at the top and bottom of the editor. This makes
+        // things look nicer in the embedded code-only view, where we reduce
+        // the editor margin to 0
+        editor.renderer.setScrollMargin(8, 8);
+    }
+    // Disable ACE custom cmd+l (goto line)
+    delete editor.keyBinding.$defaultHandler.commandKeyBinding["cmd-l"];
+    delete editor.keyBinding.$defaultHandler.commandKeyBinding["ctrl-l"];
+    // Show settings pane on cmd+comma
+    editor.commands.addCommand({
+        bindKey: {win: "Ctrl-,", mac: "Command-,"},
+        exec: toggleSettingsSidebar,
+    });
 });
 
 // Handle uploaded include files

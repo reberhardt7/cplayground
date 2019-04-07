@@ -8,30 +8,41 @@ Terminal.applyAddon(fit);
 Terminal.applyAddon(webLinks);
 Terminal.applyAddon(WebfontLoader)
 
+function getTerminalColors() {
+    // HACK: xterm needs the terminal colors JS-side, but we've declared them
+    // in the stylesheets, and I don't want to declare them in multiple places
+    // (especially since we have multiple themes). So this code iterates over
+    // the CSS rules and extracts the colors we're looking for.
+    //
+    // NOTE: only call this function *after* you're sure the stylesheets have
+    // loaded (e.g. after the body load event)
+    const colors = {};
+    for (let stylesheet of document.styleSheets) {
+        let rules;
+        try {
+            rules = stylesheet.rules || stylesheet.cssRules;
+        } catch {
+            // Some browsers throw an exception if we're trying to inspect a
+            // stylesheet from a different domain
+            continue;
+        }
+        for (let rule of rules) {
+            if (!rule.selectorText) continue;
+            const match = rule.selectorText.match(/^.term-color-([a-zA-Z]+)$/);
+            if (match) {
+                colors[match[1]] = rule.style['color'];
+            }
+        }
+    }
+    console.log(colors);
+    return colors;
+}
+
 export function makeTerminal(terminalElem, appState) {
     const term = new Terminal({
         fontFamily: 'Ubuntu Mono',
         fontSize: 16,
-        theme: {
-            foreground: '#d6dbd8',
-            background: '#352e3c',
-            black: "#29282e",
-            red: "#a63939",
-            green: "#87a140",
-            yellow: "#dba858",
-            blue: "#5b81a0",
-            magenta: "#85678f",
-            cyan: "#5e8d87",
-            white: "#818890",
-            brightBlack: "#4f495f",
-            brightRed: "#d85b7b",
-            brightGreen: "#92c74d",
-            brightYellow: "#f0d974",
-            brightBlue: "#7daad1",
-            brightMagenta: "#b294bb",
-            brightCyan: "#87c6be",
-            brightWhite: "#c5c8c6"
-        }
+        theme: getTerminalColors(),
     });
     appState.term = term;
 

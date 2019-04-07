@@ -38,3 +38,25 @@ $editor-variable-color: $bright-red !default;
 $editor-attribute-color: $bright-green !default;
 $editor-bracket-border-color: $bright-white !default;
 $editor-selected-word-border-color: $subtle-text-color !default;
+
+// HACK: The xterm library needs the terminal colors to be accessible in JS,
+// but I don't want to define the colors in multiple places, so I define these
+// classes, then query the classes in JS.
+.term-color-foreground { color: $foreground-color; }
+.term-color-background { color: $background-color; }
+.term-color-black { color: $black; }
+.term-color-red { color: $red; }
+.term-color-green { color: $green; }
+.term-color-yellow { color: $yellow; }
+.term-color-blue { color: $blue; }
+.term-color-magenta { color: $magenta; }
+.term-color-cyan { color: $cyan; }
+.term-color-white { color: $white; }
+.term-color-brightBlack { color: $bright-black; }
+.term-color-brightRed { color: $bright-red; }
+.term-color-brightGreen { color: $bright-green; }
+.term-color-brightYellow { color: $bright-yellow; }
+.term-color-brightBlue { color: $bright-blue; }
+.term-color-brightMagenta { color: $bright-magenta; }
+.term-color-brightCyan { color: $bright-cyan; }
+.term-color-brightWhite { color: $bright-white; }
