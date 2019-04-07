@@ -1,3 +1,6 @@
+@import 'colors';
+@import 'editor';
+
 html {
     box-sizing: border-box;
     font-family: 'Montserrat', sans-serif;
@@ -11,18 +14,18 @@ html, body {
     margin: 0;
     width: 100%;
     height: 100%;
-    background: #352e3c;
-    color: #d6dbd8;
+    background: $background-color;
+    color: $foreground-color;
 }
 
 a, a:visited {
-    color: #d6dbd8;
+    color: $foreground-color;
 }
 
 /* Make scrollbar background more subtle */
 * {
     /* Firefox: */
-    scrollbar-color: #cdc6d4 rgba(0, 0, 0, 0.08);
+    scrollbar-color: $scrollbar-color rgba(0, 0, 0, 0.08);
 }
 *::-webkit-scrollbar {
     width: 8px;
@@ -33,16 +36,16 @@ a, a:visited {
     background-color: rgba(0, 0, 0, 0.08);
 }
 *::-webkit-scrollbar-thumb {
-    background-color: #cdc6d4;
+    background-color: $scrollbar-color;
     border-radius: 5px;
 }
 
 .topbar {
     height: 60px;
     width: 100%;
-    background-color: #4f495f;
-    border-bottom: 3px solid #5c517b;
-    color: #fff;
+    background-color: $topbar-bg-color;
+    border-bottom: 3px solid $topbar-border-color;
+    color: $topbar-font-color;
 }
 
 .topbar .btn {
@@ -52,13 +55,13 @@ a, a:visited {
     text-align: center;
     display: inline-block;
     cursor: pointer;
-    background-color: #4f495f;
+    background-color: $topbar-bg-color;
     transition: background-color 0.3s ease-out;
 }
 
 .topbar #settings-btn {
     width: 65px;
-    border-right: 1px solid #5c517b;
+    border-right: 1px solid $topbar-border-color;
 }
 
 .btn i {
@@ -83,11 +86,11 @@ a, a:visited {
 }
 
 .topbar .btn:hover {
-    background-color: #5c517b;
+    background-color: $topbar-border-color;
 }
 
 .topbar .btn.disabled:hover {
-    background-color: #555065;
+    background-color: $topbar-disabled-color;
     cursor: default;
 }
 
@@ -123,8 +126,8 @@ a, a:visited {
     width: 25px;
     height: 25px;
     border-radius: 50%;
-    border: 2px solid #fff;
-    border-color: #fff transparent #fff transparent;
+    border: 2px solid $topbar-font-color;
+    border-color: $topbar-font-color transparent $topbar-font-color transparent;
     opacity: 0;
     transition: opacity 0.2s ease-out 0s;
 }
@@ -183,7 +186,7 @@ body:not(.embedded) #split-pane-btn,
     padding: 15px;
     transition: width 0.3s ease-in-out, margin-left 0.3s ease-in-out;
     position: relative;
-    background: #352e3c;
+    background: $background-color;
 }
 
 .primary-container.open-sidebar .code-container,
@@ -226,7 +229,8 @@ body:not(.embedded) #split-pane-btn,
 }
 
 .sidebar-footer {
-    background: linear-gradient(to top, #352e3c 0%, #352e3c 50%, rgba(0,0,0,0) 100%);
+    background: linear-gradient(to top, $background-color 0%, $background-color 50%,
+                                rgba(0,0,0,0) 100%);
     position: fixed;
     bottom: 0;
     left: 0;
@@ -256,7 +260,7 @@ body:not(.embedded) #split-pane-btn,
 
 .sidebar select, .sidebar input[type=text] {
     width: 100%;
-    background-color: #4f495f;
+    background-color: $accent-color;
     border: none;
     border-radius: 3px;
     height: 25px;
@@ -292,7 +296,7 @@ body:not(.embedded) #split-pane-btn,
     bottom: 0;
     left: 0;
     width: 0;
-    border-left: 1px solid #5c517b;
+    border-left: 1px solid $topbar-border-color;
     opacity: 0;
     transition: opacity 0.3s ease-out;
 }
@@ -307,7 +311,7 @@ body:not(.embedded) #split-pane-btn,
 }
 
 .code-container {
-    border-right: 1px solid #5c517b;
+    border-right: 1px solid $topbar-border-color;
     float: left;
 }
 
@@ -320,101 +324,5 @@ body:not(.embedded) #split-pane-btn,
     /* Set font color to the background color, so that the initial code doesn't
      * show until ACE loads. (ACE will override the colors via syntax
      * highlighting.) */
-    color: #352e3c;
+    color: $background-color;
 }
-
-/* ACE editor */
-.ace-tm {
-    font-family: 'Ubuntu Mono', monospace;
-    font-size: 12pt;
-}
-.ace-tm .ace_gutter {
- background: #352e3c;
- color: #7f8180;
-}
-.ace-tm .ace_print-margin {
- width: 0px;
- background: #FFF;
-}
-.ace-tm .ace_fold {
- background-color: #4f495f;
-}
-.ace-tm {
- background-color: #352e3c;
- color: #d6dbd8;
-}
-.ace-tm .ace_cursor {
- color: #eee;
-}
-.ace-tm .ace_entity.ace_name.ace_tag,
-.ace-tm .ace_keyword,
-.ace-tm .ace_meta.ace_tag,
-.ace-tm .ace_storage {
- color: #7daad1;
-}
-
-.ace-tm .ace_constant.ace_character,
-.ace-tm .ace_constant.ace_language,
-.ace-tm .ace_constant.ace_numeric,
-.ace-tm .ace_constant.ace_other {
- color: #b294bb;
-}
-
-.ace-tm .ace_support.ace_constant,
-.ace-tm .ace_support.ace_function {
- color: #87c6be;
-}
-.ace-tm .ace_support.ace_type,
-.ace-tm .ace_support.ace_class {
-    font-style: italic;
- color: #87c6be;
-}
-.ace-tm .ace_keyword.ace_operator {
- color: inherit;
-}
-.ace-tm .ace_string {
- color: #f0d974;
-}
-.ace-tm .ace_comment,
-.ace-tm .ace_comment.ace_doc,
-.ace-tm .ace_doc {
- color: #707880;
-}
-
-.ace-tm .ace_variable {
- color: #d85b7b;
-}
-
-.ace-tm .ace_entity.ace_name.ace_function,
-.ace-tm .ace_entity.ace_other,
-.ace-tm .ace_entity.ace_other.ace_attribute-name {
- color: #92c74d;
-}
-
-.ace-tm .ace_marker-layer .ace_selection {
- background: #4f495f;
-}
-
-.ace-tm.ace_multiselect .ace_selection.ace_start {
- box-shadow: 0 0 3px 0px white;
-}
-.ace-tm .ace_marker-layer .ace_step {
- background: rgb(33, 0, 102)
-}
-.ace-tm .ace_marker-layer .ace_bracket {
- margin: -1px 0px 0px -1px;
- border: 1px solid #c5c8c6;
-}
-.ace-tm .ace_marker-layer .ace_active-line,
-.ace-tm .ace_gutter-active-line{
- background: rgba(0, 0, 0, 0.07);
-}
-.ace-tm .ace_marker-layer .ace_selected-word {
- background: none;
- border: 1px solid #707880;
- border-radius: 2px;
-}
-.ace-tm .ace_indent-guide {
- background: none;
-}
-

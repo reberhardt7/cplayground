@@ -1,0 +1,92 @@
+.ace-tm {
+    font-family: 'Ubuntu Mono', monospace;
+    font-size: 12pt;
+    background-color: $background-color;
+    color: $foreground-color;
+
+    .ace_gutter {
+        background: $background-color;
+        color: $editor-gutter-color;
+    }
+    .ace_print-margin {
+        width: 0px;
+        background: #FFF;
+    }
+    .ace_fold {
+        background-color: $accent-color;
+    }
+    .ace_cursor {
+        color: $editor-cursor-color;
+    }
+    .ace_entity.ace_name.ace_tag,
+    .ace_keyword,
+    .ace_meta.ace_tag,
+    .ace_storage {
+        color: $editor-keyword-color;
+    }
+
+    .ace_constant.ace_character,
+    .ace_constant.ace_language,
+    .ace_constant.ace_numeric,
+    .ace_constant.ace_other {
+        color: $editor-number-color;
+    }
+
+    .ace_support.ace_constant,
+    .ace_support.ace_function {
+        color: $editor-function-color;
+    }
+    .ace_support.ace_type,
+    .ace_support.ace_class {
+        font-style: italic;
+        color: $editor-class-color;
+    }
+    .ace_keyword.ace_operator {
+        color: inherit;
+    }
+    .ace_string {
+        color: $editor-string-color;
+    }
+    .ace_comment,
+    .ace_comment.ace_doc,
+    .ace_doc {
+        color: $editor-comment-color;
+    }
+
+    .ace_variable {
+        color: $editor-variable-color;
+    }
+
+    .ace_entity.ace_name.ace_function,
+    .ace_entity.ace_other,
+    .ace_entity.ace_other.ace_attribute-name {
+        color: $editor-attribute-color;
+    }
+
+    .ace_marker-layer .ace_selection {
+        background: $accent-color;
+    }
+
+    .ace-tm.ace_multiselect .ace_selection.ace_start {
+        box-shadow: 0 0 3px 0px white;
+    }
+    .ace_marker-layer .ace_step {
+        background: rgb(33, 0, 102);
+    }
+    .ace_marker-layer .ace_bracket {
+        margin: -1px 0px 0px -1px;
+        border: 1px solid $editor-bracket-border-color;
+    }
+    .ace_marker-layer .ace_active-line,
+    .ace_gutter-active-line {
+        background: rgba(0, 0, 0, 0.07);
+    }
+    .ace_marker-layer .ace_selected-word {
+        background: none;
+        border: 1px solid $editor-selected-word-border-color;
+        border-radius: 2px;
+    }
+    .ace_indent-guide {
+        background: none;
+    }
+}

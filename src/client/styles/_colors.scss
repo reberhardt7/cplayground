@@ -1,0 +1,40 @@
+$foreground-color: #d6dbd8 !default;
+$background-color: #352e3c !default;
+$black: #29282e !default;
+$red: #a63939 !default;
+$green: #87a140 !default;
+$yellow: #dba858 !default;
+$blue: #5b81a0 !default;
+$magenta: #85678f !default;
+$cyan: #5e8d87 !default;
+$white: #818890 !default;
+$bright-black: #4f495f !default;
+$bright-red: #d85b7b !default;
+$bright-green: #92c74d !default;
+$bright-yellow: #f0d974 !default;
+$bright-blue: #7daad1 !default;
+$bright-magenta: #b294bb !default;
+$bright-cyan: #87c6be !default;
+$bright-white: #c5c8c6 !default;
+
+$subtle-text-color: desaturate(darken($foreground-color, 35%), 5%) !default;
+
+$scrollbar-color: lighten($background-color, 59%) !default;
+$accent-color: $bright-black !default;
+$topbar-bg-color: $accent-color !default;
+$topbar-border-color: saturate(lighten($topbar-bg-color, 8%), 10%) !default;
+$topbar-disabled-color: desaturate(lighten($topbar-bg-color, 2%), 2%) !default;
+$topbar-font-color: #fff !default;
+
+$editor-gutter-color: $subtle-text-color !default; // line number color
+$editor-cursor-color: #eee !default;
+$editor-keyword-color: $bright-blue !default;
+$editor-number-color: $bright-magenta !default;
+$editor-function-color: $bright-cyan !default;
+$editor-class-color: $bright-cyan !default;
+$editor-string-color: $bright-yellow !default;
+$editor-comment-color: $subtle-text-color !default;
+$editor-variable-color: $bright-red !default;
+$editor-attribute-color: $bright-green !default;
+$editor-bracket-border-color: $bright-white !default;
+$editor-selected-word-border-color: $subtle-text-color !default;
