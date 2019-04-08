@@ -1,0 +1,32 @@
+$foreground-color: #fcfcfa;
+$background-color: #2c292d;
+$black: #272822;
+$red: #f92672;
+$green: #a6e22e;
+$yellow: #75715E;
+$blue: #66d9ef;
+$magenta: #ae81ff;
+$cyan: #a1efe4;
+$white: #f8f8f2;
+$bright-black: #75715e;
+$bright-red: #f92672;
+$bright-green: #a6e22e;
+$bright-yellow: #e6db74;
+$bright-blue: #66d9ef;
+$bright-magenta: #ae81ff;
+$bright-cyan: #a1efe4;
+$bright-white: #f9f8f5;
+
+$accent-color: saturate(lighten($background-color, 12%), 3%);
+
+$editor-gutter-color: #888;
+$editor-keyword-color: $bright-red;
+$editor-number-color: $bright-magenta;
+$editor-function-color: $bright-green;
+$editor-class-color: $bright-blue;
+$editor-string-color: $bright-yellow;
+$editor-comment-color: $bright-black;
+$editor-variable-color: $bright-red;
+$editor-attribute-color: $magenta;
+
+@import 'styles';

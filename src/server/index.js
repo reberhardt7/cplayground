@@ -15,7 +15,7 @@ require('console-stamp')(console, 'isoDateTime');
 
 const db = require('./db');
 
-const THEMES = ['zenburn'];
+const THEMES = ['monokai', 'zenburn'];
 
 const SUPPORTED_VERSIONS = ['C99', 'C11', 'C++11', 'C++14', 'C++17'];
 const WHITELISTED_CFLAGS = [
