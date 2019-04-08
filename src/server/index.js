@@ -15,6 +15,8 @@ require('console-stamp')(console, 'isoDateTime');
 
 const db = require('./db');
 
+const THEMES = ['zenburn'];
+
 const SUPPORTED_VERSIONS = ['C99', 'C11', 'C++11', 'C++14', 'C++17'];
 const WHITELISTED_CFLAGS = [
     '-O0', '-O1', '-O2', '-O3',
@@ -41,7 +43,8 @@ const DEFAULT_INDEX_HTML = INDEX_HTML_CODE
     .replace('{{INITIAL_CODE}}', DEFAULT_CODE)
     .replace('{{RUNTIME_ARGS}}', '')
     .replace('{{INCLUDE_FILE_NAME}}', '')
-    .replace('{{INJECT_INCLUDE_FILE}}', '');
+    .replace('{{INJECT_INCLUDE_FILE}}', '')
+    .replace('{{THEME}}', 'styles');
 
 const EMBED_HTML_CODE = fs.readFileSync(
     path.resolve(__dirname + '/../client/embed.html')).toString();
@@ -49,7 +52,8 @@ const DEFAULT_EMBED_HTML = EMBED_HTML_CODE
     .replace('{{INITIAL_CODE}}', DEFAULT_CODE)
     .replace('{{RUNTIME_ARGS}}', '')
     .replace('{{INCLUDE_FILE_NAME}}', '')
-    .replace('{{INJECT_INCLUDE_FILE}}', '');
+    .replace('{{INJECT_INCLUDE_FILE}}', '')
+    .replace('{{THEME}}', 'styles');
 
 function handleLoadProgram(req, res, defaultCode, templateCode) {
     console.info('Incoming request for ' + req.originalUrl);
@@ -78,11 +82,15 @@ function handleLoadProgram(req, res, defaultCode, templateCode) {
                        window.includeFileFromServer = {name: "${includeFileName}",
                            data: _base64ToArrayBuffer("${includeFileData}")};`
                     : '';
+                const theme = THEMES.includes(req.query.theme)
+                    ? 'theme-' + req.query.theme
+                    : 'styles';
                 res.send(templateCode
                     .replace('{{RUNTIME_ARGS}}', sanitizeHtml(result.args))
                     .replace('{{INITIAL_CODE}}', sanitizeHtml(result.code))
                     .replace('{{INCLUDE_FILE_NAME}}', includeFileName)
-                    .replace('{{INJECT_INCLUDE_FILE}}', includeFileInjectJs));
+                    .replace('{{INJECT_INCLUDE_FILE}}', includeFileInjectJs)
+                    .replace('{{THEME}}', theme));
             } else {
                 console.info('Program not found, sending default!');
                 // TODO: send redirect to /
@@ -99,6 +107,11 @@ app.get('/embed',
 app.get('/styles.css', function(req, res){
     res.sendFile(path.resolve(__dirname + '/../../dist/client/css/styles.css'));
 });
+for (let theme of THEMES) {
+    app.get('/theme-' + theme + '.css', function(req, res){
+        res.sendFile(path.resolve(__dirname + '/../../dist/client/css/theme-' + theme + '.css'));
+    });
+}
 app.get('/app.js', function(req, res){
     res.sendFile(path.resolve(__dirname + '/../../dist/client/bundle.js'));
 });

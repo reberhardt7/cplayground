@@ -1,0 +1,28 @@
+$foreground-color: #dcdccc;
+$background-color: #3f3f3f;
+$black: #4d4d4d;
+$red: #705050;
+$green: #60b48a;
+$yellow: #f0dfaf;
+$blue: #506070;
+$magenta: #dc8cc3;
+$cyan: #8cd0d3;
+$white: #dcdccc;
+$bright-black: #709080;
+$bright-red: #dca3a3;
+$bright-green: #c3bf9f;
+$bright-yellow: #e0cf9f;
+$bright-blue: #94bff3;
+$bright-magenta: #ec93d3;
+$bright-cyan: #93e0e3;
+$bright-white: #ffffff;
+
+$editor-keyword-color: $bright-yellow;
+$editor-number-color: $bright-cyan;
+$editor-function-color: $bright-red;
+$editor-class-color: $yellow;
+$editor-string-color: $bright-red;
+$editor-comment-color: $bright-black;
+$editor-variable-color: $bright-green;
+
+@import 'styles';

@@ -3,11 +3,12 @@ import {makeDockerSocket} from './server-comm';
 
 let appState = {};
 const bodyTag = document.getElementsByTagName('body')[0];
+let editor;
 
 window.addEventListener('load', () => {
     makeTerminal(document.getElementById('terminal'), appState);
 
-    const editor = ace.edit("editor");
+    editor = ace.edit("editor");
     editor.session.setMode("ace/mode/c_cpp");
     editor.focus();
     // In the CSS, we set the font color equal to the background color so that

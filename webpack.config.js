@@ -1,12 +1,17 @@
 const path = require('path');
+const fs = require('fs');
+
+SASS_SRC_DIR = './src/client/styles/';
+const sassSrcFiles = fs.readdirSync(SASS_SRC_DIR)
+                       .filter(name => name.match(/^[^_].*\.scss$/))
+                       .map(name => SASS_SRC_DIR + name);
 
 module.exports = [{
   target: "web",
   mode: 'development',
-  entry: [
+  entry: sassSrcFiles.concat([
     './src/client/main.js',
-    './src/client/styles/styles.scss',
-  ],
+  ]),
   output: {
     path: path.resolve(__dirname, 'dist', 'client'),
     filename: 'bundle.js'
