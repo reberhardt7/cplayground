@@ -17,7 +17,7 @@ function getTerminalColors() {
     // NOTE: only call this function *after* you're sure the stylesheets have
     // loaded (e.g. after the body load event)
     const colors = {};
-    for (let stylesheet of document.styleSheets) {
+    for (let stylesheet of Array.from(document.styleSheets)) {
         let rules;
         try {
             rules = stylesheet.rules || stylesheet.cssRules;
@@ -26,7 +26,8 @@ function getTerminalColors() {
             // stylesheet from a different domain
             continue;
         }
-        for (let rule of rules) {
+        if (!rules) continue;
+        for (let rule of Array.from(rules)) {
             if (!rule.selectorText) continue;
             const match = rule.selectorText.match(/^.term-color-([a-zA-Z]+)$/);
             if (match) {
