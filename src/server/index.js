@@ -34,6 +34,16 @@ function sanitizeHtml(str) {
                .replace(/>/g, '&gt;'));
 }
 
+function makeLanguageSelectHtml(defaultLang) {
+    let s = '';
+    for (let lang of SUPPORTED_VERSIONS) {
+        s += '<option value="' + lang + '"'
+            + (lang === defaultLang ? ' selected' : '')
+            + '>' + lang + '</option>';
+    }
+    return s;
+}
+
 const INDEX_HTML_CODE = fs.readFileSync(
     path.resolve(__dirname + '/../client/index.html')).toString();
 const DEFAULT_CODE = fs.readFileSync(path.join(__dirname, 'default-code.cpp'))
@@ -44,6 +54,7 @@ const DEFAULT_INDEX_HTML = INDEX_HTML_CODE
     .replace('{{RUNTIME_ARGS}}', '')
     .replace('{{INCLUDE_FILE_NAME}}', '')
     .replace('{{INJECT_INCLUDE_FILE}}', '')
+    .replace('{{LANGUAGE_SELECT}}', makeLanguageSelectHtml('C++17'))
     .replace('{{THEME}}', 'styles');
 
 const EMBED_HTML_CODE = fs.readFileSync(
@@ -53,6 +64,7 @@ const DEFAULT_EMBED_HTML = EMBED_HTML_CODE
     .replace('{{RUNTIME_ARGS}}', '')
     .replace('{{INCLUDE_FILE_NAME}}', '')
     .replace('{{INJECT_INCLUDE_FILE}}', '')
+    .replace('{{LANGUAGE_SELECT}}', makeLanguageSelectHtml('C++17'))
     .replace('{{THEME}}', 'styles');
 
 function handleLoadProgram(req, res, defaultCode, templateCode) {
@@ -85,11 +97,14 @@ function handleLoadProgram(req, res, defaultCode, templateCode) {
                 const theme = THEMES.includes(req.query.theme)
                     ? 'theme-' + req.query.theme
                     : 'styles';
+                const langMatch = /-std=([A-Za-z0-9+]+)/.exec(result.cflags)
+                const lang = langMatch ? langMatch[1].toUpperCase() : 'C++17';
                 res.send(templateCode
                     .replace('{{RUNTIME_ARGS}}', sanitizeHtml(result.args))
                     .replace('{{INITIAL_CODE}}', sanitizeHtml(result.code))
                     .replace('{{INCLUDE_FILE_NAME}}', includeFileName)
                     .replace('{{INJECT_INCLUDE_FILE}}', includeFileInjectJs)
+                    .replace('{{LANGUAGE_SELECT}}', makeLanguageSelectHtml(lang))
                     .replace('{{THEME}}', theme));
             } else {
                 console.info('Program not found, sending default!');
