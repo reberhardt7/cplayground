@@ -27,6 +27,12 @@ const WHITELISTED_CFLAGS = [
     '-lm', '-pthread', '-lcrypt', '-lreadline', '-lrt'
 ];
 
+const DEFAULT_TIMEOUT = 60000;      // how long should a program run for?
+const HARD_TIMEOUT = 300000;        // a program's timeout timer can be reset
+            // by I/O (e.g. so that if you're testing a shell, it doesn't get
+            // killed after only a minute), but can't exceed this time
+const MAX_CPU_TIME = 15000;         // prevent forkbombs and bitcoin mining
+
 function sanitizeHtml(str) {
     return (str.replace(/&/g, '&amp;')
                .replace(/"/g, '&quot;')
@@ -245,25 +251,88 @@ io.on('connection', function(socket){
           rows: rows,
         });
 
-        const startTime = process.hrtime();
+        function showErrorBanner(text) {
+            // Note: if you modify these constants, be sure to update run.sh to
+            // match
+            const fg = '\x1b[91m';  // red
+            const bg = '\x1b[100m'; // light gray
+            const bannerWidth = 60;
 
-        // Kill the container if it doesn't finish running within 90 seconds.
-        // (There is already a 60-second timeout in run.sh, but this is here in
-        // case the userspace timeout program is somehow circumvented within
-        // the container.)
-        const runTimeoutTimer = setTimeout(
-            () => {
+            const lpad = ' '.repeat(Math.floor((bannerWidth - text.length) / 2));
+            const rpad = ' '.repeat(Math.ceil((bannerWidth - text.length) / 2));
+            socket.emit('data',
+                Buffer.from(fg + bg + lpad + text + rpad + '\x1b[0m'));
+        }
+
+        const startTime = process.hrtime();
+        let containerId;
+
+        // Kill the container if it doesn't finish running within
+        // DEFAULT_TIMEOUT ms
+        const runTimeoutFunction = () => {
+            console.warn(connIdPrefix + 'Container ' + containerName
+                + 'hasn\'t finished running in time! Killing container');
+            child_process.execFile('docker', ['kill', containerName]);
+            showErrorBanner("The program took too long to run.");
+        };
+        let runTimeoutTimer = setTimeout(runTimeoutFunction, DEFAULT_TIMEOUT);
+
+        // Every second, check if this container has exceeded the max amount of
+        // CPU time. (I did a lot of research, and at least at the time I'm
+        // writing this, there's no way to set a max cpu limit on an entire
+        // cgroup. You can set a max cpu time on individual processes, but that
+        // doesn't help when mitigating forkbombs.)
+        const cpuQuotaMonitor = setInterval(() => {
+            // If we don't have the containerId yet, the container might not
+            // have started yet, and there's not much we can do
+            if (!containerId) return;
+
+            let cpuUsageNs;
+            try {
+                cpuUsageNs = parseInt(
+                    fs.readFileSync('/sys/fs/cgroup/cpu/docker/' + containerId +
+                    '/cpuacct.usage').toString(),
+                    10);
+            } catch (exc) {
+                console.warn(connIdPrefix + 'Error loading cgroup CPU usage!',
+                    exc);
+                return;
+            }
+            const cpuUsageMs = cpuUsageNs / 1000000;
+            console.debug(connIdPrefix + 'Current CPU time used: ' + cpuUsageMs
+                + 'ms');
+            if (cpuUsageMs > MAX_CPU_TIME) {
                 console.warn(connIdPrefix + 'Container ' + containerName
-                    + ' hasn\'t finished running in time! Killing container');
+                    + 'exceeded its CPU quota! Killing container');
                 child_process.execFile('docker', ['kill', containerName]);
-            },
-            90000);
+                showErrorBanner("The program exceeded its CPU quota.");
+            }
+        }, 1000);
 
         // Send process output to websocket, and save to a server buffer that
         // we can later log to the database
         let outputBuf = '';
         let warnOutputMaxSizeExceeded = true;
         pty.on('data', data => {
+            // Get container ID
+            // HACK: this part is jank, but this is the best I could come up
+            // with. ptylib.spawn() above initiates the container launch, but
+            // there's no way to tell that docker has actually created the
+            // container until the container starts printing stuff. So, if we
+            // get here, we know it's safe to query the container ID.
+            if (!containerId) {
+                containerId = child_process.execFile('docker',
+                    ['ps', '--no-trunc', '-aqf', 'name=' + containerName],
+                    (err, out) => {
+                        if (err) throw err;
+                        containerId = out.trim();
+                        console.log(connIdPrefix + 'Container id: '
+                            + containerId);
+                    }
+                );
+            }
+
+            // Save program output to database
             if (!outputBuf) console.log(connIdPrefix
                 + 'Data received from terminal output');
             if (outputBuf.length + data.length < db.OUTPUT_MAX_LEN) {
@@ -273,11 +342,22 @@ io.on('connection', function(socket){
                     + 'Program output exceeded max length for db storage!');
                 warnOutputMaxSizeExceeded = false;
             }
+
             socket.emit('data', Buffer.from(data));
         });
 
         // Send input from websocket to process
         socket.on('data', data => {
+            const runtime_ht = process.hrtime(startTime);
+            const runtime_ms = runtime_ht[0] * 1000 + runtime_ht[1] / 1000000;
+            // Try to reset the execution timeout timer to DEFAULT_TIMEOUT ms.
+            // If doing so would exceed the HARD_TIMEOUT limit, then reset it
+            // to as long as we can without exceeding HARD_TIMEOUT.
+            if (runtime_ms < HARD_TIMEOUT) {
+                clearTimeout(runTimeoutTimer);
+                runTimeoutTimer = setTimeout(runTimeoutFunction,
+                    Math.min(HARD_TIMEOUT - runtime_ms, DEFAULT_TIMEOUT));
+            }
             pty.write(data);
         });
 
@@ -289,6 +369,7 @@ io.on('connection', function(socket){
                 + ', signal ' + signal + ', node-side runtime measured at '
                 + runtime_ms + 'ms');
             clearTimeout(runTimeoutTimer);
+            clearInterval(cpuQuotaMonitor);
             pty = null;
             if (socket.connected) {
                 console.log(connIdPrefix + 'Sending client exit info');

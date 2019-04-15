@@ -66,7 +66,7 @@ $COMPILE_CMD                                            \
     && print_banner "Compiled in $RUN_TIME" $GREEN $LIGHT_GRAY      \
     && print_banner "Executing..." $CYAN $LIGHT_GRAY    \
     && START_EXEC_TIME_NS=$(date +%s%N)                 \
-    && timeout --foreground 60 /cplayground/output "$@"
+    && /cplayground/output "$@"
 STATUS_CODE=$?
 END_EXEC_TIME_NS=$(date +%s%N)
 
@@ -77,11 +77,8 @@ then
     printf "$SUCCESS_EXIT_BANNER\n"
 else
     DONE_BANNER_COLOR=$YELLOW
-    # timeout from `timeout`
-    if [ $STATUS_CODE = 124 ]; then
-        print_banner "The program took too long to run." $RED $LIGHT_GRAY
     # SIGXCPU signal 24 or 30
-    elif [ $STATUS_CODE = 152 ] || [ $STATUS_CODE = 158 ]; then
+    if [ $STATUS_CODE = 152 ] || [ $STATUS_CODE = 158 ]; then
         print_banner "The program exceeded its CPU quota." $RED $LIGHT_GRAY
     # SIGKILL (possibly from OOM killer?)
     elif [ $STATUS_CODE = 137 ]; then
