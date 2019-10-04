@@ -3,23 +3,23 @@
     "version": "0.0.1",
     "description": "",
     "dependencies": {
-        "@babel/core": "^7.2.2",
-        "@babel/preset-env": "^7.2.3",
-        "ace-builds": "^1.4.2",
-        "babel-loader": "^8.0.4",
+        "@babel/core": "^7.6.2",
+        "@babel/preset-env": "^7.6.2",
+        "ace-builds": "^1.4.6",
+        "babel-loader": "^8.0.6",
         "bufferutil": "^4.0.1",
-        "console-stamp": "^0.2.7",
-        "css-element-queries": "^1.1.1",
-        "express": "^4.16.4",
-        "mysql": "^2.16.0",
+        "console-stamp": "^0.2.9",
+        "css-element-queries": "^1.2.1",
+        "express": "^4.17.1",
+        "mysql": "^2.17.1",
         "mysql-migrations": "^1.0.6",
-        "node-pty": "^0.8.0",
-        "socket.io": "^2.2.0",
-        "string-argv": "^0.1.1",
+        "node-pty": "^0.8.1",
+        "socket.io": "^2.3.0",
+        "string-argv": "^0.1.2",
         "utf-8-validate": "^5.0.2",
-        "uuid": "^3.3.2",
-        "webpack-cli": "^3.1.2",
-        "xterm": "^3.12.0",
+        "uuid": "^3.3.3",
+        "webpack-cli": "^3.3.9",
+        "xterm": "^3.14.5",
         "xterm-webfont": "^1.1.1"
     },
     "scripts": {
@@ -30,8 +30,8 @@
     "devDependencies": {
         "file-loader": "^3.0.1",
         "mini-css-extract-plugin": "^0.5.0",
-        "node-sass": "^4.11.0",
-        "sass-loader": "^7.1.0",
-        "webpack": "^4.29.6"
+        "node-sass": "^4.12.0",
+        "sass-loader": "^7.3.1",
+        "webpack": "^4.41.0"
     }
 }
