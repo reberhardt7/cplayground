@@ -46,6 +46,10 @@
 
 /* File uploads: */
 
+input[type=file] {
+    width: 100%;
+}
+
 /* Don't show uploaded file status if nothing has been uploaded */
 #uploaded-filename:empty { display: none; }
 #uploaded-filename:empty + #btn-remove-uploaded-file { display: none; }

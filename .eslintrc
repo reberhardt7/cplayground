@@ -1,0 +1,30 @@
+{
+    "parser": "@typescript-eslint/parser",
+    "plugins": ["@typescript-eslint"],
+    "extends": ["plugin:@typescript-eslint/recommended", "airbnb"],
+    "rules": {
+        "indent": ["error", 4],
+        "react/jsx-indent": ["error", 4],
+        "react/jsx-indent-props": ["error", 4],
+        "react/destructuring-assignment": ["off"],
+        "react/no-access-state-in-setstate": ["off"],
+        // Disable so that we can use JSX in .tsx files
+        "react/jsx-filename-extension": ["off"],
+        // We are using TS for prop validation instead
+        "react/prop-types": ["off"],
+        // This is a stupid rule when it comes to inline elements like links.
+        // https://github.com/yannickcr/eslint-plugin-react/issues/1848
+        "react/jsx-one-expression-per-line": ["off"],
+    },
+    "env": {
+        "browser": true,
+        "node": true,
+    },
+    "settings": {
+        "import/resolver": {
+            "node": {
+                "extensions": [".js", ".jsx", ".ts", ".tsx"]
+            }
+        }
+    },
+}

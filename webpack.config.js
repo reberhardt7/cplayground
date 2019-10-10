@@ -1,6 +1,10 @@
 const path = require('path');
 const fs = require('fs');
+const webpack = require('webpack');
 
+// We need to enumerate all sass files because we aren't importing the sass
+// files from the Javascript (and therefore Webpack doesn't know about them
+// unless they're explicitly declared as entrypoints).
 SASS_SRC_DIR = './src/client/styles/';
 const sassSrcFiles = fs.readdirSync(SASS_SRC_DIR)
                        .filter(name => name.match(/^[^_].*\.scss$/))
@@ -9,8 +13,9 @@ const sassSrcFiles = fs.readdirSync(SASS_SRC_DIR)
 module.exports = [{
   target: "web",
   mode: 'development',
+  devtool: 'source-map',
   entry: sassSrcFiles.concat([
-    './src/client/main.js',
+    './src/client/main.tsx',
   ]),
   output: {
     path: path.resolve(__dirname, 'dist', 'client'),
@@ -19,11 +24,14 @@ module.exports = [{
   module: {
     rules: [
       {
-        test: /\.js$/,
+        test: /\.js(x?)$/,
         exclude: /node_modules/,
-        use: 'babel-loader'
-      },
-      {
+        use: ['babel-loader', 'eslint-loader'],
+      }, {
+        test: /\.ts(x?)$/,
+        exclude: /node_modules/,
+        use: ['ts-loader', 'eslint-loader'],
+      }, {
         test: /\.scss$/,
         use: [
           {
@@ -34,6 +42,16 @@ module.exports = [{
         ]
       }
     ]
+  },
+  resolve: {
+    extensions: ['.js', '.jsx', '.ts', '.tsx'],
+  },
+  plugins: [
+    new webpack.HotModuleReplacementPlugin(),
+  ],
+  devServer: {
+    contentBase: './dist',
+    hot: true,
   },
 //}, {
 //  target: "node",

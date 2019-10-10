@@ -73,7 +73,7 @@ const DEFAULT_EMBED_HTML = EMBED_HTML_CODE
     .replace('{{LANGUAGE_SELECT}}', makeLanguageSelectHtml('C++17'))
     .replace('{{THEME}}', 'styles');
 
-function handleLoadProgram(req, res, defaultCode, templateCode) {
+function OLD_generateIndexHtml(req, res, defaultCode, templateCode) {
     console.info('Incoming request for ' + req.originalUrl);
     if (!req.query.p) {
         res.send(defaultCode);
@@ -121,10 +121,57 @@ function handleLoadProgram(req, res, defaultCode, templateCode) {
     }
 }
 
+function generateProgramJson(code, runtimeArgs, includeFileName,
+        includeFileData, language, flags) {
+    return { code, runtimeArgs, includeFileName, includeFileData, language, flags };
+}
+
+const DEFAULT_PROGRAM_JSON = generateProgramJson(
+    DEFAULT_CODE, '', null, null, 'C++17',
+    ['-O2', '-Wall', '-no-pie', '-lm', '-pthread']);
+
+function handleGetProgram(req, res) {
+    console.info('Incoming request for ' + req.originalUrl);
+    if (!req.query.p) {
+        res.send(DEFAULT_PROGRAM_JSON);
+    } else {
+        db.getProgramByAlias(req.query.p).then(result => {
+            if (result) {
+                console.log('Returning program ' + result.id);
+                const sourceIP = req.headers['cf-connecting-ip']
+                    || req.headers['x-real-ip']
+                    || req.connection.remoteAddress;
+                const sourceUA = req.headers['user-agent'] || '';
+                db.logView(result.id, sourceIP, sourceUA);
+                const includeFileName = result.include_file_name || null;
+                const includeFileData = includeFileName && result.include_file_data.toString('base64');
+                const langMatch = /-std=([A-Za-z0-9+]+)/.exec(result.cflags)
+                const lang = langMatch ? langMatch[1].toUpperCase() : 'C++17';
+                res.send(generateProgramJson(
+                    result.code, result.args, includeFileName, includeFileData,
+                    lang, stringArgv.parseArgsStringToArgv(result.cflags)));
+            } else {
+                console.info('Program not found, sending default!');
+                // TODO: send redirect to /
+                res.send(DEFAULT_PROGRAM_JSON);
+            }
+        });
+    }
+}
+
+/* TODO:
+app.get('/', function(req, res){
+    res.sendFile(path.resolve(__dirname + '/../client/index.html'));
+});
+app.get('/embed', function(req, res){
+    res.sendFile(path.resolve(__dirname + '/../client/index.html'));
+}); */
 app.get('/',
-    (req, res) => handleLoadProgram(req, res, DEFAULT_INDEX_HTML, INDEX_HTML_CODE));
+    (req, res) => OLD_generateIndexHtml(req, res, DEFAULT_INDEX_HTML, INDEX_HTML_CODE));
 app.get('/embed',
-    (req, res) => handleLoadProgram(req, res, DEFAULT_EMBED_HTML, EMBED_HTML_CODE));
+    (req, res) => OLD_generateIndexHtml(req, res, DEFAULT_EMBED_HTML, EMBED_HTML_CODE));
+app.get('/api/getProgram',
+    (req, res) => handleGetProgram(req, res));
 app.get('/styles.css', function(req, res){
     res.sendFile(path.resolve(__dirname + '/../../dist/client/css/styles.css'));
 });
@@ -135,6 +182,9 @@ for (let theme of THEMES) {
 }
 app.get('/app.js', function(req, res){
     res.sendFile(path.resolve(__dirname + '/../../dist/client/bundle.js'));
+});
+app.get('/bundle.js.map', function(req, res){
+    res.sendFile(path.resolve(__dirname + '/../../dist/client/bundle.js.map'));
 });
 app.get('/ace-builds/src-noconflict/ace.js', function(req, res){
     res.sendFile(path.resolve(__dirname + '/../../node_modules/ace-builds/src-noconflict/ace.js'));
