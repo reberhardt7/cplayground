@@ -19,6 +19,7 @@
         "mysql-migrations": "^1.0.6",
         "node-pty": "^0.8.1",
         "react": "^16.10.2",
+        "react-ace": "^8.0.0",
         "react-dom": "^16.10.2",
         "socket.io": "^2.3.0",
         "string-argv": "^0.1.2",
