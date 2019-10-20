@@ -1,11 +1,3 @@
-#editor {
-    height: 100%;
-    /* Set font color to the background color, so that the initial code doesn't
-     * show until ACE loads. (ACE will override the colors via syntax
-     * highlighting.) */
-    color: $background-color;
-}
-
 .ace-tm {
     font-family: 'Ubuntu Mono', monospace;
     font-size: 12pt;

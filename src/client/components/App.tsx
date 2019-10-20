@@ -58,7 +58,7 @@ class App extends React.PureComponent<AppProps, AppState> {
                     }
                 >
                     <Sidebar />
-                    <Editor />
+                    <Editor toggleSettingsPane={this.toggleSettingsPane} />
                     <Terminal />
                 </div>
             </>
