@@ -3,31 +3,18 @@ import AceEditor from 'react-ace';
 
 type EditorProps = {
     toggleSettingsPane: () => void;
+    onCodeChange: (code: string) => void;
+    code: string;
 };
 
-type EditorState = {
-    sourceCode: string;
-};
-
-class Editor extends React.PureComponent<EditorProps, EditorState> {
-    constructor(props: EditorProps) {
-        super(props);
-        this.state = {
-            sourceCode: '',
-        };
-    }
-
-    onChange = (sourceCode: string): void => {
-        this.setState({ sourceCode });
-    }
-
+class Editor extends React.PureComponent<EditorProps> {
     render(): React.ReactNode {
         return (
             <div className="code-container">
                 <AceEditor
                     mode="c_cpp"
-                    onChange={this.onChange}
-                    value={this.state.sourceCode}
+                    onChange={this.props.onCodeChange}
+                    value={this.props.code}
                     width="100%"
                     height="100%"
                     focus

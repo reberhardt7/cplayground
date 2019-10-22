@@ -1,10 +1,11 @@
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
+import * as Url from 'url-parse';
 import App from './components/App';
 
 ReactDOM.render((
     <App
-        inEmbeddedMode={false}
+        inEmbeddedMode={(new Url(window.location.href)).pathname === '/embed'}
     />
 ), document.getElementById('app'));
 

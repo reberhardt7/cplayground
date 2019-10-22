@@ -52,9 +52,7 @@ function makeLanguageSelectHtml(defaultLang) {
 
 const INDEX_HTML_CODE = fs.readFileSync(
     path.resolve(__dirname + '/../client/index.html')).toString();
-const DEFAULT_CODE = fs.readFileSync(path.join(__dirname, 'default-code.cpp'))
-    .toString().trim().replace(/&/g, '&amp;').replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
+const DEFAULT_CODE = fs.readFileSync(path.join(__dirname, 'default-code.cpp')).toString().trim();
 const DEFAULT_INDEX_HTML = INDEX_HTML_CODE
     .replace('{{INITIAL_CODE}}', DEFAULT_CODE)
     .replace('{{RUNTIME_ARGS}}', '')
