@@ -65,6 +65,26 @@ class Sidebar extends React.PureComponent<SidebarProps, SidebarState> {
         this.setState({ runtimeArgs: e.currentTarget.value });
     };
 
+    makeCflagCheckboxes = (
+        (flags: typeof COMPILER_FLAGS | typeof LINKER_FLAGS): React.ReactNode[] => (
+            flags.map((flag) => (
+                <React.Fragment key={flag.flag}>
+                    <label htmlFor={`cflag-${flag.flag.replace(' ', '-')}`}>
+                        <input
+                            id={`cflag-${flag.flag.replace(' ', '-')}`}
+                            type="checkbox"
+                            value={flag.flag}
+                            onChange={this.setCompilerFlag}
+                            checked={this.state.selectedFlags.has(flag.flag)}
+                        />
+                        {flag.label}
+                    </label>
+                    <br />
+                </React.Fragment>
+            ))
+        )
+    );
+
     render(): React.ReactNode {
         return (
             <div className="sidebar">
@@ -92,39 +112,11 @@ class Sidebar extends React.PureComponent<SidebarProps, SidebarState> {
 
                     <div className="flag-spacer" />
 
-                    { COMPILER_FLAGS.map((flag) => (
-                        <React.Fragment key={flag.flag}>
-                            <label htmlFor={`cflag-${flag.flag.replace(' ', '-')}`}>
-                                <input
-                                    id={`cflag-${flag.flag.replace(' ', '-')}`}
-                                    type="checkbox"
-                                    value={flag.flag}
-                                    onChange={this.setCompilerFlag}
-                                    checked={this.state.selectedFlags.has(flag.flag)}
-                                />
-                                {flag.label}
-                            </label>
-                            <br />
-                        </React.Fragment>
-                    )) }
+                    { this.makeCflagCheckboxes(COMPILER_FLAGS) }
 
                     <div className="flag-spacer" />
 
-                    { LINKER_FLAGS.map((flag) => (
-                        <React.Fragment key={flag.flag}>
-                            <label htmlFor={`cflag-${flag.flag.replace(' ', '-')}`}>
-                                <input
-                                    id={`cflag-${flag.flag.replace(' ', '-')}`}
-                                    type="checkbox"
-                                    value={flag.flag}
-                                    onChange={this.setCompilerFlag}
-                                    checked={this.state.selectedFlags.has(flag.flag)}
-                                />
-                                {flag.label}
-                            </label>
-                            <br />
-                        </React.Fragment>
-                    )) }
+                    { this.makeCflagCheckboxes(LINKER_FLAGS) }
 
                 </div>
 

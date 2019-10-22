@@ -4,7 +4,7 @@ import App from './components/App';
 
 ReactDOM.render((
     <App
-        inEmbeddedMode
+        inEmbeddedMode={false}
     />
 ), document.getElementById('app'));
 
