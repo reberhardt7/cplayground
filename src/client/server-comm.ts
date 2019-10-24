@@ -108,8 +108,8 @@ export type BoundSocketListeners = {
  *     data to send (i.e. terminal has user input)
  * @param onResize: called immediately, supplying a function that should be called when the terminal
  *     is resized
- * @returns a BoundSocketListeners object that can be passed to releaseSocketFromTerminal to degister
- *     the socket event listeners that get added by this function
+ * @returns a BoundSocketListeners object that can be passed to releaseSocketFromTerminal to
+ *     de-register the socket event listeners that get added by this function
  */
 export function bindSocketToTerminal(
     socket: Socket,
