@@ -43,7 +43,7 @@ class App extends React.PureComponent<AppProps, AppState> {
 
     componentDidMount(): void {
         // Load program for current URL
-        const currentLocation = Url(window.location.href);
+        const currentLocation = Url(window.location.href, window.location, true);
         const programId = currentLocation.query.p;
         Server.getProgram(programId).then((program: Program) => {
             this.setState({ program });
