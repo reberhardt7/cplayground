@@ -176,6 +176,7 @@ class App extends React.PureComponent<AppProps, AppState> {
                         code={this.state.program && this.state.program.code}
                         onCodeChange={this.setCode}
                         toggleSettingsPane={this.toggleSettingsPane}
+                        settingsPaneIsOpen={this.state.showSettingsPane}
                     />
                     <Terminal
                         onResize={this.setTerminalSize}
