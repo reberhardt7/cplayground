@@ -157,6 +157,7 @@ function handleGetProgram(req, res) {
     }
 }
 
+app.disable('x-powered-by');
 /* TODO:
 app.get('/', function(req, res){
     res.sendFile(path.resolve(__dirname + '/../client/index.html'));
