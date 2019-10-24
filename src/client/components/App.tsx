@@ -23,6 +23,7 @@ type AppProps = {
 };
 
 type AppState = {
+    layout: Layout;
     showSettingsPane: boolean;
     program?: Program;
     terminalSize: { rows: number; cols: number };
@@ -34,6 +35,7 @@ class App extends React.PureComponent<AppProps, AppState> {
     constructor(props: AppProps) {
         super(props);
         this.state = {
+            layout: props.inEmbeddedMode ? Layout.EDIT : Layout.SPLIT,
             showSettingsPane: false,
             // Arbitrary size (this gets changed as soon as Terminal mounts)
             terminalSize: { rows: 80, cols: 24 },
@@ -66,13 +68,14 @@ class App extends React.PureComponent<AppProps, AppState> {
             this.toggleSettingsPane();
             return false;
         }
-        // TODO: add back for embedded mode
-        // // Open editor pane on cmd/ctrl+e
-        // if ((isMac && e.metaKey && e.keyCode === 69)
-        //     || (!isMac && e.ctrlKey && e.keyCode === 69)) {
-        //     showEditorPane();
-        //     return false;
-        // }
+
+        // For embedded mode, open editor pane on cmd/ctrl+e
+        if (this.props.inEmbeddedMode && (
+            (isMac && e.metaKey && e.keyCode === 69) || (!isMac && e.ctrlKey && e.keyCode === 69)
+        )) {
+            this.setLayout(Layout.EDIT);
+            return false;
+        }
 
         return true;
     };
@@ -81,7 +84,21 @@ class App extends React.PureComponent<AppProps, AppState> {
         this.setState({ showSettingsPane: !this.state.showSettingsPane });
     };
 
+    /**
+     * Opens the current program in a new tab in non-embedded mode.
+     */
+    openInCplayground = (): void => {
+        const currentLocation = Url(window.location.href, window.location, true);
+        window.open(currentLocation.set('pathname', '/').toString(), '_blank');
+    };
+
     runProgram = (): void => {
+        // If we are in embedded mode, go into terminal-only view
+        if (this.props.inEmbeddedMode) {
+            this.setLayout(Layout.RUN);
+        }
+
+        // Run the program
         const sock = Server.makeDockerSocket(
             this.state.terminalSize.rows,
             this.state.terminalSize.cols,
@@ -100,7 +117,7 @@ class App extends React.PureComponent<AppProps, AppState> {
     };
 
     setLayout = (layout: Layout): void => {
-        // TODO
+        this.setState({ layout });
     };
 
     setLanguage = (language: typeof Server.SUPPORTED_VERSIONS[number]): void => {
@@ -150,16 +167,22 @@ class App extends React.PureComponent<AppProps, AppState> {
             <>
                 <Topbar
                     inEmbeddedMode={this.props.inEmbeddedMode}
+                    currentLayout={this.state.layout}
                     isProgramRunning={this.state.programRunning}
                     onSettingsBtnClick={this.toggleSettingsPane}
                     onRunBtnClick={this.runProgram}
                     onEditBtnClick={(): void => this.setLayout(Layout.EDIT)}
                     onSplitBtnClick={(): void => this.setLayout(Layout.SPLIT)}
+                    onOpenInCplayground={this.openInCplayground}
                 />
                 <div
                     className={
-                        classNames('primary-container',
-                            { 'open-sidebar': this.state.showSettingsPane })
+                        classNames('primary-container', {
+                            'open-sidebar': this.state.showSettingsPane,
+                            embedded: this.props.inEmbeddedMode,
+                            'show-code-only': this.state.layout === Layout.EDIT,
+                            'show-term-only': this.state.layout === Layout.RUN,
+                        })
                     }
                 >
                     {this.state.program && (
@@ -173,6 +196,7 @@ class App extends React.PureComponent<AppProps, AppState> {
                         />
                     )}
                     <Editor
+                        inEmbeddedMode={this.props.inEmbeddedMode}
                         code={this.state.program && this.state.program.code}
                         onCodeChange={this.setCode}
                         toggleSettingsPane={this.toggleSettingsPane}

@@ -86,8 +86,8 @@ html, body, #app {
 // Single-pane (non-split) view:
 
 .show-code-only .code-container { width: 100%; padding: 0px; }
-.show-code-only .open-sidebar .code-container { width: calc(100% - #{$sidebar-width}) }
+.show-code-only.open-sidebar .code-container { width: calc(100% - #{$sidebar-width}) }
 .show-code-only .terminal-container { position: absolute; visibility: hidden; }
 .show-term-only .terminal-container { width: 100%; }
-.show-term-only .open-sidebar .terminal-container { width: calc(100% - #{$sidebar-width}) }
+.show-term-only.open-sidebar .terminal-container { width: calc(100% - #{$sidebar-width}) }
 .show-term-only .code-container { position: absolute; visibility: hidden; }

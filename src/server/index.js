@@ -167,7 +167,7 @@ app.get('/embed', function(req, res){
 app.get('/',
     (req, res) => OLD_generateIndexHtml(req, res, DEFAULT_INDEX_HTML, INDEX_HTML_CODE));
 app.get('/embed',
-    (req, res) => OLD_generateIndexHtml(req, res, DEFAULT_EMBED_HTML, EMBED_HTML_CODE));
+    (req, res) => OLD_generateIndexHtml(req, res, DEFAULT_INDEX_HTML, INDEX_HTML_CODE));
 app.get('/api/getProgram',
     (req, res) => handleGetProgram(req, res));
 app.get('/styles.css', function(req, res){

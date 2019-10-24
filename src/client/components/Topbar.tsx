@@ -1,33 +1,38 @@
 import * as React from 'react';
 import classNames from 'classnames';
+import { Layout } from './App';
 
 type TopbarProps = {
     inEmbeddedMode: boolean;
+    currentLayout: Layout;
     isProgramRunning: boolean;
     onSettingsBtnClick: () => void;
     onRunBtnClick: () => void;
     onEditBtnClick: () => void;
     onSplitBtnClick: () => void;
+    onOpenInCplayground: () => void;
 };
 
 class Topbar extends React.PureComponent<TopbarProps> {
     render(): React.ReactNode {
         const embeddedModeButtons = (
             <>
-                <div
-                    role="button"
-                    className="btn has-shortcut"
-                    id="edit-btn"
-                    onClick={this.props.onEditBtnClick}
-                    onKeyDown={this.props.onEditBtnClick}
-                    tabIndex={0}
-                >
-                    <div className="main-text">
-                        <i className="fas fa-pencil-alt icon" />
-                        &nbsp;Edit
+                {this.props.currentLayout !== Layout.EDIT && (
+                    <div
+                        role="button"
+                        className="btn has-shortcut"
+                        id="edit-btn"
+                        onClick={this.props.onEditBtnClick}
+                        onKeyDown={this.props.onEditBtnClick}
+                        tabIndex={0}
+                    >
+                        <div className="main-text">
+                            <i className="fas fa-pencil-alt icon" />
+                            &nbsp;Edit
+                        </div>
+                        <div className="shortcut">cmd+e</div>
                     </div>
-                    <div className="shortcut">cmd+e</div>
-                </div>
+                )}
                 <div
                     role="button"
                     className="btn"
@@ -39,6 +44,19 @@ class Topbar extends React.PureComponent<TopbarProps> {
                     <div className="main-text">
                         <i className="fas fa-columns icon" />
                         &nbsp;Split
+                    </div>
+                </div>
+                <div
+                    role="button"
+                    className="btn"
+                    id="open-in-cplayground-btn"
+                    onClick={this.props.onOpenInCplayground}
+                    onKeyDown={this.props.onOpenInCplayground}
+                    tabIndex={0}
+                >
+                    <div className="main-text">
+                        <i className="fas fa-external-link-alt icon" />
+                        &nbsp;Open in CPlayground
                     </div>
                 </div>
             </>
