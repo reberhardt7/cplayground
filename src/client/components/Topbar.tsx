@@ -1,7 +1,9 @@
 import * as React from 'react';
+import classNames from 'classnames';
 
 type TopbarProps = {
     inEmbeddedMode: boolean;
+    isProgramRunning: boolean;
     onSettingsBtnClick: () => void;
     onRunBtnClick: () => void;
     onEditBtnClick: () => void;
@@ -56,7 +58,7 @@ class Topbar extends React.PureComponent<TopbarProps> {
                 </div>
                 <div
                     role="button"
-                    className="btn has-shortcut"
+                    className={classNames('btn', 'has-shortcut', { disabled: this.props.isProgramRunning })}
                     id="run-btn"
                     onClick={this.props.onRunBtnClick}
                     onKeyDown={this.props.onRunBtnClick}

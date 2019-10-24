@@ -29,8 +29,10 @@
         "utf-8-validate": "^5.0.2",
         "uuid": "^3.3.3",
         "webpack-cli": "^3.3.9",
-        "xterm": "^3.14.5",
-        "xterm-webfont": "^1.1.1"
+        "xterm": "^4.1.0",
+        "xterm-addon-fit": "^0.2.1",
+        "xterm-addon-web-links": "^0.2.1",
+        "xterm-webfont": "^2.0.0"
     },
     "scripts": {
         "build": "webpack",
@@ -40,6 +42,7 @@
     "devDependencies": {
         "@types/react": "^16.9.5",
         "@types/react-dom": "^16.9.1",
+        "@types/socket.io-client": "^1.4.32",
         "@types/webpack-env": "^1.14.0",
         "@typescript-eslint/eslint-plugin": "^2.3.3",
         "@typescript-eslint/parser": "^2.3.3",

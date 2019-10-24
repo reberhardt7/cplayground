@@ -191,7 +191,7 @@ app.get('/ace-builds/src-noconflict/mode-c_cpp.js', function(req, res){
     res.sendFile(path.resolve(__dirname + '/../../node_modules/ace-builds/src-noconflict/mode-c_cpp.js'));
 });
 app.get('/xterm.css', function(req, res){
-    res.sendFile(path.resolve(__dirname + '/../../node_modules/xterm/dist/xterm.css'));
+    res.sendFile(path.resolve(__dirname + '/../../node_modules/xterm/css/xterm.css'));
 });
 
 function getRunParams(request) {
@@ -202,7 +202,7 @@ function getRunParams(request) {
     const compiler = ['C99', 'C11'].indexOf(lang) > -1
         ? 'gcc' : 'g++';
 
-    const suppliedCflags = (request.flags || []).filter(
+    const suppliedCflags = (Array.isArray(request.flags) ? request.flags : []).filter(
         flag => WHITELISTED_CFLAGS.includes(flag));
     if (suppliedCflags.length != (request.flags || []).length) {
         console.warn('Warning: someone passed non-whitelisted flags! '
@@ -462,7 +462,7 @@ io.on('connection', function(socket){
         }
 
         // Parse info from run request
-        let compiler, cflags, code, fileExt, argsStr;
+        let compiler, cflags, code, fileExt, argsStr, includeFile;
         try {
             ({ compiler, cflags, code, fileExt, argsStr, includeFile }
                 = getRunParams(cmdInfo));
