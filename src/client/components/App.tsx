@@ -29,6 +29,7 @@ type AppState = {
     terminalSize: { rows: number; cols: number };
     programRunning: boolean;
     socket?: SocketIOClient.Socket;
+    breakpoints: number[];
 };
 
 class App extends React.PureComponent<AppProps, AppState> {
@@ -40,6 +41,7 @@ class App extends React.PureComponent<AppProps, AppState> {
             // Arbitrary size (this gets changed as soon as Terminal mounts)
             terminalSize: { rows: 80, cols: 24 },
             programRunning: false,
+            breakpoints: [],
         };
     }
 
@@ -54,6 +56,10 @@ class App extends React.PureComponent<AppProps, AppState> {
         // Add keyboard listeners
         document.onkeydown = this.handleKeyboardEvent;
     }
+
+  //addBreakpoint = (e: MouseEvent): boolean => {
+  //    var target = e.domEvent.target;
+  //}
 
     handleKeyboardEvent = (e: KeyboardEvent): boolean => {
         // Execute code on shift+enter
@@ -82,6 +88,10 @@ class App extends React.PureComponent<AppProps, AppState> {
 
     toggleSettingsPane = (): void => {
         this.setState({ showSettingsPane: !this.state.showSettingsPane });
+    };
+
+    addBreakpoint = (b: number): void => {
+        this.state.breakpoints.push(b);
     };
 
     /**
@@ -201,6 +211,8 @@ class App extends React.PureComponent<AppProps, AppState> {
                         onCodeChange={this.setCode}
                         toggleSettingsPane={this.toggleSettingsPane}
                         settingsPaneIsOpen={this.state.showSettingsPane}
+                        breakpoints={this.state.breakpoints}
+                        addBreakpoint={this.addBreakpoint}
                     />
                     <Terminal
                         onResize={this.setTerminalSize}
