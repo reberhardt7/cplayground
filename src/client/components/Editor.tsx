@@ -16,7 +16,7 @@ type EditorProps = {
     onCodeChange: (code: string) => void;
     code: string;
     breakpoints: number[];
-    addBreakpoint: (b: number) => void;
+    onBreakpointChange: (breakpoints: number[]) => void;
 };
 
 class Editor extends React.PureComponent<EditorProps> {

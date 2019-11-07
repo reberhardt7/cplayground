@@ -86,9 +86,9 @@ class App extends React.PureComponent<AppProps, AppState> {
         this.setState({ showSettingsPane: !this.state.showSettingsPane });
     };
 
-		addBreakpoint = (b: number): void => {
-				this.setState({ breakpoints: [ ...this.state.breakpoints, b ] });
-		};
+		onBreakpointChange = (breakpoints: number[]): void => {
+		    this.setState({ breakpoints: breakpoints });
+		}
 
     /**
      * Opens the current program in a new tab in non-embedded mode.
@@ -208,7 +208,7 @@ class App extends React.PureComponent<AppProps, AppState> {
                         toggleSettingsPane={this.toggleSettingsPane}
                         settingsPaneIsOpen={this.state.showSettingsPane}
                         breakpoints={this.state.breakpoints}
-                        addBreakpoint={this.addBreakpoint}
+                        onBreakpointChange={this.onBreakpointChange}
                     />
                     <Terminal
                         onResize={this.setTerminalSize}
