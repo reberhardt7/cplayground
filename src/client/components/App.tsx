@@ -57,10 +57,6 @@ class App extends React.PureComponent<AppProps, AppState> {
         document.onkeydown = this.handleKeyboardEvent;
     }
 
-  //addBreakpoint = (e: MouseEvent): boolean => {
-  //    var target = e.domEvent.target;
-  //}
-
     handleKeyboardEvent = (e: KeyboardEvent): boolean => {
         // Execute code on shift+enter
         if (e.keyCode === 13 && e.shiftKey) {
@@ -90,9 +86,9 @@ class App extends React.PureComponent<AppProps, AppState> {
         this.setState({ showSettingsPane: !this.state.showSettingsPane });
     };
 
-    addBreakpoint = (b: number): void => {
-        this.state.breakpoints.push(b);
-    };
+		addBreakpoint = (b: number): void => {
+				this.setState({ breakpoints: [ ...this.state.breakpoints, b ] });
+		};
 
     /**
      * Opens the current program in a new tab in non-embedded mode.
