@@ -20,7 +20,7 @@ html, body, #app {
     position: relative;
 }
 
-.code-container, .terminal-container {
+.code-container, .program-pane {
     width: 50%;
     height: 100%;
     padding: $pane-padding;
@@ -31,7 +31,7 @@ html, body, #app {
 }
 
 .primary-container.open-sidebar .code-container,
-.primary-container.open-sidebar .terminal-container {
+.primary-container.open-sidebar .program-pane {
     width: calc(50% - #{$sidebar-width / 2});
 }
 
@@ -40,7 +40,7 @@ html, body, #app {
     float: left;
 }
 
-.terminal-container {
+.program-pane {
     float: right;
 }
 
@@ -87,7 +87,26 @@ html, body, #app {
 
 .show-code-only .code-container { width: 100%; padding: 0px; }
 .show-code-only.open-sidebar .code-container { width: calc(100% - #{$sidebar-width}) }
-.show-code-only .terminal-container { position: absolute; visibility: hidden; }
-.show-term-only .terminal-container { width: 100%; }
-.show-term-only.open-sidebar .terminal-container { width: calc(100% - #{$sidebar-width}) }
+.show-code-only .program-pane { position: absolute; visibility: hidden; }
+.show-term-only .program-pane { width: 100%; }
+.show-term-only.open-sidebar .program-pane { width: calc(100% - #{$sidebar-width}) }
 .show-term-only .code-container { position: absolute; visibility: hidden; }
+
+// Program pane:
+
+.program-pane {
+    padding: 0;
+}
+
+.terminal-container {
+    padding: $pane-padding;
+    width: 100%;
+    height: 50%;
+}
+
+.diagram-container {
+    width: 100%;
+    height: 50%;
+    padding: $pane-padding;
+    border-top: 1px solid $topbar-border-color;
+}

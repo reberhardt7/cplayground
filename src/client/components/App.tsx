@@ -5,7 +5,7 @@ import * as Url from 'url-parse';
 import Topbar from './Topbar';
 import Sidebar from './Sidebar';
 import Editor from './Editor';
-import Terminal from './Terminal';
+import ProgramPane from './ProgramPane';
 
 import * as Server from '../server-comm';
 
@@ -202,7 +202,7 @@ class App extends React.PureComponent<AppProps, AppState> {
                         toggleSettingsPane={this.toggleSettingsPane}
                         settingsPaneIsOpen={this.state.showSettingsPane}
                     />
-                    <Terminal
+                    <ProgramPane
                         onResize={this.setTerminalSize}
                         socket={this.state.socket}
                     />
