@@ -17,6 +17,7 @@
         "console-stamp": "^0.2.9",
         "css-element-queries": "^1.2.1",
         "express": "^4.17.1",
+        "jointjs": "^3.1.1",
         "mysql": "^2.17.1",
         "mysql-migrations": "^1.0.6",
         "node-pty": "^0.9.0",
@@ -40,6 +41,7 @@
         "serve": "node ./src/server/index.js"
     },
     "devDependencies": {
+        "@types/backbone": "^1.4.1",
         "@types/react": "^16.9.5",
         "@types/react-dom": "^16.9.1",
         "@types/socket.io-client": "^1.4.32",
