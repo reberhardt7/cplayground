@@ -33,100 +33,55 @@ const HARD_TIMEOUT = 300000;        // a program's timeout timer can be reset
             // killed after only a minute), but can't exceed this time
 const MAX_CPU_TIME = 15000;         // prevent forkbombs and bitcoin mining
 
-function sanitizeHtml(str) {
-    return (str.replace(/&/g, '&amp;')
-               .replace(/"/g, '&quot;')
-               .replace(/</g, '&lt;')
-               .replace(/>/g, '&gt;'));
-}
-
-function makeLanguageSelectHtml(defaultLang) {
-    let s = '';
-    for (let lang of SUPPORTED_VERSIONS) {
-        s += '<option value="' + lang + '"'
-            + (lang === defaultLang ? ' selected' : '')
-            + '>' + lang + '</option>';
-    }
-    return s;
-}
-
 const INDEX_HTML_CODE = fs.readFileSync(
     path.resolve(__dirname + '/../client/index.html')).toString();
-const DEFAULT_CODE = fs.readFileSync(path.join(__dirname, 'default-code.cpp')).toString().trim();
-const DEFAULT_INDEX_HTML = INDEX_HTML_CODE
-    .replace('{{INITIAL_CODE}}', DEFAULT_CODE)
-    .replace('{{RUNTIME_ARGS}}', '')
-    .replace('{{INCLUDE_FILE_NAME}}', '')
-    .replace('{{INJECT_INCLUDE_FILE}}', '')
-    .replace('{{LANGUAGE_SELECT}}', makeLanguageSelectHtml('C++17'))
-    .replace('{{THEME}}', 'styles');
 
-const EMBED_HTML_CODE = fs.readFileSync(
-    path.resolve(__dirname + '/../client/embed.html')).toString();
-const DEFAULT_EMBED_HTML = EMBED_HTML_CODE
-    .replace('{{INITIAL_CODE}}', DEFAULT_CODE)
-    .replace('{{RUNTIME_ARGS}}', '')
-    .replace('{{INCLUDE_FILE_NAME}}', '')
-    .replace('{{INJECT_INCLUDE_FILE}}', '')
-    .replace('{{LANGUAGE_SELECT}}', makeLanguageSelectHtml('C++17'))
-    .replace('{{THEME}}', 'styles');
-
-function OLD_generateIndexHtml(req, res, defaultCode, templateCode) {
+function generateIndexHtml(req, res) {
     console.info('Incoming request for ' + req.originalUrl);
-    if (!req.query.p) {
-        res.send(defaultCode);
-    } else {
-        db.getProgramByAlias(req.query.p).then(result => {
-            if (result) {
-                console.log('Returning program ' + result.id);
-                const sourceIP = req.headers['cf-connecting-ip']
-                    || req.headers['x-real-ip']
-                    || req.connection.remoteAddress;
-                const sourceUA = req.headers['user-agent'] || '';
-                db.logView(result.id, sourceIP, sourceUA);
-                const includeFileName = sanitizeHtml(result.include_file_name || '');
-                const includeFileData = result.include_file_data.toString('base64');
-                const includeFileInjectJs = result.include_file_name
-                    ? `function _base64ToArrayBuffer(base64) {
-                           const binary_string = window.atob(base64);
-                           const bytes = new Uint8Array(binary_string.length);
-                           for (let i = 0; i < binary_string.length; i++) {
-                               bytes[i] = binary_string.charCodeAt(i);
-                           }
-                           return bytes.buffer;
-                       }
-                       window.includeFileFromServer = {name: "${includeFileName}",
-                           data: _base64ToArrayBuffer("${includeFileData}")};`
-                    : '';
-                const theme = THEMES.includes(req.query.theme)
-                    ? 'theme-' + req.query.theme
-                    : 'styles';
-                const langMatch = /-std=([A-Za-z0-9+]+)/.exec(result.cflags)
-                const lang = langMatch ? langMatch[1].toUpperCase() : 'C++17';
-                res.send(templateCode
-                    .replace('{{RUNTIME_ARGS}}', sanitizeHtml(result.args))
-                    .replace('{{INITIAL_CODE}}', sanitizeHtml(result.code))
-                    .replace('{{INCLUDE_FILE_NAME}}', includeFileName)
-                    .replace('{{INJECT_INCLUDE_FILE}}', includeFileInjectJs)
-                    .replace('{{LANGUAGE_SELECT}}', makeLanguageSelectHtml(lang))
-                    .replace('{{THEME}}', theme));
-            } else {
-                console.info('Program not found, sending default!');
-                // TODO: send redirect to /
-                res.send(defaultCode);
-            }
-        });
-    }
+    const theme = THEMES.includes(req.query.theme) ? 'theme-' + req.query.theme : 'styles';
+    res.send(INDEX_HTML_CODE.replace('{{THEME}}', theme));
 }
 
-function generateProgramJson(code, runtimeArgs, includeFileName,
-        includeFileData, language, flags) {
+function generateProgramJson(code, runtimeArgs, includeFileName, includeFileData, language, flags) {
     return { code, runtimeArgs, includeFileName, includeFileData, language, flags };
 }
 
+const DEFAULT_CODE = fs.readFileSync(path.join(__dirname, 'default-code.cpp')).toString().trim();
 const DEFAULT_PROGRAM_JSON = generateProgramJson(
     DEFAULT_CODE, '', null, null, 'C++17',
     ['-O2', '-Wall', '-no-pie', '-lm', '-pthread']);
+
+function addExpressRoutes() {
+    app.disable('x-powered-by');
+    app.get('/((embed)?)',
+        (req, res) => generateIndexHtml(req, res));
+    app.get('/api/getProgram',
+        (req, res) => handleGetProgram(req, res));
+    app.get('/styles.css', function(req, res){
+        res.sendFile(path.resolve(__dirname + '/../../dist/client/css/styles.css'));
+    });
+    for (let theme of THEMES) {
+        app.get('/theme-' + theme + '.css', function(req, res){
+            res.sendFile(path.resolve(__dirname + '/../../dist/client/css/theme-' + theme + '.css'));
+        });
+    }
+    app.get('/app.js', function(req, res){
+        res.sendFile(path.resolve(__dirname + '/../../dist/client/bundle.js'));
+    });
+    app.get('/bundle.js.map', function(req, res){
+        res.sendFile(path.resolve(__dirname + '/../../dist/client/bundle.js.map'));
+    });
+    app.get('/ace-builds/src-noconflict/ace.js', function(req, res){
+        res.sendFile(path.resolve(__dirname + '/../../node_modules/ace-builds/src-noconflict/ace.js'));
+    });
+    app.get('/ace-builds/src-noconflict/mode-c_cpp.js', function(req, res){
+        res.sendFile(path.resolve(__dirname + '/../../node_modules/ace-builds/src-noconflict/mode-c_cpp.js'));
+    });
+    app.get('/xterm.css', function(req, res){
+        res.sendFile(path.resolve(__dirname + '/../../node_modules/xterm/css/xterm.css'));
+    });
+}
+addExpressRoutes();
 
 function handleGetProgram(req, res) {
     console.info('Incoming request for ' + req.originalUrl);
@@ -156,44 +111,6 @@ function handleGetProgram(req, res) {
         });
     }
 }
-
-app.disable('x-powered-by');
-/* TODO:
-app.get('/', function(req, res){
-    res.sendFile(path.resolve(__dirname + '/../client/index.html'));
-});
-app.get('/embed', function(req, res){
-    res.sendFile(path.resolve(__dirname + '/../client/index.html'));
-}); */
-app.get('/',
-    (req, res) => OLD_generateIndexHtml(req, res, DEFAULT_INDEX_HTML, INDEX_HTML_CODE));
-app.get('/embed',
-    (req, res) => OLD_generateIndexHtml(req, res, DEFAULT_INDEX_HTML, INDEX_HTML_CODE));
-app.get('/api/getProgram',
-    (req, res) => handleGetProgram(req, res));
-app.get('/styles.css', function(req, res){
-    res.sendFile(path.resolve(__dirname + '/../../dist/client/css/styles.css'));
-});
-for (let theme of THEMES) {
-    app.get('/theme-' + theme + '.css', function(req, res){
-        res.sendFile(path.resolve(__dirname + '/../../dist/client/css/theme-' + theme + '.css'));
-    });
-}
-app.get('/app.js', function(req, res){
-    res.sendFile(path.resolve(__dirname + '/../../dist/client/bundle.js'));
-});
-app.get('/bundle.js.map', function(req, res){
-    res.sendFile(path.resolve(__dirname + '/../../dist/client/bundle.js.map'));
-});
-app.get('/ace-builds/src-noconflict/ace.js', function(req, res){
-    res.sendFile(path.resolve(__dirname + '/../../node_modules/ace-builds/src-noconflict/ace.js'));
-});
-app.get('/ace-builds/src-noconflict/mode-c_cpp.js', function(req, res){
-    res.sendFile(path.resolve(__dirname + '/../../node_modules/ace-builds/src-noconflict/mode-c_cpp.js'));
-});
-app.get('/xterm.css', function(req, res){
-    res.sendFile(path.resolve(__dirname + '/../../node_modules/xterm/css/xterm.css'));
-});
 
 function getRunParams(request) {
     const lang = SUPPORTED_VERSIONS.includes(request.language)
