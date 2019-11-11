@@ -19,7 +19,7 @@
         "express": "^4.17.1",
         "mysql": "^2.17.1",
         "mysql-migrations": "^1.0.6",
-        "node-pty": "^0.8.1",
+        "node-pty": "^0.9.0",
         "react": "^16.10.2",
         "react-ace": "^8.0.0",
         "react-dom": "^16.10.2",
