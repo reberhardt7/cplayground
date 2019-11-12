@@ -1,6 +1,82 @@
 import * as React from 'react';
 import * as joint from 'jointjs';
 
+const MOCK_DATA = {
+    processes: [{
+        pid: 123,
+        ppid: 122,
+        pgid: 10,
+        threads: [{
+            tid: 123,
+            state: 'S (sleeping)',
+            cpusAllowed: [0, 1, 2, 3, 4, 5, 6, 7],
+            pendingSignals: [
+                'SIGINT',
+            ],
+            blockedSignals: [
+                'SIGINT',
+            ],
+            ignoredSignals: [
+                'SIGTSTP',
+            ],
+        }],
+        fds: {
+            0: {
+                file: 'someid0',
+                closeOnExec: false,
+            },
+            1: {
+                file: 'someid0',
+                closeOnExec: false,
+            },
+            2: {
+                file: 'someid0',
+                closeOnExec: false,
+            },
+            3: {
+                file: 'someid3',
+                closeOnExec: true,
+            },
+            4: {
+                file: 'someid3',
+                closeOnExec: false,
+            },
+        },
+    }],
+    openFiles: {
+        someid0: {
+            position: 123, // offset in file
+            flags: ['O_WRONLY'],
+            refcount: 3,
+            vnode: 'vnode0',
+        },
+        someid3: {
+            position: 123, // offset in file
+            flags: ['O_RDONLY'],
+            refcount: 2,
+            vnode: 'vnode1',
+        },
+    },
+    vnodes: {
+        vnode0: {
+            name: '/dev/pts/2',
+            refcount: 1,
+            inode: {
+                mode: '0700',
+                owner: 'cplayground',
+            },
+        },
+        vnode1: {
+            name: '/path/to/file',
+            refcount: 1,
+            inode: {
+                mode: '0755',
+                owner: 'root',
+            },
+        },
+    },
+};
+
 type DiagramProps = {
 }
 
