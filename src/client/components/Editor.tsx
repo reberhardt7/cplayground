@@ -37,41 +37,65 @@ class Editor extends React.PureComponent<EditorProps> {
 
     componentDidMount(): void {
         const { editor } = this.aceComponent.current;
-        editor.on('gutterclick', (e: AceMouseEvent) => {
-            // 0-indexed
-            const { row } = e.getDocumentPosition();
-            const target = e.domEvent.target as Element;
-            const breakpoints = editor.session.getBreakpoints(row, 0);
 
-            if (target.className.indexOf('ace_gutter-cell') === -1) {
-                return;
-            }
-
-            if (!editor.isFocused()) {
-                return;
-            }
-
-            // If there's a breakpoint already defined, it should be removed
-            if (typeof breakpoints[row] === typeof undefined) {
-                editor.session.setBreakpoint(row);
-                // When adding breakpoint to breakpoints prop, 1-index
-                this.props.onBreakpointChange([...this.props.breakpoints, row + 1]);
-            } else {
-                editor.session.clearBreakpoint(row);
-                this.props.onBreakpointChange(
-                    // When adding breakpoint to breakpoints prop, 1-index
-                    this.props.breakpoints.filter((r: number) => r !== row + 1),
-                );
-            }
-        });
+        // Set breakpoints on mount
+        for (let i = 0; i < this.props.breakpoints.length; i += 1) {
+            editor.session.setBreakpoint(this.props.breakpoints[i]);
+        }
+        editor.addEventListener('gutterclick', this.toggleBreakpoint);
     }
 
     componentDidUpdate(prevProps: Readonly<EditorProps>): void {
+        const { editor } = this.aceComponent.current;
+
+        // Clear breakpoints then set new ones
+        for (let i = 0; i < prevProps.breakpoints.length; i += 1) {
+            editor.session.clearBreakpoint(prevProps.breakpoints[i] - 1);
+        }
+        // Set breakpoints on update
+        for (let i = 0; i < this.props.breakpoints.length; i += 1) {
+            editor.session.setBreakpoint(this.props.breakpoints[i] - 1);
+        }
         if (this.props.settingsPaneIsOpen !== prevProps.settingsPaneIsOpen) {
             // Manually resize ACE editor after CSS transition has completed
-            setTimeout(() => this.aceComponent.current.editor.resize(), 400);
+            setTimeout(() => editor.resize(), 400);
         }
     }
+
+    componentWillUnmount(): void {
+        const { editor } = this.aceComponent.current;
+        editor.removeEventListener('gutterclick', this.toggleBreakpoint);
+        console.log('unmounted');
+    }
+
+    toggleBreakpoint = (e: AceMouseEvent): void => {
+        const { editor } = this.aceComponent.current;
+        // 0-indexed
+        const { row } = e.getDocumentPosition();
+        const target = e.domEvent.target as Element;
+        const breakpoints = editor.session.getBreakpoints(row, 0);
+
+        if (target.className.indexOf('ace_gutter-cell') === -1) {
+            return;
+        }
+
+        if (!editor.isFocused()) {
+            return;
+        }
+
+        // If there's a breakpoint already defined, it should be removed
+        if (typeof breakpoints[row] === typeof undefined) {
+            editor.session.setBreakpoint(row);
+            // When adding breakpoint to breakpoints prop, 1-index
+            this.props.onBreakpointChange([...this.props.breakpoints, row + 1]);
+        } else {
+            editor.session.clearBreakpoint(row);
+            this.props.onBreakpointChange(
+                // When adding breakpoint to breakpoints prop, 1-index
+                this.props.breakpoints.filter((r: number) => r !== row + 1),
+            );
+        }
+    };
 
     render(): React.ReactNode {
         return (
