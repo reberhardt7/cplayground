@@ -87,8 +87,9 @@ class App extends React.PureComponent<AppProps, AppState> {
     };
 
 		onBreakpointChange = (breakpoints: number[]): void => {
-		    this.setState({ breakpoints: breakpoints });
-		}
+		    this.setState({ breakpoints });
+		    console.log(breakpoints);
+		};
 
     /**
      * Opens the current program in a new tab in non-embedded mode.

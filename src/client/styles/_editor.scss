@@ -8,10 +8,15 @@
         background: $background-color;
         color: $editor-gutter-color;
     }
-    .ace_gutter-cell.ace_breakpoint{ 
-        border-radius: 20px 0px 0px 20px;
-        /* Change the color of the breakpoint if you want */
-        box-shadow: 0px 0px 1px 1px #248c46 inset; 
+    .ace_gutter-cell.ace_breakpoint::before {
+        content: '';
+        position: absolute;
+        top: 2.5px;
+        left: 0;
+        width: 11px;
+        height: 11px;
+        background: #F00;
+        border-radius: 10px;
     }
     .ace_print-margin {
         width: 0px;

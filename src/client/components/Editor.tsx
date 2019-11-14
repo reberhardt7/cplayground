@@ -19,6 +19,14 @@ type EditorProps = {
     onBreakpointChange: (breakpoints: number[]) => void;
 };
 
+type AceMouseEvent = {
+    domEvent: MouseEvent;
+    editor: AceEditor;
+    clientX: number;
+    clientY: number;
+    getDocumentPosition: () => { row: number; column: number };
+};
+
 class Editor extends React.PureComponent<EditorProps> {
     aceComponent: React.RefObject<AceEditor>;
 
@@ -27,42 +35,43 @@ class Editor extends React.PureComponent<EditorProps> {
         this.aceComponent = React.createRef();
     }
 
+    componentDidMount(): void {
+        const editor = this.aceComponent.current.editor;
+        editor.on('gutterclick', (e: AceMouseEvent) => {
+            var target = e.domEvent.target as Element;
+
+            if (target.className.indexOf('ace_gutter-cell') == -1){
+                return;
+            }
+
+            if (!editor.isFocused()){
+                return;
+            }
+
+            // 0-indexed
+            var row = e.getDocumentPosition().row;
+            var breakpoints = editor.session.getBreakpoints(row, 0);
+
+            // If there's a breakpoint already defined, it should be removed, offering the toggle feature
+            if (typeof breakpoints[row] === typeof undefined){
+                editor.session.setBreakpoint(row);
+                // When adding breakpoint to breakpoints prop, 1-index
+                this.props.onBreakpointChange([...this.props.breakpoints, row + 1]);
+            } else {
+                editor.session.clearBreakpoint(row);
+                this.props.onBreakpointChange(
+                    // When adding breakpoint to breakpoints prop, 1-index
+                    this.props.breakpoints.filter((r: number) => r !== row + 1),
+                );
+            }
+        });
+    }
+
     componentDidUpdate(prevProps: Readonly<EditorProps>): void {
         if (this.props.settingsPaneIsOpen !== prevProps.settingsPaneIsOpen) {
             // Manually resize ACE editor after CSS transition has completed
             setTimeout(() => this.aceComponent.current.editor.resize(), 400);
         }
-    }
-
-  componentDidMount(): void {
-      // TODO: why does using gutterclick yield weird highlighting?
-      this.aceComponent.current.editor.on("gutterclick", function(e) {
-        var target = e.domEvent.target;
-
-        if (target.className.indexOf("ace_gutter-cell") == -1){
-            return;
-        }
-
-        if (!e.editor.isFocused()){
-            return;
-        }
-
-        if (e.clientX > 25 + target.getBoundingClientRect().left){
-            return;
-        }
-
-        var breakpoints = e.editor.session.getBreakpoints(row, 0);
-        var row = e.getDocumentPosition().row;
-
-        // If there's a breakpoint already defined, it should be removed, offering the toggle feature
-        if(typeof breakpoints[row] === typeof undefined){
-            e.editor.session.setBreakpoint(row);
-        }else{
-            e.editor.session.clearBreakpoint(row);
-        }
-
-        e.stop();
-      });
     }
 
     render(): React.ReactNode {
