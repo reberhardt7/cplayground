@@ -86,10 +86,10 @@ class App extends React.PureComponent<AppProps, AppState> {
         this.setState({ showSettingsPane: !this.state.showSettingsPane });
     };
 
-		onBreakpointChange = (breakpoints: number[]): void => {
-		    this.setState({ breakpoints });
-		    console.log(breakpoints);
-		};
+    onBreakpointChange = (breakpoints: number[]): void => {
+        this.setState({ breakpoints });
+        console.log(breakpoints);
+    };
 
     /**
      * Opens the current program in a new tab in non-embedded mode.

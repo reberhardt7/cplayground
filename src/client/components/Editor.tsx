@@ -36,24 +36,23 @@ class Editor extends React.PureComponent<EditorProps> {
     }
 
     componentDidMount(): void {
-        const editor = this.aceComponent.current.editor;
+        const { editor } = this.aceComponent.current;
         editor.on('gutterclick', (e: AceMouseEvent) => {
-            var target = e.domEvent.target as Element;
-
-            if (target.className.indexOf('ace_gutter-cell') == -1){
-                return;
-            }
-
-            if (!editor.isFocused()){
-                return;
-            }
-
             // 0-indexed
-            var row = e.getDocumentPosition().row;
-            var breakpoints = editor.session.getBreakpoints(row, 0);
+            const { row } = e.getDocumentPosition();
+            const target = e.domEvent.target as Element;
+            const breakpoints = editor.session.getBreakpoints(row, 0);
 
-            // If there's a breakpoint already defined, it should be removed, offering the toggle feature
-            if (typeof breakpoints[row] === typeof undefined){
+            if (target.className.indexOf('ace_gutter-cell') === -1) {
+                return;
+            }
+
+            if (!editor.isFocused()) {
+                return;
+            }
+
+            // If there's a breakpoint already defined, it should be removed
+            if (typeof breakpoints[row] === typeof undefined) {
                 editor.session.setBreakpoint(row);
                 // When adding breakpoint to breakpoints prop, 1-index
                 this.props.onBreakpointChange([...this.props.breakpoints, row + 1]);
