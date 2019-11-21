@@ -65,7 +65,6 @@ class Editor extends React.PureComponent<EditorProps> {
     componentWillUnmount(): void {
         const { editor } = this.aceComponent.current;
         editor.removeEventListener('gutterclick', this.toggleBreakpoint);
-        console.log('unmounted');
     }
 
     toggleBreakpoint = (e: AceMouseEvent): void => {

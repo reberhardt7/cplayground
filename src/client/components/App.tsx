@@ -88,7 +88,6 @@ class App extends React.PureComponent<AppProps, AppState> {
 
     onBreakpointChange = (breakpoints: number[]): void => {
         this.setState({ breakpoints });
-        console.log(breakpoints);
     };
 
     /**
