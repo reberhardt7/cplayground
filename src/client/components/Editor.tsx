@@ -73,18 +73,14 @@ class Editor extends React.PureComponent<EditorProps> {
         // 0-indexed
         const { row } = e.getDocumentPosition();
         const target = e.domEvent.target as Element;
-        const breakpoints = editor.session.getBreakpoints(row, 0);
+        const breakpoints = editor.session.getBreakpoints();
 
-        if (target.className.indexOf('ace_gutter-cell') === -1) {
-            return;
-        }
-
-        if (!editor.isFocused()) {
+        if (!target.classList.contains('ace_gutter-cell')) {
             return;
         }
 
         // If there's a breakpoint already defined, it should be removed
-        if (typeof breakpoints[row] === typeof undefined) {
+        if (breakpoints[row] === undefined) {
             editor.session.setBreakpoint(row);
             // When adding breakpoint to breakpoints prop, 1-index
             this.props.onBreakpointChange([...this.props.breakpoints, row + 1]);
