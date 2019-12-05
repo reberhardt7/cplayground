@@ -166,11 +166,7 @@ class Diagram extends React.Component<DiagramProps> {
         });
         paper.setInteractivity({ elementMove: false });
 
-        const myObjStr = JSON.stringify(MOCK_DATA);
-        const data = JSON.parse(myObjStr);
-        const { processes } = data;
-        const { openFiles } = data;
-        const { vnodes } = data;
+        const { processes, openFiles, vnodes } = MOCK_DATA;
 
         const links: Array<joint.shapes.standard.Link> = [];
         const cells: Array<joint.shapes.standard.Rectangle> = [];
@@ -408,7 +404,6 @@ class Diagram extends React.Component<DiagramProps> {
             }
         });
     }
-
 
     componentWillUnmount(): void {
         // TODO: put something here
