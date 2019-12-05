@@ -5,15 +5,20 @@ const uuidv4 = require('uuid/v4');
 const fs = require('fs');
 const stringArgv = require('string-argv');
 const assert = require('assert');
-var app = require('express')();
-var http = require('http').Server(app);
-var io = require('socket.io')(http);
-var port = process.env.PORT || 3000;
+const app = require('express')();
+const http = require('http').Server(app);
+const io = require('socket.io')(http);
+const port = process.env.PORT || 3000;
 
 // Add timestamps to log messages
 require('console-stamp')(console, 'isoDateTime');
 
 const db = require('./db');
+const debugging = require('./debugging');
+
+if (debugging.ENABLE_DEBUGGING) {
+    debugging.init();
+}
 
 const THEMES = ['monokai', 'zenburn'];
 
@@ -275,6 +280,19 @@ io.on('connection', function(socket){
             }
         }, 1000);
 
+        // Every second, get info about the container's processes and send to
+        // the client.
+        // TODO: Only send to clients that have requested debugging
+        const debuggingMonitor = debugging.ENABLE_DEBUGGING
+            ? setInterval(async () => {
+                // If we don't have the containerId yet, the container might not
+                // have started yet, and there's not much we can do
+                if (!containerId) return;
+
+                socket.emit('debug', await debugging.getContainerInfo(containerId));
+            }, 1000)
+            : null;
+
         // Send process output to websocket, and save to a server buffer that
         // we can later log to the database
         let outputBuf = '';
@@ -339,6 +357,9 @@ io.on('connection', function(socket){
                 + runtime_ms + 'ms');
             clearTimeout(runTimeoutTimer);
             clearInterval(cpuQuotaMonitor);
+            if (debugging.ENABLE_DEBUGGING) {
+                clearInterval(debuggingMonitor);
+            }
             pty = null;
             if (socket.connected) {
                 console.log(connIdPrefix + 'Sending client exit info');
