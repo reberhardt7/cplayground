@@ -11,15 +11,12 @@
 #include <asm/atomic.h>
 #include <linux/dcache.h>
 #include <linux/proc_fs.h>
-#include <linux/fs.h>
 #include <linux/seq_file.h>
 
 MODULE_LICENSE("Dual MIT/GPL");
 MODULE_AUTHOR("Ryan Eberhardt");
 MODULE_DESCRIPTION("Cplayground debugging module");
 MODULE_VERSION("0.01");
-
-const int kFileBufSize = 1024 * 8;
 
 static struct proc_dir_entry *cplayground_dirent = NULL;
 
@@ -108,14 +105,14 @@ static void inspect_fd(struct fdtable *fdt, int fd, struct file *file,
 
     // TODO: need to lock before getting f_pos?
     seq_printf(sfile,
-            "fd:\t%d\n"
-            "close_on_exec:\t%d\n"
-            "open_file:\t%s\n"
-            "pos:\t%lli\n"
-            "flags:\t0%o\n"
-            "vnode:\t%s\n",
+            "%d\t"      // fd
+            "%d\t"      // close_on_exec
+            "%s\t"      // open file id (file_ptr_hash)
+            "%lli\t"    // file position/offset
+            "0%o\t"     // flags
+            "%s\n",     // vnode id (path_str)
             fd, close_on_exec(fd, fdt), file_ptr_hash, (long long)file->f_pos,
-            f_flags, path_str);
+            file->f_flags, path_str);
 }
 
 /**
@@ -145,8 +142,18 @@ static void inspect_fds(struct files_struct *files, struct seq_file *sfile) {
 
 static void inspect_proc(struct task_struct *task, struct pid_namespace *ns,
         struct seq_file *sfile) {
-    seq_printf(sfile, "== %s [%d / %d]\n",
-            task->comm, task_pid_nr(task), task_pid_nr_ns(task, ns));
+    char ns_ptr_hash[64 + 1];
+    hash_pointer(ns, ns_ptr_hash);
+
+    seq_printf(sfile,
+            "%s\t"  // namespace ID (i.e. hash of pid_namespace pointer)
+            "%d\t"  // global PID
+            "%d\t"  // container PID
+            "%d\t"  // container PPID
+            "%d\t"  // container PGID
+            "%s\n", // command
+            ns_ptr_hash, task_pid_nr(task), task_pid_nr_ns(task, ns),
+            task_ppid_nr_ns(task, ns), task_pgrp_nr_ns(task, ns), task->comm);
     // TODO: get_files_struct is undefined?
     //files = get_files_struct(task);
     // TODO: I don't think we need to increment the refcount here since
