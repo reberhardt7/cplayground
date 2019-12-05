@@ -92,10 +92,6 @@ static void hash_pointer(void *ptr, char *hash_buf) {
  */
 static void inspect_fd(struct fdtable *fdt, int fd, struct file *file,
         struct seq_file *sfile) {
-    int f_flags = file->f_flags;
-    if (close_on_exec(fd, fdt))
-        f_flags |= O_CLOEXEC;
-
     // TODO: locks?
     char path_buf[512];
     char* path_str = d_path(&file->f_path, path_buf, sizeof(path_buf));
