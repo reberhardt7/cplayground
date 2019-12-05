@@ -42,6 +42,26 @@ const MOCK_DATA = {
                 file: 'someid3',
                 closeOnExec: false,
             },
+            5: {
+                file: 'someid0',
+                closeOnExec: false,
+            },
+            6: {
+                file: 'someid0',
+                closeOnExec: false,
+            },
+            7: {
+                file: 'someid0',
+                closeOnExec: false,
+            },
+            8: {
+                file: 'someid3',
+                closeOnExec: true,
+            },
+            9: {
+                file: 'someid3',
+                closeOnExec: false,
+            },
         },
     }, {
         pid: 123,
@@ -87,7 +107,7 @@ const MOCK_DATA = {
     openFiles: {
         someid0: {
             position: 123, // offset in file
-            flags: ['O_WRONLY'],
+            flags: ['O_WRONLY', 'O_RDONLY'],
             refcount: 3,
             vnode: 'vnode0',
         },
@@ -142,11 +162,11 @@ class Diagram extends React.Component<DiagramProps> {
         });
         paper.setInteractivity({ elementMove: false });
 
-        // TODO: figure out type casting issues
-        // TODO: debug 'Missing return type on function' issues
-        const { processes } = MOCK_DATA;
-        const { openFiles } = MOCK_DATA;
-        const { vnodes } = MOCK_DATA;
+        const myObjStr = JSON.stringify(MOCK_DATA);
+        const data = JSON.parse(myObjStr);
+        const { processes } = data;
+        const { openFiles } = data;
+        const { vnodes } = data;
 
         const links: Array<joint.shapes.standard.Link> = [];
         const cells: Array<joint.shapes.standard.Rectangle> = [];
@@ -155,7 +175,7 @@ class Diagram extends React.Component<DiagramProps> {
         const inodes: Array<joint.shapes.standard.Rectangle> = [];
 
         // VNODE TABLE
-        function generateVnode() {
+        function generateVnode(): {} {
             let xPosition = 0;
             const yPosition = 250;
             const vnodeKeys = Object.keys(vnodes);
@@ -178,7 +198,6 @@ class Diagram extends React.Component<DiagramProps> {
                         'ref-y': -20,
                     },
                 });
-                // vnodeRect.addTo(graph);
 
                 const inode = new joint.shapes.standard.Rectangle();
                 inode.resize(80, 40);
@@ -198,15 +217,14 @@ class Diagram extends React.Component<DiagramProps> {
                     },
                 });
                 cells.push(inode);
-                // inode.addTo(graph);
                 vnodeRect.embed(inode);
                 vnodeTable[vKey] = vnodeRect;
                 xPosition += 100;
-                // fileCells.push(dict);
             });
+            return vnodeTable;
         }
         // FILETABLE
-        function generateFileTable() {
+        function generateFileTable(): {} {
             let xPosition = 0;
             const yPosition = 140;
             const fileKeys = Object.keys(openFiles);
@@ -215,6 +233,12 @@ class Diagram extends React.Component<DiagramProps> {
                 const file = openFiles[key];
                 fileRect.resize(100, 100);
                 fileRect.position(xPosition, yPosition);
+                // TODO: figure out cleaner way to format strings on labels
+                let flagText = '';
+                file.flags.forEach((flag: string) => {
+                    flagText += flag;
+                    flagText += '\n       ';
+                });
                 fileRect.attr({
                     body: {
                         strokeWidth: 1,
@@ -229,18 +253,17 @@ class Diagram extends React.Component<DiagramProps> {
 
                     },
                     bodyText: { // TODO: parse flags to list multiple, scale box if needed
-                        text: `cursor: ${file.position} \nrefcount: ${file.refcount}\nflags: ${file.flags.toString()}`,
+                        text: `cursor: ${file.position} \nrefcount: ${file.refcount}\nflags: ${flagText}`,
                         fontSize: FONT_SIZE,
                         fontFamily: 'Courier',
                         textAnchor: 'front',
-                        'ref-x': -48,
-                        'ref-y': -20,
+                        refX: '10',
                     },
                 });
                 // fileRect.addTo(graph);
                 const inode = new joint.shapes.standard.Rectangle();
                 inode.resize(15, 15);
-                inode.position(xPosition + 5, yPosition + 70);
+                inode.position(xPosition + 5, yPosition + 80);
                 inode.attr({
                     body: {
                         strokeWidth: 1,
@@ -258,23 +281,23 @@ class Diagram extends React.Component<DiagramProps> {
                     },
                 });
                 links.push(link);
-
-                // inode.addTo(graph);
                 fileRect.embed(inode); // TODO don't let inode leave fileRect
                 inodes.push(inode);
 
                 fileTableIndeces[key] = fileRect;
                 xPosition += 100;
-                // fileCells.push(dict);
             });
+            return fileTableIndeces;
         }
 
-        function generateProcesses() {
+        function generateProcesses(): void {
             let xPosition = 0;
             const yPosition = 30;
-            processes.forEach((process) => {
+            // TODO: create interface? for process, currently getting 'any' casting warnings
+            processes.forEach((process: any) => {
+                const pidWidth = (Object.keys(process.fds).length + 2) * 20;
                 const rect2 = new joint.shapes.standard.HeaderedRectangle();
-                rect2.resize(200, 100);
+                rect2.resize(pidWidth, 100);
                 rect2.position(xPosition, yPosition);
                 rect2.attr({
                     body: {
@@ -290,16 +313,13 @@ class Diagram extends React.Component<DiagramProps> {
                         fontSize: FONT_SIZE,
                         fontFamily: 'Courier',
                         textAnchor: 'left',
-                        'ref-x': -90,
+                        'ref-x': -0.4 * pidWidth,
                     },
                 });
                 let offset = 10;
                 cells.push(rect2);
 
                 // FD TABLE
-
-                // TODO: make fd table into function
-
                 Object.keys(process.fds).forEach((fdKey) => {
                     const fd = new joint.shapes.standard.Rectangle();
                     const fileKey = process.fds[parseInt(fdKey, 10)].file;
@@ -332,17 +352,11 @@ class Diagram extends React.Component<DiagramProps> {
                     });
                     links.push(link);
                 });
-                // graph.addCells(cells);
-
-                // graph.addCells(links);
-
-                // rect2.addTo(graph);
-
-                xPosition += 250;
+                xPosition += pidWidth + 20;
             });
         }
 
-        function draw() {
+        function draw(): void {
             Object.keys(vnodeTable).forEach((vnodeKey) => {
                 graph.addCell(vnodeTable[vnodeKey]);
             });
