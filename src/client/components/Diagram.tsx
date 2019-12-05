@@ -1,26 +1,44 @@
 import * as React from 'react';
 import * as joint from 'jointjs';
 
+interface Process {
+    pid: number;
+    ppid: number;
+    pgid: number;
+    fds: {[key: string]: {
+        file: string;
+        closeOnExec: boolean;
+    };};
+}
+
+interface OpenFileEntry {
+    position: number;
+    flags: string[];
+    refcount: number;
+    vnode: string;
+}
+
+interface VNode {
+    name: string;
+    refcount: number;
+    inode: {
+        mode: string;
+        owner: string;
+    };
+}
+
+interface ContainerInfo {
+    processes: Process[];
+    openFiles: {[key: string]: OpenFileEntry};
+    vnodes: {[key: string]: VNode};
+}
+
 const FONT_SIZE = 9;
-const MOCK_DATA = {
+const MOCK_DATA: ContainerInfo = {
     processes: [{
         pid: 123,
         ppid: 122,
         pgid: 10,
-        threads: [{
-            tid: 123,
-            state: 'S (sleeping)',
-            cpusAllowed: [0, 1, 2, 3, 4, 5, 6, 7],
-            pendingSignals: [
-                'SIGINT',
-            ],
-            blockedSignals: [
-                'SIGINT',
-            ],
-            ignoredSignals: [
-                'SIGTSTP',
-            ],
-        }],
         fds: {
             0: {
                 file: 'someid0',
@@ -67,20 +85,6 @@ const MOCK_DATA = {
         pid: 123,
         ppid: 122,
         pgid: 10,
-        threads: [{
-            tid: 123,
-            state: 'S (sleeping)',
-            cpusAllowed: [0, 1, 2, 3, 4, 5, 6, 7],
-            pendingSignals: [
-                'SIGINT',
-            ],
-            blockedSignals: [
-                'SIGINT',
-            ],
-            ignoredSignals: [
-                'SIGTSTP',
-            ],
-        }],
         fds: {
             0: {
                 file: 'someid0',
@@ -293,8 +297,7 @@ class Diagram extends React.Component<DiagramProps> {
         function generateProcesses(): void {
             let xPosition = 0;
             const yPosition = 30;
-            // TODO: create interface? for process, currently getting 'any' casting warnings
-            processes.forEach((process: any) => {
+            processes.forEach((process: Process) => {
                 const pidWidth = (Object.keys(process.fds).length + 2) * 20;
                 const rect2 = new joint.shapes.standard.HeaderedRectangle();
                 rect2.resize(pidWidth, 100);
