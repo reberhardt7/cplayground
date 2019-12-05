@@ -222,7 +222,10 @@ static int __init lkm_example_init(void) {
     if (cplayground_dirent == NULL) {
         return -ENOMEM;
     }
-    // TODO: make this file readable by unprivileged user
+    // TODO: Don't hardcode uid 1000
+    kuid_t uid = { .val = 1000 };
+    kgid_t gid = { .val = 1000 };
+    proc_set_user(cplayground_dirent, uid, gid);
     return 0;
 }
 
