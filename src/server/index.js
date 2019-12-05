@@ -279,7 +279,7 @@ io.on('connection', function(socket){
         // we can later log to the database
         let outputBuf = '';
         let warnOutputMaxSizeExceeded = true;
-        pty.on('data', data => {
+        pty.on('data', async data => {
             // Get container ID
             // HACK: this part is jank, but this is the best I could come up
             // with. ptylib.spawn() above initiates the container launch, but
@@ -287,15 +287,18 @@ io.on('connection', function(socket){
             // container until the container starts printing stuff. So, if we
             // get here, we know it's safe to query the container ID.
             if (!containerId) {
-                containerId = child_process.execFile('docker',
-                    ['ps', '--no-trunc', '-aqf', 'name=' + containerName],
-                    (err, out) => {
-                        if (err) throw err;
-                        containerId = out.trim();
-                        console.log(connIdPrefix + 'Container id: '
-                            + containerId);
-                    }
-                );
+                await new Promise((resolve, reject) => {
+                    child_process.execFile('docker',
+                        ['ps', '--no-trunc', '-aqf', 'name=' + containerName],
+                        (err, out) => {
+                            if (err) reject(err);
+                            containerId = out.trim();
+                            console.log(connIdPrefix + 'Container id: '
+                                + containerId);
+                            resolve();
+                        }
+                    );
+                });
             }
 
             // Save program output to database
