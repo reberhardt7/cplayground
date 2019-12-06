@@ -289,7 +289,10 @@ io.on('connection', function(socket){
                 // have started yet, and there's not much we can do
                 if (!containerId) return;
 
-                socket.emit('debug', await debugging.getContainerInfo(containerId));
+                const info = await debugging.getContainerInfo(containerId);
+                if (info) {
+                    socket.emit('debug', info);
+                }
             }, 1000)
             : null;
 
