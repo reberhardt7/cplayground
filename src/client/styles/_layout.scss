@@ -109,4 +109,5 @@ html, body, #app {
     height: 50%;
     padding: $pane-padding;
     border-top: 1px solid $topbar-border-color;
+    overflow: auto;
 }

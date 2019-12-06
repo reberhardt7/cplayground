@@ -1,10 +1,16 @@
 import * as React from 'react';
 import * as joint from 'jointjs';
 
+import { bindSocketToDebugger, BoundSocketListeners, releaseSocketFromDebugger } from '../server-comm';
+
+import Rectangle = joint.shapes.standard.Rectangle;
+import HeaderedRectangle = joint.shapes.standard.HeaderedRectangle;
+
 interface Process {
     pid: number;
     ppid: number;
     pgid: number;
+    command: string;
     fds: {[key: string]: {
         file: string;
         closeOnExec: boolean;
@@ -21,10 +27,6 @@ interface OpenFileEntry {
 interface VNode {
     name: string;
     refcount: number;
-    inode: {
-        mode: string;
-        owner: string;
-    };
 }
 
 interface ContainerInfo {
@@ -33,156 +35,156 @@ interface ContainerInfo {
     vnodes: {[key: string]: VNode};
 }
 
-const FONT_SIZE = 9;
-const MOCK_DATA: ContainerInfo = {
-    processes: [{
-        pid: 123,
-        ppid: 122,
-        pgid: 10,
-        fds: {
-            0: {
-                file: 'someid0',
-                closeOnExec: false,
-            },
-            1: {
-                file: 'someid0',
-                closeOnExec: false,
-            },
-            2: {
-                file: 'someid0',
-                closeOnExec: false,
-            },
-            3: {
-                file: 'someid3',
-                closeOnExec: true,
-            },
-            4: {
-                file: 'someid3',
-                closeOnExec: false,
-            },
-            5: {
-                file: 'someid0',
-                closeOnExec: false,
-            },
-            6: {
-                file: 'someid0',
-                closeOnExec: false,
-            },
-            7: {
-                file: 'someid0',
-                closeOnExec: false,
-            },
-            8: {
-                file: 'someid3',
-                closeOnExec: true,
-            },
-            9: {
-                file: 'someid3',
-                closeOnExec: false,
-            },
-        },
-    }, {
-        pid: 123,
-        ppid: 122,
-        pgid: 10,
-        fds: {
-            0: {
-                file: 'someid0',
-                closeOnExec: false,
-            },
-            1: {
-                file: 'someid0',
-                closeOnExec: false,
-            },
-            2: {
-                file: 'someid0',
-                closeOnExec: false,
-            },
-            3: {
-                file: 'someid3',
-                closeOnExec: true,
-            },
-            4: {
-                file: 'someid3',
-                closeOnExec: false,
-            },
-        },
-    }],
-    openFiles: {
-        someid0: {
-            position: 123, // offset in file
-            flags: ['O_WRONLY', 'O_RDONLY'],
-            refcount: 3,
-            vnode: 'vnode0',
-        },
-        someid3: {
-            position: 123, // offset in file
-            flags: ['O_RDONLY'],
-            refcount: 2,
-            vnode: 'vnode1',
-        },
-    },
-    vnodes: {
-        vnode0: {
-            name: '/dev/pts/2',
-            refcount: 1,
-            inode: {
-                mode: '0700',
-                owner: 'cplayground',
-            },
-        },
-        vnode1: {
-            name: '/path/to/file',
-            refcount: 1,
-            inode: {
-                mode: '0755',
-                owner: 'root',
-            },
-        },
-    },
-};
+const FONT_SIZE = 12;
 
 type DiagramProps = {
+    socket?: SocketIOClient.Socket;
 }
 
 class Diagram extends React.Component<DiagramProps> {
     divRef: React.RefObject<HTMLDivElement>;
 
-    constructor(props: Diagram) {
+    graph: joint.dia.Graph;
+
+    links: Array<joint.shapes.standard.Link>;
+
+    // Opaque object containing functions that were bound to the socket as event listeners.
+    // We just need to remember these so that we can unbind the functions if this component
+    // unmounts.
+    boundSocketListeners?: BoundSocketListeners;
+
+    constructor(props: DiagramProps) {
         super(props);
         this.divRef = React.createRef();
     }
 
     componentDidMount(): void {
-        const graph = new joint.dia.Graph();
+        this.graph = new joint.dia.Graph();
 
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
         const paper = new joint.dia.Paper({
             el: this.divRef.current,
-            model: graph,
-            width: this.divRef.current.getBoundingClientRect().width,
-            height: this.divRef.current.getBoundingClientRect().height,
+            model: this.graph,
+            // TODO: set a more reasonable width/height
+            width: 2000,
+            height: 2000,
             gridSize: 1,
         });
-        paper.setInteractivity({ elementMove: false });
 
-        const { processes, openFiles, vnodes } = MOCK_DATA;
+        // Click on header to minimize it
+        paper.on('element:pointerdblclick', (ElementView) => {
+            const currentElem = ElementView.model;
+            let visibility = 'hidden';
+            if (currentElem.attr('body/visibility') === 'hidden') {
+                visibility = 'visible';
+            }
+            if (currentElem instanceof joint.shapes.standard.HeaderedRectangle) {
+                const children = currentElem.getEmbeddedCells();
+                const used: Array<string> = [];
+                children.forEach((child) => {
+                    child.attr('body/visibility', visibility);
+                    if (visibility === 'hidden') {
+                        this.links.forEach((link) => {
+                            if (link.attributes.source.id === child.id) {
+                                link.source(currentElem, { selector: 'header' });
+                            }
+                        });
+                    } else {
+                        this.links.forEach((link) => {
+                            if (link.attributes.source.id === currentElem.id
+                                && !used.includes(child.cid)) {
+                                link.source(child, { selector: 'header' });
+                                used.push(child.cid);
+                            }
+                        });
+                    }
+                });
+                currentElem.attr('body/visibility', visibility);
+            }
+        });
 
-        const links: Array<joint.shapes.standard.Link> = [];
+        // Change dragging so that child nodes are anchored within their parents, and
+        // dragging a child makes everything move as a unit:
+        // https://stackoverflow.com/a/45440557
+        paper.on('cell:pointermove', (cellView, evt): void => {
+            if (cellView.model.isLink()) {
+                return;
+            }
+
+            const parent = cellView.model.getAncestors()[0];
+
+            // if we trying to move with embedded cell
+            if (parent) {
+                // cancel move for the child (currently dragged element)
+                cellView.pointerup(evt);
+                const view = paper.findViewByModel(parent);
+
+                // substitute currently dragged element with the parent
+                paper.sourceView = view;
+
+                // get parent's position and continue dragging (with the parent, children
+                // are updated automaticaly)
+                const localPoint = paper.snapToGrid({ x: evt.clientX, y: evt.clientY });
+                view.pointerdown(evt, localPoint.x, localPoint.y);
+            }
+        });
+
+        if (this.props.socket) {
+            this.bindToSocket(this.props.socket);
+        }
+    }
+
+    componentDidUpdate(prevProps: Readonly<DiagramProps>): void {
+        if (this.props.socket === prevProps.socket) {
+            return;
+        }
+
+        // Handle changes in socket
+        if (prevProps.socket) {
+            this.detachFromSocket(prevProps.socket);
+        }
+        if (this.props.socket) {
+            this.bindToSocket(this.props.socket);
+        }
+    }
+
+    componentWillUnmount(): void {
+        if (this.props.socket) {
+            this.detachFromSocket(this.props.socket);
+        }
+    }
+
+    bindToSocket = (socket: SocketIOClient.Socket): void => {
+        this.boundSocketListeners = bindSocketToDebugger(socket, this.receiveUpdatedData);
+    };
+
+    detachFromSocket = (socket: SocketIOClient.Socket): void => {
+        releaseSocketFromDebugger(socket, this.boundSocketListeners);
+        this.boundSocketListeners = null;
+    };
+
+    receiveUpdatedData = (data: ContainerInfo): void => {
+        this.graph.clear();
+        this.drawDiagram(data);
+    };
+
+    drawDiagram = (data: ContainerInfo): void => {
+        const { processes, openFiles, vnodes } = data;
+
+        this.links = [];
         const cells: Array<joint.shapes.standard.Rectangle> = [];
         const vnodeTable: {[index: string]: joint.shapes.standard.Rectangle} = {};
         const fileTableIndeces: {[index: string]: joint.shapes.standard.HeaderedRectangle} = {};
         const inodes: Array<joint.shapes.standard.Rectangle> = [];
 
         // VNODE TABLE
-        function generateVnode(): {} {
+        const generateVnode = (): {[index: string]: Rectangle} => {
             let xPosition = 0;
-            const yPosition = 250;
+            const yPosition = 300;
             const vnodeKeys = Object.keys(vnodes);
             vnodeKeys.forEach((vKey) => {
                 const vnodeRect = new joint.shapes.standard.Rectangle();
                 const v = vnodes[vKey];
-                vnodeRect.resize(100, 80);
+                vnodeRect.resize(150, 50);
                 vnodeRect.position(xPosition, yPosition);
                 vnodeRect.attr({
                     body: {
@@ -190,48 +192,28 @@ class Diagram extends React.Component<DiagramProps> {
                     },
                     label: {
                         // TODO:scale box if needed to fit longer text
-                        text: `${v.name}\nrefcount: ${v.refcount}\ninode:`,
+                        text: `${v.name}\nrefcount: ${v.refcount}`,
                         fontSize: FONT_SIZE,
                         fontFamily: 'Courier',
                         textAnchor: 'front',
-                        'ref-x': -45,
-                        'ref-y': -20,
+                        refX: '10',
                     },
                 });
 
-                const inode = new joint.shapes.standard.Rectangle();
-                inode.resize(80, 40);
-                inode.position(xPosition + 5, yPosition + 35);
-                inode.attr({
-                    body: {
-                        strokeWidth: 1,
-                        fill: 'blue',
-                        fillOpacity: 0.1,
-                    },
-                    label: {
-                        text: `${v.inode.mode} \n${v.inode.owner}`,
-                        fontSize: FONT_SIZE,
-                        fontFamily: 'Courier',
-                        textAnchor: 'front',
-                        'ref-x': -35,
-                    },
-                });
-                cells.push(inode);
-                vnodeRect.embed(inode);
                 vnodeTable[vKey] = vnodeRect;
-                xPosition += 100;
+                xPosition += 150;
             });
             return vnodeTable;
-        }
+        };
         // FILETABLE
-        function generateFileTable(): {} {
+        const generateFileTable = (): {[index: string]: HeaderedRectangle} => {
             let xPosition = 0;
-            const yPosition = 140;
+            const yPosition = 150;
             const fileKeys = Object.keys(openFiles);
             fileKeys.forEach((key) => {
                 const fileRect = new joint.shapes.standard.HeaderedRectangle();
                 const file = openFiles[key];
-                fileRect.resize(100, 100);
+                fileRect.resize(150, 120);
                 fileRect.position(xPosition, yPosition);
                 // TODO: figure out cleaner way to format strings on labels
                 let flagText = '';
@@ -247,7 +229,7 @@ class Diagram extends React.Component<DiagramProps> {
                         strokeWidth: 1,
                     },
                     headerText: {
-                        text: `${key}`,
+                        text: `${key.substring(0, 6)}`,
                         fontSize: FONT_SIZE,
                         fontFamily: 'Courier',
 
@@ -263,7 +245,7 @@ class Diagram extends React.Component<DiagramProps> {
                 // fileRect.addTo(graph);
                 const inode = new joint.shapes.standard.Rectangle();
                 inode.resize(15, 15);
-                inode.position(xPosition + 5, yPosition + 80);
+                inode.position(xPosition + 5, yPosition + 95);
                 inode.attr({
                     body: {
                         strokeWidth: 1,
@@ -280,23 +262,23 @@ class Diagram extends React.Component<DiagramProps> {
                         stroke: 'green',
                     },
                 });
-                links.push(link);
+                this.links.push(link);
                 fileRect.embed(inode); // TODO don't let inode leave fileRect
                 inodes.push(inode);
 
                 fileTableIndeces[key] = fileRect;
-                xPosition += 100;
+                xPosition += 150;
             });
             return fileTableIndeces;
-        }
+        };
 
-        function generateProcesses(): void {
+        const generateProcesses = (): void => {
             let xPosition = 0;
-            const yPosition = 30;
+            const yPosition = 0;
             processes.forEach((process: Process) => {
-                const pidWidth = (Object.keys(process.fds).length + 2) * 20;
+                const pidWidth = (Object.keys(process.fds).length + 2) * 30;
                 const rect2 = new joint.shapes.standard.HeaderedRectangle();
-                rect2.resize(pidWidth, 100);
+                rect2.resize(pidWidth, 120);
                 rect2.position(xPosition, yPosition);
                 rect2.attr({
                     body: {
@@ -308,7 +290,7 @@ class Diagram extends React.Component<DiagramProps> {
                         strokeWidth: 1,
                     },
                     headerText: {
-                        text: `pid: ${process.pid} \nppid: ${process.ppid} `,
+                        text: `command: ${process.command}\npid: ${process.pid}, ppid: ${process.ppid}`,
                         fontSize: FONT_SIZE,
                         fontFamily: 'Courier',
                         textAnchor: 'left',
@@ -341,73 +323,37 @@ class Diagram extends React.Component<DiagramProps> {
                     rect2.embed(fd);
 
                     const link = new joint.shapes.standard.Link();
-                    link.source(fd);
-                    link.target(fileTableIndeces[fileKey]);
+                    link.source(fd, { anchor: { name: 'bottom' } });
+                    link.target(fileTableIndeces[fileKey], { anchor: { name: 'top' } });
                     link.attr({
                         line: {
                             connection: true,
                             stroke: 'green',
                         },
                     });
-                    links.push(link);
+                    this.links.push(link);
                 });
                 xPosition += pidWidth + 20;
             });
-        }
+        };
 
-        function draw(): void {
+        const draw = (): void => {
             Object.keys(vnodeTable).forEach((vnodeKey) => {
-                graph.addCell(vnodeTable[vnodeKey]);
+                this.graph.addCell(vnodeTable[vnodeKey]);
             });
             Object.keys(fileTableIndeces).forEach((fileTableKey) => {
-                graph.addCell(fileTableIndeces[fileTableKey]);
+                this.graph.addCell(fileTableIndeces[fileTableKey]);
             });
-            graph.addCells(cells);
-            graph.addCells(inodes);
-            graph.addCells(links);
-        }
+            this.graph.addCells(cells);
+            this.graph.addCells(inodes);
+            this.graph.addCells(this.links);
+        };
 
         generateVnode();
         generateFileTable();
         generateProcesses();
         draw();
-
-        // Click on header to minimize it
-        paper.on('element:pointerdblclick', (ElementView) => {
-            const currentElem = ElementView.model;
-            let visibility = 'hidden';
-            if (currentElem.attr('body/visibility') === 'hidden') {
-                visibility = 'visible';
-            }
-            if (currentElem instanceof joint.shapes.standard.HeaderedRectangle) {
-                const children = currentElem.getEmbeddedCells();
-                const used: Array<string> = [];
-                children.forEach((child) => {
-                    child.attr('body/visibility', visibility);
-                    if (visibility === 'hidden') {
-                        links.forEach((link) => {
-                            if (link.attributes.source.id === child.id) {
-                                link.source(currentElem, { selector: 'header' });
-                            }
-                        });
-                    } else {
-                        links.forEach((link) => {
-                            if (link.attributes.source.id === currentElem.id
-                                && !used.includes(child.cid)) {
-                                link.source(child, { selector: 'header' });
-                                used.push(child.cid);
-                            }
-                        });
-                    }
-                });
-                currentElem.attr('body/visibility', visibility);
-            }
-        });
-    }
-
-    componentWillUnmount(): void {
-        // TODO: put something here
-    }
+    };
 
     render(): React.ReactNode {
         return (

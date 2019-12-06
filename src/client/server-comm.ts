@@ -95,7 +95,8 @@ export function startProgram(socket: Socket, program: Program): Promise<void> {
 }
 
 export type BoundSocketListeners = {
-    data: (data: ArrayBuffer) => void;
+    data?: (data: ArrayBuffer) => void;
+    debug?: (data: ArrayBuffer) => void;
 };
 
 /**
@@ -139,6 +140,25 @@ export function bindSocketToTerminal(
  * @param boundListeners
  */
 export function releaseSocketFromTerminal(
+    socket: Socket,
+    boundListeners: BoundSocketListeners,
+): void {
+    Object.keys(boundListeners).forEach(
+        (event: keyof BoundSocketListeners) => socket.removeListener(event, boundListeners[event]),
+    );
+}
+
+export function bindSocketToDebugger(
+    socket: Socket,
+    onData: (data: {}) => void,
+): BoundSocketListeners {
+    socket.on('debug', onData);
+    return {
+        debug: onData,
+    };
+}
+
+export function releaseSocketFromDebugger(
     socket: Socket,
     boundListeners: BoundSocketListeners,
 ): void {

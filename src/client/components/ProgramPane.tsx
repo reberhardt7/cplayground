@@ -11,7 +11,7 @@ type ProgramPaneProps = {
 const ProgramPane: React.FunctionComponent<ProgramPaneProps> = (props: ProgramPaneProps) => (
     <div className="program-pane">
         <Terminal socket={props.socket} onResize={props.onResize} />
-        <Diagram />
+        <Diagram socket={props.socket} />
     </div>
 );
 
