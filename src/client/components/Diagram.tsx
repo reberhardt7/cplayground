@@ -70,6 +70,14 @@ class Diagram extends React.Component<DiagramProps> {
             gridSize: 1,
         });
 
+        // Disable dragging of elements. (We may re-enable in the future, but for now, "proper"
+        // behavior isn't well defined. E.g., if a process is dragged, and then a new process
+        // appears, where should that new process be drawn? Should we make draw it pretending that
+        // the dragged process was never dragged away, or, if the dragged process was dragged
+        // totally out of the way, should we have the new process take its place in the flow of
+        // nodes?)
+        paper.setInteractivity({ elementMove: false });
+
         // Click on header to minimize it
         paper.on('element:pointerdblclick', (ElementView) => {
             const currentElem = ElementView.model;
@@ -99,32 +107,6 @@ class Diagram extends React.Component<DiagramProps> {
                     }
                 });
                 currentElem.attr('body/visibility', visibility);
-            }
-        });
-
-        // Change dragging so that child nodes are anchored within their parents, and
-        // dragging a child makes everything move as a unit:
-        // https://stackoverflow.com/a/45440557
-        paper.on('cell:pointermove', (cellView, evt): void => {
-            if (cellView.model.isLink()) {
-                return;
-            }
-
-            const parent = cellView.model.getAncestors()[0];
-
-            // if we trying to move with embedded cell
-            if (parent) {
-                // cancel move for the child (currently dragged element)
-                cellView.pointerup(evt);
-                const view = paper.findViewByModel(parent);
-
-                // substitute currently dragged element with the parent
-                paper.sourceView = view;
-
-                // get parent's position and continue dragging (with the parent, children
-                // are updated automaticaly)
-                const localPoint = paper.snapToGrid({ x: evt.clientX, y: evt.clientY });
-                view.pointerdown(evt, localPoint.x, localPoint.y);
             }
         });
 
