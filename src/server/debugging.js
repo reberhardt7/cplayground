@@ -192,6 +192,11 @@ function reconstructTables(namespaces) {
 
         // Populate processes
         for (const proc of Object.values(namespaces[namespaceID])) {
+            // Skip the runc container-creating function, as well as our run.sh
+            // script
+            if (proc.containerPID <= 1) {
+                continue;
+            }
             const fds = { ...proc.files };
             for (const fd of Object.values(fds)) {
                 fds[fd.fd] = { file: fd.openFileID, closeOnExec: fd.closeOnExec };
@@ -206,6 +211,7 @@ function reconstructTables(namespaces) {
         }
 
         const files = Object.values(namespaces[namespaceID])
+            .filter(process => process.containerPID > 1)
             .map(process => Object.values(process.files))
             .flat();
 
