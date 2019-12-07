@@ -274,22 +274,23 @@ async function init() {
 async function getContainerInfo(containerId) {
     const pidFile = `/sys/fs/cgroup/pids/docker/${containerId}/cgroup.procs`;
     let initPid;
-    try {
-        const rl = readline.createInterface({
-            input: fs.createReadStream(pidFile),
-        });
-        for await (const line of rl) {
-            initPid = line;
-            rl.close();
-            break;
-        }
-    } catch (err) {
-        if (err.code === 'ENOENT') {
+
+    const stream = fs.createReadStream(pidFile);
+    stream.on('error', (err) => {
+        if (err.code == 'ENOENT') {
             console.log(`Note: file ${pidFile} has disappeared. This is probably `
                 + `okay; the container probably just exited.`);
         } else {
-            throw err;
+            console.error(`Unexpected error reading ${pidFile}:`, err);
         }
+    });
+    const rl = readline.createInterface({
+        input: stream,
+    });
+    for await (const line of rl) {
+        initPid = line;
+        rl.close();
+        break;
     }
     return processInfo[initPid];
 }
