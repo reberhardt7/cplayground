@@ -126,6 +126,7 @@ class Diagram extends React.Component<DiagramProps> {
         }
         if (this.props.socket) {
             this.bindToSocket(this.props.socket);
+            this.graph.clear();
         }
     }
 
