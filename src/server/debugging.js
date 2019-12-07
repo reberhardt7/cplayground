@@ -2,7 +2,8 @@ const fs = require('fs');
 const readline = require('readline');
 
 const CPLAYGROUND_PROCFILE = "/proc/cplayground";
-const ENABLE_DEBUGGING = fs.existsSync(CPLAYGROUND_PROCFILE);
+const USE_MOCK_DATA = Boolean(process.env.CP_MOCK_DEBUGGER);
+const ENABLE_DEBUGGING = USE_MOCK_DATA || fs.existsSync(CPLAYGROUND_PROCFILE);
 
 const FILE_FLAGS = {
     // Open flags:
@@ -25,6 +26,89 @@ const FILE_FLAGS = {
     S_IFREG: 0100000,   // regular
     S_IFLNK: 0120000,   // symbolic link
     S_IFSOCK: 0140000,  // socket
+};
+
+const MOCK_DATA = {
+    processes: [{
+        pid: 20,
+        ppid: 1,
+        pgid: 1,
+        command: 'output',
+        fds: {
+            '0': {
+                file: '6d2b62b056631445f3a906498f0ab45fea4c4e68a198af6f268a34269fb30caa',
+                closeOnExec: false
+            },
+            '1': {
+                file: '6d2b62b056631445f3a906498f0ab45fea4c4e68a198af6f268a34269fb30caa',
+                closeOnExec: false
+            },
+            '2': {
+                file: '6d2b62b056631445f3a906498f0ab45fea4c4e68a198af6f268a34269fb30caa',
+                closeOnExec: false
+            },
+            '3': {
+                file: '4877eb7123020cbb048bec0564324a4f2dcdc4c6d98c4b925da38f6d978fd24e',
+                closeOnExec: false
+            }
+        }
+    }, {
+        pid: 21,
+        ppid: 20,
+        pgid: 1,
+        command: 'output',
+        fds: {
+            '0': {
+                file: '6d2b62b056631445f3a906498f0ab45fea4c4e68a198af6f268a34269fb30caa',
+                closeOnExec: false
+            },
+            '1': {
+                file: '2d7ed44fbc12ed3c63692795dd3fdbf0fb038841fcce65a20419938d04bae623',
+                closeOnExec: false
+            },
+            '2': {
+                file: '6d2b62b056631445f3a906498f0ab45fea4c4e68a198af6f268a34269fb30caa',
+                closeOnExec: false
+            }
+        }
+    }],
+    openFiles: {
+        '6d2b62b056631445f3a906498f0ab45fea4c4e68a198af6f268a34269fb30caa': {
+            position: 0,
+            flags: [
+                'O_RDWR',
+                'S_IFREG'
+            ],
+            refcount: 5,
+            vnode: '/dev/pts/0'
+        },
+        '4877eb7123020cbb048bec0564324a4f2dcdc4c6d98c4b925da38f6d978fd24e': {
+            position: 0,
+            flags: [
+                'O_RDONLY'
+            ],
+            refcount: 1,
+            vnode: 'pipe:[116131]'
+        },
+        '2d7ed44fbc12ed3c63692795dd3fdbf0fb038841fcce65a20419938d04bae623': {
+            position: 0,
+            flags: [
+                'O_WRONLY'
+            ],
+            refcount: 1,
+            vnode: 'pipe:[116131]'
+        }
+    },
+    vnodes: {
+        '/dev/pts/0': {
+            name: '/dev/pts/0',
+            refcount: 1
+        },
+        'pipe:[116131]': {
+            name: 'pipe:[116131]',
+            refcount: 2
+        }
+    }
 };
 
 /**
@@ -264,6 +348,11 @@ let processInfo;
  * Start the polling mechanism that loads info from /proc/cplayground
  */
 async function init() {
+    if (USE_MOCK_DATA) {
+        // We don't actually need to poll /proc/cplayground
+        return;
+    }
+
     processInfo = reconstructTables(await loadRawProcessInfo());
     // TODO: only poll the file if there is an active debugging session
     setInterval(async () => {
@@ -272,6 +361,11 @@ async function init() {
 }
 
 async function getContainerInfo(containerId) {
+    if (USE_MOCK_DATA) {
+        console.warn('CP_MOCK_DEBUGGER is set. Mock container data will be used.');
+        return MOCK_DATA;
+    }
+
     const pidFile = `/sys/fs/cgroup/pids/docker/${containerId}/cgroup.procs`;
     let initPid;
 

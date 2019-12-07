@@ -18,6 +18,9 @@ const debugging = require('./debugging');
 
 if (debugging.ENABLE_DEBUGGING) {
     debugging.init();
+} else {
+    console.warn('Debugging is disabled (maybe because the kernel extension is not '
+        + 'loaded). `debug` events will not be sent to the client.');
 }
 
 const THEMES = ['monokai', 'zenburn'];
@@ -283,18 +286,22 @@ io.on('connection', function(socket){
         // Every second, get info about the container's processes and send to
         // the client.
         // TODO: Only send to clients that have requested debugging
-        const debuggingMonitor = debugging.ENABLE_DEBUGGING
-            ? setInterval(async () => {
-                // If we don't have the containerId yet, the container might not
-                // have started yet, and there's not much we can do
-                if (!containerId) return;
+        const debuggingMonitor = setInterval(async () => {
+            if (!debugging.ENABLE_DEBUGGING) {
+                console.warn('Debugging is disabled (maybe because the kernel '
+                    + 'extension is not loaded). `debug` events will not be '
+                    + 'sent to the client.');
+                return;
+            }
+            // If we don't have the containerId yet, the container might not
+            // have started yet, and there's not much we can do
+            if (!containerId) return;
 
-                const info = await debugging.getContainerInfo(containerId);
-                if (info) {
-                    socket.emit('debug', info);
-                }
-            }, 1000)
-            : null;
+            const info = await debugging.getContainerInfo(containerId);
+            if (info) {
+                socket.emit('debug', info);
+            }
+        }, 1000);
 
         // Send process output to websocket, and save to a server buffer that
         // we can later log to the database
@@ -360,9 +367,7 @@ io.on('connection', function(socket){
                 + runtime_ms + 'ms');
             clearTimeout(runTimeoutTimer);
             clearInterval(cpuQuotaMonitor);
-            if (debugging.ENABLE_DEBUGGING) {
-                clearInterval(debuggingMonitor);
-            }
+            clearInterval(debuggingMonitor);
             pty = null;
             if (socket.connected) {
                 console.log(connIdPrefix + 'Sending client exit info');
