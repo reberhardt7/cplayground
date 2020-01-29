@@ -5,94 +5,55 @@ import { bindSocketToDebugger, BoundSocketListeners, releaseSocketFromDebugger }
 
 import Rectangle = joint.shapes.standard.Rectangle;
 import HeaderedRectangle = joint.shapes.standard.HeaderedRectangle;
-import Image = joint.shapes.standard.Image;
 
-const pipe_icon = 'https://cdn0.iconfinder.com/data/icons/interior-buildings/48/37-512.png';
-const terminal_icon = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAOEAAADhCAMAAAAJbSJIAAAAeFBMVEX///8AAADs7Oyzs7P5+fn19fVDQ0OXl5ednZ15eXn7+/uMjIwSEhLx8fHT09PKysrj4+OsrKzDw8MvLy8aGhojIyM0NDRTU1ODg4Pd3d19fX2/v79LS0vm5uakpKRzc3NmZmYiIiJcXFwWFhY6OjoqKipra2tGRkaC45yjAAAEvElEQVR4nO2d63aqMBBGE7UFweK1ttaKl6Pt+7/h0R61BDLVkkAmOd/+OYJr9jJiZghRCAAAAAAAAAAAQCXL1/OB9J3BfJ0vtH75s+vcLHLIK35d1zlZZ6n4JTvX+TTApiD4ENIA/Wbeuwj2whQ8Kl4MX1xn0hjngZq7zqNBul9fQtdZNEpyNHx1nUSjREdD1zk0y0CIiescGiYTKfVSOlx1snxbib8OR51sPG8yK5vE1E9FevkpGavx/uVXdNl8clZYiz/aePd7wrMoxuPv+KqVBI2Z6y80qShQ+LQ+lGKrpRzNGGgNB2rd8X59IVHi69bSNEFrGKuG18vtmxpf6M5lh9awVCInl/hEjQsvGgJaw6eSySU+KsXfdSdz4y7D2TleNvSiKNEalk0u8WEpvm8vz/poDcfEFSVS40/tpWmA1vBRNXn7Plohbi1LE/S/+EqfqjB5UXp0nhSWRPG0KphsC/GsEH9sIT0LUOXh9aIyOijx64S144kgaSh32WmKtngrx9+Hp/iKLLrY8VOJPyWKwMPei8nMmcCbGBKGIQBD/4Gh/8DQf2DoPxXDcddvxjcNheckNw17t9+ENZXOAwy9A4Yw5A8MKUN/vOsapi+ZNs6PuoaRlJ/l+6M8MTCU8nmsfY0XRoZHIvZfSFNDKV87Laf8S8wNpfzQr/Vngg3D092ZltP+BXYMpdx3tYcxwJbhkTzRHukai4ZSpuVVKRyoPafRGUrZL69LcU9dwxW1Sm/HbTZXv7Z4oNaWPC6JM9xgVD0tiXVsM06zOcP6cNEnPkg+sznjCrgX65dNy9fVzye2hY0af/mpd9ywmM3Z6WJQg/WTwWzOVp/mIdYvqZk6n81Z7ERNiCtr7vaiY7XXRg3W1GUJabmbSA3WtbvZnP1+KTFYf+jNJT0a83qliY4wMVin1PE/PYgSUyfdTTM97148K7/NkQfiaGpexNnwyKQ6DQjMUDNYgzM8XVmVwRqgoRBPxVXFARpmG+WdgjPslleFh2XY0bSqQjIcajd/CcYwGW+1yfapE9L9I8XevONj3bBDbDoRUZ9g01g21A9PuXXYfLNpmIwP5ZO/2Du9HW7PcEQMT9dNcFuGE+IR4LXznqIVw4Ta2o3DzSgLhqPKA3v/mFU3gXOBsSE1PKdc7s+YGZL3nxitmDIxHFHTLYedtSr1DakGMIvLS4G6hhPquVjHHe4qVlcqMLhLUcWm4QuDO01V7BlyXftly5Dv+j07hrGr4u8OLBgeGF5eChgbsl8LbWi44TM7ozAyfHNe/N2BgaGz3tLvqGuY8yj+7gBPBcGQPzCEIX9gCEP+wBCG/IEhDPkDQxjyB4Yw5A8MYcgfGMKQPzCEIX9gCEP+wBCG/IEhDPkDQxjyB4Yw5A8MYcgfGMKQPzCEIX9gCEP+wBCG/IEhDPkDQxjyB4b/gyHP/8e5n95Nw1XHb0YVQ2rzoFAYCGJzuWA4iM3tg7xmQ+wAFQ6RGLpOoWGGonIxDQxB/uFYIKRCMwkIiq8pGrXdYwicN50hNuwMgN15Kpfo/n8jBA7X2WonTMXnwq6cSYgDdScUctf5WKeya3qShlRlzCJt8ZhFm6n/moP5R8R0X04AAAAAAAAAAA75C49zaS/t8QFIAAAAAElFTkSuQmCC';
-const file_icon = 'https://s3.amazonaws.com/iconbros/icons/icon_pngs/000/000/211/original/document.png?1510299755'
+const VERTICAL_SPACING = 50;
+const PROCESS_X_SPACING = 20;
+const PROCESS_HEIGHT = 80;
+const PROCESS_Y = 0;
+const FD_BOX_SIZE = 20;
+const FD_TABLE_X_OFFSET = 15;
+const FD_TABLE_Y_OFFSET = 45;
+const OPEN_FILE_WIDTH = 150;
+const OPEN_FILE_HEIGHT = 90;
+const OPEN_FILE_Y = PROCESS_Y + PROCESS_HEIGHT + VERTICAL_SPACING;
+const VNODE_WIDTH = OPEN_FILE_WIDTH;
+const VNODE_HEIGHT = 50;
+const VNODE_Y = OPEN_FILE_Y + OPEN_FILE_HEIGHT + VERTICAL_SPACING;
+const POINTER_BOX_SIZE = 15;
+const POINTER_BOX_OFFSET = 10; // offset from left and bottom
+const ICON_SIZE = 15;
+const ICON_X_OFFSET = 5; // offset from right side of box to right side of icon
+const ICON_Y_OFFSET = 5;
+const ICON_SPACING = 2;
+const ARROW_COLOR = '#7aa843';
+const FD_ARROW_COLORS = [ARROW_COLOR, '#85628f', '#a63939', '#6297c9'];
 
-const MOCK_DATA = {
-    processes: [{
-        pid: 20,
-        ppid: 1,
-        pgid: 1,
-        command: 'output',
-        fds: {
-            0: {
-                file: '6d2b62b056631445f3a906498f0ab45fea4c4e68a198af6f268a34269fb30caa',
-                closeOnExec: false,
-            },
-            1: {
-                file: '6d2b62b056631445f3a906498f0ab45fea4c4e68a198af6f268a34269fb30caa',
-                closeOnExec: false,
-            },
-            2: {
-                file: '6d2b62b056631445f3a906498f0ab45fea4c4e68a198af6f268a34269fb30caa',
-                closeOnExec: false,
-            },
-            3: {
-                file: '4877eb7123020cbb048bec0564324a4f2dcdc4c6d98c4b925da38f6d978fd24e',
-                closeOnExec: false,
-            },
-        },
-    }, {
-        pid: 21,
-        ppid: 20,
-        pgid: 1,
-        command: 'output',
-        fds: {
-            0: {
-                file: '6d2b62b056631445f3a906498f0ab45fea4c4e68a198af6f268a34269fb30caa',
-                closeOnExec: false,
-            },
-            1: {
-                file: '2d7ed44fbc12ed3c63692795dd3fdbf0fb038841fcce65a20419938d04bae623',
-                closeOnExec: false,
-            },
-            2: {
-                file: '6d2b62b056631445f3a906498f0ab45fea4c4e68a198af6f268a34269fb30caa',
-                closeOnExec: false,
-            },
-        },
-    }],
-    openFiles: {
-        '6d2b62b056631445f3a906498f0ab45fea4c4e68a198af6f268a34269fb30caa': {
-            position: 0,
-            flags: [
-                'O_RDWR',
-                'S_IFREG',
-            ],
-            refcount: 5,
-            vnode: '/dev/pts/0',
-        },
-        '4877eb7123020cbb048bec0564324a4f2dcdc4c6d98c4b925da38f6d978fd24e': {
-            position: 0,
-            flags: [
-                'O_RDONLY',
-            ],
-            refcount: 1,
-            vnode: 'pipe:[116131]',
-        },
-        '2d7ed44fbc12ed3c63692795dd3fdbf0fb038841fcce65a20419938d04bae623': {
-            position: 0,
-            flags: [
-                'O_WRONLY',
-            ],
-            refcount: 1,
-            vnode: 'pipe:[116131]',
-        },
-    },
-    vnodes: {
-        '/dev/pts/0': {
-            name: '/dev/pts/0',
-            refcount: 1,
-        },
-        'pipe:[116131]': {
-            name: 'pipe:[116131]',
-            refcount: 2,
-        },
-    },
-};
+// TODO: make sure there are no copyright issues here
+const PIPE_ICON = 'https://cdn0.iconfinder.com/data/icons/interior-buildings/48/37-512.png';
+const TERMINAL_ICON = (
+    'data:image/png;base64,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'
+);
+const FILE_ICON = 'https://s3.amazonaws.com/iconbros/icons/icon_pngs/000/000/211/original/document.png?1510299755';
 
 interface Process {
     pid: number;
@@ -157,7 +118,6 @@ class Diagram extends React.Component<DiagramProps> {
             height: 2000,
             gridSize: 1,
         });
-        this.drawDiagram(MOCK_DATA); // TEST
 
         // Disable dragging of elements. (We may re-enable in the future, but for now, "proper"
         // behavior isn't well defined. E.g., if a process is dragged, and then a new process
@@ -240,219 +200,236 @@ class Diagram extends React.Component<DiagramProps> {
     };
 
     drawDiagram = (data: ContainerInfo): void => {
-        const { processes, openFiles, vnodes } = data;
-
         this.links = [];
-        const cells: Array<joint.shapes.standard.Rectangle> = [];
-        const vnodeTable: {[index: string]: joint.shapes.standard.Rectangle} = {};
-        const fileTableIndeces: {[index: string]: joint.shapes.standard.HeaderedRectangle} = {};
-        const inodes: Array<joint.shapes.standard.Rectangle> = [];
-        const icons: Array<joint.shapes.standard.Image> = [];
 
-        // VNODE TABLE
-        const generateVnode = (): {[index: string]: Rectangle} => {
-            let xPosition = 0;
-            const yPosition = 300;
-            const vnodeKeys = Object.keys(vnodes);
-            vnodeKeys.forEach((vKey) => {
-                const vnodeRect = new joint.shapes.standard.Rectangle();
-                const v = vnodes[vKey];
-                vnodeRect.resize(150, 50);
-                vnodeRect.position(xPosition, yPosition);
-                vnodeRect.attr({
-                    body: {
-                        strokeWidth: 1,
-                    },
-                    label: {
-                        // TODO:scale box if needed to fit longer text
-                        text: `${v.name}\nrefcount: ${v.refcount}`,
-                        fontSize: FONT_SIZE,
-                        fontFamily: 'Courier',
-                        textAnchor: 'front',
-                        refX: '10',
-                    },
-                });
-                const embeddedImage = new joint.shapes.standard.Image();
-                if (v.name.substr(0, 8) === '/dev/pts') {
-                    embeddedImage.attr('image/xlinkHref', terminal_icon);
-                } else if (v.name.substr(0, 4) === 'pipe') {
-                    embeddedImage.attr('image/xlinkHref', pipe_icon);
-                } else {
-                    embeddedImage.attr('image/xlinkHref', file_icon);
-                }
-                embeddedImage.resize(15, 15);
-                embeddedImage.position(xPosition + 130, yPosition+5);
-                icons.push(embeddedImage);
-                vnodeTable[vKey] = vnodeRect;
-                xPosition += 150;
+        const vnodeTable = this.drawVnodeTable(data.vnodes);
+        const openFileTable = this.drawOpenFileTable(data.openFiles, vnodeTable);
+        this.drawFileDescriptorTables(data.processes, openFileTable);
+    };
+
+    drawVnodeTable = (vnodes: {[vnodeId: string]: VNode}): {[index: string]: Rectangle} => {
+        const vnodeTable: {[index: string]: Rectangle} = {};
+        const vnodeKeys = Object.keys(vnodes);
+        vnodeKeys.forEach((vKey, i) => {
+            const xPosition = i * VNODE_WIDTH;
+            const vnodeRect = new joint.shapes.standard.Rectangle();
+            const v = vnodes[vKey];
+            vnodeRect.resize(VNODE_WIDTH, VNODE_HEIGHT);
+            vnodeRect.position(xPosition, VNODE_Y);
+            vnodeRect.attr({
+                body: {
+                    strokeWidth: 1,
+                },
+                label: {
+                    // TODO:scale box if needed to fit longer text
+                    text: `${v.name}\nrefcount: ${v.refcount}`,
+                    fontSize: FONT_SIZE,
+                    fontFamily: 'Courier',
+                    textAnchor: 'front',
+                    refX: '10',
+                },
             });
-            return vnodeTable;
-        };
-        // FILETABLE
-        const generateFileTable = (): {[index: string]: HeaderedRectangle} => {
-            let xPosition = 0;
-            const yPosition = 150;
-            const fileKeys = Object.keys(openFiles);
-            fileKeys.forEach((key) => {
-                const fileRect = new joint.shapes.standard.HeaderedRectangle();
-                const file = openFiles[key];
-                fileRect.resize(150, 120);
-                fileRect.position(xPosition, yPosition);
-                // TODO: figure out cleaner way to format strings on labels
-                let flagText = '';
-                file.flags.forEach((flag: string) => {
-                    flagText += flag;
-                    flagText += '\n       ';
-                });
-                fileRect.attr({
-                    body: {
-                        strokeWidth: 1,
-                    },
-                    header: {
-                        strokeWidth: 1,
-                    },
-                    headerText: {
-                        text: `${key.substring(0, 6)}`,
-                        fontSize: FONT_SIZE,
-                        fontFamily: 'Courier',
+            this.graph.addCell(vnodeRect);
+            vnodeTable[vKey] = vnodeRect;
 
-                    },
-                    bodyText: { // TODO: parse flags to list multiple, scale box if needed
-                        text: `cursor: ${file.position} \nrefcount: ${file.refcount}\nflags: ${flagText}`,
-                        fontSize: FONT_SIZE,
-                        fontFamily: 'Courier',
-                        textAnchor: 'front',
-                        refX: '10',
-                    },
-                });
-                const readIcon = new joint.shapes.standard.Image();
-                readIcon.resize(15, 15);
+            // Draw icon indicating file type
+            const embeddedImage = new joint.shapes.standard.Image();
+            if (v.name.startsWith('/dev/pts')) {
+                embeddedImage.attr('image/xlinkHref', TERMINAL_ICON);
+            } else if (v.name.startsWith('pipe')) {
+                embeddedImage.attr('image/xlinkHref', PIPE_ICON);
+            } else {
+                embeddedImage.attr('image/xlinkHref', FILE_ICON);
+            }
+            embeddedImage.resize(ICON_SIZE, ICON_SIZE);
+            // TODO: use constants for offsets
+            embeddedImage.position(
+                xPosition + VNODE_WIDTH - ICON_X_OFFSET - ICON_SIZE,
+                VNODE_Y + ICON_Y_OFFSET,
+            );
+            this.graph.addCell(embeddedImage);
+            vnodeRect.embed(embeddedImage);
+        });
+        return vnodeTable;
+    };
+
+    drawOpenFileTable = (
+        openFiles: {[fileId: string]: OpenFileEntry},
+        vnodeTable: {[vnodeId: string]: Rectangle},
+    ): {[index: string]: Rectangle} => {
+        const openFileTable: {[fileId: string]: Rectangle} = {};
+        const fileKeys = Object.keys(openFiles);
+        fileKeys.forEach((key, i) => {
+            const xPosition = i * OPEN_FILE_WIDTH;
+            const fileRect = new joint.shapes.standard.Rectangle();
+            const file = openFiles[key];
+            fileRect.resize(OPEN_FILE_WIDTH, OPEN_FILE_HEIGHT);
+            fileRect.position(i * OPEN_FILE_WIDTH, OPEN_FILE_Y);
+            // TODO: figure out cleaner way to format strings on labels
+            let flagText = '';
+            file.flags.forEach((flag: string) => {
+                flagText += flag;
+                flagText += '\n       ';
+            });
+            fileRect.attr({
+                body: {
+                    strokeWidth: 1,
+                },
+                label: { // TODO: parse flags to list multiple, scale box if needed
+                    text: `cursor: ${file.position} \n`
+                        + `refcount: ${file.refcount}\n`
+                        + `flags: ${flagText}`,
+                    fontSize: FONT_SIZE,
+                    fontFamily: 'Courier',
+                    textAnchor: 'front',
+                    refX: '10',
+                },
+            });
+            openFileTable[key] = fileRect;
+            this.graph.addCell(fileRect);
+
+            // Add icon indicating whether this file is readable/writable
+            const showReadIcon = file.flags.includes('O_RDONLY') || file.flags.includes('O_RDWR');
+            const showWriteIcon = file.flags.includes('O_WRONLY') || file.flags.includes('O_RDWR');
+            let iconX = xPosition + VNODE_WIDTH - ICON_X_OFFSET - ICON_SIZE;
+            if (showWriteIcon) {
                 const writeIcon = new joint.shapes.standard.Image(); // TODO: use copy
-                writeIcon.resize(15, 15);
-                readIcon.position(xPosition + 115, yPosition + 10);
-                writeIcon.position(xPosition + 130, yPosition + 10);
-                if (file.flags.includes('O_WRONLY') || file.flags.includes('O_RDWR')) {
-                    writeIcon.attr('image/xlinkHref', 'https://i.imgur.com/nCqRWeQ.png');
-                }
-                if (file.flags.includes('O_RDONLY') || file.flags.includes('O_RDWR')) {
-                    readIcon.attr('image/xlinkHref', 'https://i.imgur.com/r88Gk5B.png');
-                }
+                writeIcon.resize(ICON_SIZE, ICON_SIZE);
+                writeIcon.position(iconX, OPEN_FILE_Y + ICON_Y_OFFSET);
+                writeIcon.attr('image/xlinkHref', '/img/write-icon.png');
+                fileRect.embed(writeIcon);
+                this.graph.addCell(writeIcon);
+                iconX -= ICON_SIZE + ICON_SPACING;
+            }
+            if (showReadIcon) {
+                const readIcon = new joint.shapes.standard.Image();
+                readIcon.resize(ICON_SIZE, ICON_SIZE);
+                readIcon.position(iconX, OPEN_FILE_Y + ICON_Y_OFFSET);
+                readIcon.attr('image/xlinkHref', '/img/read-icon.png');
+                fileRect.embed(readIcon);
+                this.graph.addCell(readIcon);
+            }
 
-                icons.push(readIcon);
-                icons.push(writeIcon);
-
-                const inode = new joint.shapes.standard.Rectangle();
-                inode.resize(15, 15);
-                inode.position(xPosition + 5, yPosition + 95);
-                inode.attr({
-                    body: {
-                        strokeWidth: 1,
-                        fill: 'yellow',
-                        fillOpacity: 0.5,
-                    },
-                });
-                const link = new joint.shapes.standard.Link();
-                link.source(inode);
-                link.target(vnodeTable[file.vnode]);
-                link.attr({
-                    line: {
-                        connection: true,
-                        stroke: 'green',
-                    },
-                });
-                this.links.push(link);
-                fileRect.embed(inode); // TODO don't let inode leave fileRect
-                inodes.push(inode);
-
-                fileTableIndeces[key] = fileRect;
-                xPosition += 150;
+            // Add little box storing pointer to vnode
+            const vnodePointerBox = new joint.shapes.standard.Rectangle();
+            vnodePointerBox.resize(POINTER_BOX_SIZE, POINTER_BOX_SIZE);
+            vnodePointerBox.position(
+                xPosition + POINTER_BOX_OFFSET,
+                OPEN_FILE_Y + OPEN_FILE_HEIGHT - POINTER_BOX_OFFSET - POINTER_BOX_SIZE,
+            );
+            vnodePointerBox.attr({
+                body: {
+                    strokeWidth: 1,
+                    fill: 'yellow',
+                    fillOpacity: 0.5,
+                },
             });
-
-            return fileTableIndeces;
-        };
-
-        const generateProcesses = (): void => {
-            let xPosition = 0;
-            const yPosition = 0;
-            processes.forEach((process: Process) => {
-                const pidWidth = (Object.keys(process.fds).length + 2) * 30;
-                const rect2 = new joint.shapes.standard.HeaderedRectangle();
-                rect2.resize(pidWidth, 120);
-                rect2.position(xPosition, yPosition);
-                rect2.attr({
-                    body: {
-                        strokeWidth: 1,
-                    },
-                    header: {
-                        fill: 'yellow',
-                        fillOpacity: 1,
-                        strokeWidth: 1,
-                    },
-                    headerText: {
-                        text: `command: ${process.command}\npid: ${process.pid}, ppid: ${process.ppid}`,
-                        fontSize: FONT_SIZE,
-                        fontFamily: 'Courier',
-                        textAnchor: 'left',
-                        'ref-x': -0.4 * pidWidth,
-                    },
-                });
-                let offset = 10;
-                cells.push(rect2);
-
-                // FD TABLE
-                Object.keys(process.fds).forEach((fdKey) => {
-                    const fd = new joint.shapes.standard.Rectangle();
-                    const fileKey = process.fds[parseInt(fdKey, 10)].file;
-                    fd.resize(20, 20);
-                    fd.position(xPosition + offset, yPosition + 50);
-                    fd.attr({
-                        body: {
-                            strokeWidth: 1,
-                        },
-                        label: {
-                            text: `${fdKey} `,
-                            fontSize: FONT_SIZE,
-                            fontFamily: 'Courier',
-                            textAnchor: 'middle',
-                        },
-                    });
-
-                    offset += 20;
-                    cells.push(fd);
-                    rect2.embed(fd);
-
-                    const link = new joint.shapes.standard.Link();
-                    link.source(fd, { anchor: { name: 'bottom' } });
-                    link.target(fileTableIndeces[fileKey], { anchor: { name: 'top' } });
-                    link.attr({
-                        line: {
-                            connection: true,
-                            stroke: 'green',
-                        },
-                    });
-                    this.links.push(link);
-                });
-                xPosition += pidWidth + 20;
+            this.graph.addCell(vnodePointerBox);
+            fileRect.embed(vnodePointerBox); // TODO don't let inode leave fileRect
+            // Draw pointer to vnode table
+            const link = new joint.shapes.standard.Link();
+            link.source(vnodePointerBox, { anchor: { name: 'center' } });
+            link.target(vnodeTable[file.vnode]);
+            link.attr({
+                line: {
+                    connection: true,
+                    stroke: ARROW_COLOR,
+                },
             });
-        };
+            this.links.push(link);
+            this.graph.addCell(link);
+        });
 
-        const draw = (): void => {
-            Object.keys(vnodeTable).forEach((vnodeKey) => {
-                this.graph.addCell(vnodeTable[vnodeKey]);
-            });
-            Object.keys(fileTableIndeces).forEach((fileTableKey) => {
-                this.graph.addCell(fileTableIndeces[fileTableKey]);
-            });
-            this.graph.addCells(cells);
-            this.graph.addCells(inodes);
-            this.graph.addCells(this.links);
-            this.graph.addCells(icons);
-        };
+        return openFileTable;
+    };
 
-        generateVnode();
-        generateFileTable();
-        generateProcesses();
-        draw();
+    drawFileDescriptorTables = (
+        processes: Process[],
+        openFileTable: {[fileId: string]: HeaderedRectangle},
+    ): void => {
+        let xPosition = 0;
+        processes.forEach((process: Process, i: number) => {
+            // TODO: set this based on the command name, so that the text never overflows
+            const minWidth = 150;
+            const numFds = (
+                Math.max(...Object.keys(process.fds).map((fd: string) => parseInt(fd, 10))) + 1
+            );
+            const fdTableWidth = numFds * FD_BOX_SIZE;
+            const width = Math.max(minWidth, FD_TABLE_X_OFFSET * 2 + fdTableWidth);
+
+            const processRect = new joint.shapes.standard.HeaderedRectangle();
+            processRect.resize(width, PROCESS_HEIGHT);
+            processRect.position(xPosition, PROCESS_Y);
+            processRect.attr({
+                body: {
+                    strokeWidth: 1,
+                },
+                header: {
+                    fill: 'yellow',
+                    fillOpacity: 1,
+                    strokeWidth: 1,
+                },
+                headerText: {
+                    text: `command: ${process.command}\npid: ${process.pid}, ppid: ${process.ppid}`,
+                    fontSize: FONT_SIZE,
+                    fontFamily: 'Courier',
+                    textAnchor: 'left',
+                    'ref-x': -0.4 * width, // TODO: what's this? / how does it work?
+                },
+            });
+            this.graph.addCell(processRect);
+
+            // Draw file descriptor table
+            for (let fd = 0; fd < numFds; fd += 1) {
+                this.drawFileDescriptor(process, i, processRect, fd, openFileTable);
+            }
+
+            xPosition += width + PROCESS_X_SPACING;
+        });
+    };
+
+    drawFileDescriptor = (
+        process: Process,
+        processIdx: number,
+        processRect: HeaderedRectangle,
+        fd: number,
+        openFileTable: {[fileId: string]: HeaderedRectangle},
+    ): void => {
+        const fdRect = new joint.shapes.standard.Rectangle();
+        fdRect.resize(FD_BOX_SIZE, FD_BOX_SIZE);
+        fdRect.position(
+            processRect.getBBox().topLeft().x + FD_TABLE_X_OFFSET + fd * FD_BOX_SIZE,
+            PROCESS_Y + FD_TABLE_Y_OFFSET,
+        );
+        fdRect.attr({
+            body: {
+                strokeWidth: 1,
+            },
+            label: {
+                text: `${fd} `,
+                fontSize: FONT_SIZE,
+                fontFamily: 'Courier',
+                textAnchor: 'middle',
+            },
+        });
+        this.graph.addCell(fdRect);
+        processRect.embed(fdRect);
+
+        // Draw arrow from file descriptor to open file table
+        if (process.fds[String(fd)] !== undefined) {
+            const fileId = process.fds[String(fd)].file;
+            const link = new joint.shapes.standard.Link();
+            link.source(fdRect, { anchor: { name: 'bottom' } });
+            link.target(openFileTable[fileId], { anchor: { name: 'top' } });
+            link.attr({
+                line: {
+                    connection: true,
+                    stroke: FD_ARROW_COLORS[processIdx % FD_ARROW_COLORS.length],
+                },
+            });
+            this.links.push(link);
+            this.graph.addCell(link);
+        }
     };
 
     render(): React.ReactNode {

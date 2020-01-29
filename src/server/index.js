@@ -88,6 +88,12 @@ function addExpressRoutes() {
     app.get('/xterm.css', function(req, res){
         res.sendFile(path.resolve(__dirname + '/../../node_modules/xterm/css/xterm.css'));
     });
+    app.get('/img/read-icon.png', function(req, res){
+        res.sendFile(path.resolve(__dirname + '/../../src/client/img/read-icon.png'));
+    });
+    app.get('/img/write-icon.png', function(req, res){
+        res.sendFile(path.resolve(__dirname + '/../../src/client/img/write-icon.png'));
+    });
 }
 addExpressRoutes();
 
