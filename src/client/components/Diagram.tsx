@@ -149,7 +149,10 @@ class Diagram extends React.Component<DiagramProps> {
                         this.links.forEach((link) => {
                             if (link.attributes.source.id === currentElem.id
                                 && !used.includes(child.cid)) {
-                                link.source(child, { selector: 'header' });
+                                link.source(child, {
+                                    selector: 'header',
+                                    anchor: { name: 'bottom' },
+                                });
                                 used.push(child.cid);
                             }
                         });
