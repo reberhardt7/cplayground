@@ -1,6 +1,8 @@
-const url = require('url');
-const mysql = require('mysql');
-const migration = require('mysql-migrations');
+import * as url from 'url';
+import * as mysql from 'mysql';
+import * as migration from 'mysql-migrations';
+
+import { getPathFromRoot } from './util';
 
 if (!process.env.DB_URL) {
     console.error('Error! Must specify DB_URL enviroment variable');
@@ -23,4 +25,4 @@ const pool = mysql.createPool({
     multipleStatements: true,
 });
 
-migration.init(pool, __dirname + '/migrations');
+migration.init(pool, getPathFromRoot('dist/server/migrations'));

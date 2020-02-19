@@ -1,6 +1,6 @@
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
-import * as Url from 'url-parse';
+import Url from 'url-parse';
 import App from './components/App';
 
 ReactDOM.render((

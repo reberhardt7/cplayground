@@ -1,58 +1,28 @@
 import axios, { AxiosResponse } from 'axios';
+import { RunEventBody, SavedProgram } from '../common/communication';
 // eslint-disable-next-line no-undef
 import Socket = SocketIOClient.Socket;
 
-// Make sure this stays in sync with index.js in the backend
-export const SUPPORTED_VERSIONS = ['C99', 'C11', 'C++11', 'C++14', 'C++17'];
-export const OPTIMIZATION_LEVELS = ['-O0', '-O1', '-O2', '-O3'];
-export const COMPILER_FLAGS = [
-    { flag: '-Wall', label: '-Wall (recommended warnings)' },
-    { flag: '-no-pie', label: '-no-pie (disable relocations)' },
-    { flag: '-fpie -Wl,-pie', label: '-fpie -Wl,-pie (ASLR)' },
-    {
-        flag: '-fstack-protector-strong',
-        label: '-fstack-protector-strong (anti-stack smashing)',
-    },
-];
-export const LINKER_FLAGS = [
-    { flag: '-lm', label: '-lm (math)' },
-    { flag: '-pthread', label: '-pthread (threading)' },
-    { flag: '-lcrypt', label: '-lcrypt (crypto)' },
-    { flag: '-lreadline', label: '-lreadline' },
-    { flag: '-lrt', label: '-lrt' },
-];
-
-export type Program = {
-    code: string;
-    runtimeArgs: string;
-    includeFileName: string;
-    includeFileData: string;
-    language: typeof SUPPORTED_VERSIONS[number];
-    flags: Set<string>;
-}
-
-export function getProgram(programId?: string): Promise<Program> {
+export function getProgram(programId?: string): Promise<SavedProgram> {
     return axios.get(`/api/getProgram${(programId ? `?p=${programId}` : '')}`)
-        .then((resp: AxiosResponse): Program => ({
+        .then((resp: AxiosResponse): SavedProgram => ({
             code: resp.data.code,
             runtimeArgs: resp.data.runtimeArgs,
             includeFileName: resp.data.includeFileName,
             includeFileData: resp.data.includeFileData,
             language: resp.data.language,
-            flags: new Set(resp.data.flags),
+            flags: resp.data.flags,
         }));
 }
 
 /**
- * Opens a websocket to the server and sends the server the current terminal dimensions. The program
- * is not executed quite yet, but a Socket is returned that can be used to start execution later.
- * @param rows: Width of terminal
- * @param cols: Height of terminal
+ * Opens a websocket to the server. No program is executed yet, but a Socket is returned that can
+ * be used to start execution later.
  */
-export function makeDockerSocket(rows: number, cols: number): Socket {
+export function makeDockerSocket(): Socket {
     // Open connection to the backend
     // eslint-disable-next-line no-undef
-    const socket = io.connect('', { query: { rows, cols } });
+    const socket = io.connect('');
 
     socket.on('saved', (alias: string) => {
         // We use replaceState here (instead of pushState) because we don't
@@ -77,9 +47,13 @@ export function makeDockerSocket(rows: number, cols: number): Socket {
  * finishes executing.
  * @param socket: Connected socket used to communicate with server
  * @param program: Program to execute
+ * @param rows: Width of terminal
+ * @param cols: Height of terminal
  */
-export function startProgram(socket: Socket, program: Program): Promise<void> {
-    socket.emit('run', {
+export function startProgram(
+    socket: Socket, program: SavedProgram, rows: number, cols: number,
+): Promise<void> {
+    const body: RunEventBody = {
         code: program.code,
         language: program.language,
         flags: [...program.flags],
@@ -88,7 +62,10 @@ export function startProgram(socket: Socket, program: Program): Promise<void> {
             name: program.includeFileName,
             data: program.includeFileData,
         },
-    });
+        rows,
+        cols,
+    };
+    socket.emit('run', body);
     return new Promise((resolve: () => void): void => {
         socket.on('disconnect', resolve);
     });
