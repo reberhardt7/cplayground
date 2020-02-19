@@ -126,7 +126,8 @@ class Sidebar extends React.PureComponent<SidebarProps> {
 
                 <div className="sidebar-footer-spacer" />
                 <div className="sidebar-footer">
-                    Made by <a href="https://reberhardt.com">Ryan Eberhardt</a> and Blanca Villanueva.<br />
+                    Made by <a href="https://reberhardt.com">Ryan Eberhardt</a> and{' '}
+                    <a href="https://github.com/reberhardt7/cplayground/blob/master/AUTHORS.md">others</a>.<br />
                     Fork me on <a href="https://github.com/reberhardt7/cplayground">Github</a>!
                 </div>
             </div>
