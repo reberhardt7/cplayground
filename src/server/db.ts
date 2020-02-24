@@ -18,7 +18,8 @@ export const INCLUDE_FILE_NAME_MAX_LEN = 40;
 export const INCLUDE_FILE_DATA_MAX_LEN = 10 ** 6; // be sure to update this client-side too
 
 export type ProgramRecord = {
-    id: string;
+    id: number;
+    hash: string;
     alias: string;
     created: Date;
     // eslint-disable-next-line camelcase
@@ -56,7 +57,7 @@ const pool = mysql.createPool({
     database: 'cplayground',
 });
 
-function genProgramId(
+function hashProgram(
     compiler: string,
     cflags: string,
     code: string,
@@ -78,9 +79,9 @@ function getProgram(
     args: string,
     includeFile: IncludeFile,
 ): Promise<ProgramRecord | null> {
-    const id = genProgramId(compiler, cflags, code, args, includeFile);
+    const hash = hashProgram(compiler, cflags, code, args, includeFile);
     return new Promise((resolve) => {
-        pool.query('SELECT * FROM programs WHERE id = ?', id, (err, res) => {
+        pool.query('SELECT * FROM programs WHERE hash = ?', hash, (err, res) => {
             if (err) throw err;
             else if (res) resolve(res[0]);
             else resolve(null);
@@ -106,15 +107,14 @@ export function insertProgram(
     includeFile: IncludeFile,
     sourceIp: string,
     sourceUserAgent: string,
-): Promise<{id: string; alias: string}> {
-    // When storing a program, we generate its id as a SHA-256 hash of all the
-    // parameters the client sent us. The chance of a collision is extremely
-    // low, and this allows us to not add duplicate entries in the database if
-    // someone were to run the same code several times. Because a long hash
-    // doesn't make for a good URL for a program, we also generate a unique
-    // "alias" containing 3 names of animals. This is what is shown to users
-    // (the hash ID is never shown).
-    const id = genProgramId(compiler, cflags, code, args, includeFile);
+): Promise<{id: number; alias: string}> {
+    // When storing a program, we generate a SHA-256 hash of all the parameters the client sent
+    // us. The chance of a collision is extremely low, and this allows us to not add duplicate
+    // entries in the database if someone were to run the same code several times. Because a
+    // long hash doesn't make for a good URL for a program, we also generate a unique "alias"
+    // containing 3 names of animals. This is what is shown to users (the hash and
+    // auto-incrementing ID are never shown).
+    const hash = hashProgram(compiler, cflags, code, args, includeFile);
     return new Promise((resolve) => {
         function tryInsert(): void {
             // Try generating an alias and insert into it into the database. If
@@ -126,7 +126,7 @@ export function insertProgram(
             pool.query(
                 'INSERT INTO programs SET ?',
                 {
-                    id,
+                    hash,
                     alias,
                     compiler,
                     cflags,
@@ -141,20 +141,20 @@ export function insertProgram(
                     // eslint-disable-next-line @typescript-eslint/camelcase
                     source_user_agent: sourceUserAgent,
                 },
-                (error) => {
+                (error, res) => {
                     if (error && error.sqlMessage === `Duplicate entry '${
                         alias}' for key 'alias'`) {
                         // If alias is already taken, try a new one
                         tryInsert();
                     } else if (error && error.sqlMessage === `Duplicate entry '${
-                        id}' for key 'PRIMARY'`) {
+                        hash}' for key 'hash'`) {
                         // Return the existing program info
                         resolve(getProgram(compiler, cflags, code, args, includeFile));
                     } else if (error) {
                         console.error('Error inserting program!');
                         console.error(error);
                     } else {
-                        resolve({ id, alias });
+                        resolve({ id: res.insertId, alias });
                     }
                 },
             );
@@ -164,7 +164,7 @@ export function insertProgram(
 }
 
 export function createRun(
-    programId: string, sourceIp: string, sourceUserAgent: string,
+    programId: number, sourceIp: string, sourceUserAgent: string,
 ): Promise<number> {
     return new Promise((resolve) => {
         pool.query('INSERT INTO runs SET ?', {
@@ -196,7 +196,7 @@ export function updateRun(
 }
 
 export function logView(
-    programId: string, sourceIp: string, sourceUserAgent: string,
+    programId: number, sourceIp: string, sourceUserAgent: string,
 ): Promise<number> {
     return new Promise((resolve) => {
         pool.query('INSERT INTO views SET ?', {
