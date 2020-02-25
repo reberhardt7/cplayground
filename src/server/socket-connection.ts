@@ -1,7 +1,7 @@
 import { Socket } from 'socket.io';
 import * as db from './db';
 import Container, { ContainerExitNotification } from './container';
-import { IncludeFile, ResizeEventBody, RunEventBody } from '../common/communication';
+import { ResizeEventBody, RunEventBody } from '../common/communication';
 import {
     SUPPORTED_VERSIONS,
     FLAG_WHITELIST,
@@ -11,13 +11,14 @@ import {
 import { ClientValidationError } from './error';
 import { getSourceIpFromSocket, getUserAgentFromSocket } from './util';
 
-function getRunParams(request: RunEventBody): {
+async function getRunParams(request: RunEventBody): Promise<{
     compiler: Compiler;
     cflags: string;
     code: string;
     argsStr: string;
-    includeFile: IncludeFile;
-} {
+    includeFileId: string | null;
+    includeFileData: Buffer | null;
+}> {
     const lang = SUPPORTED_VERSIONS.includes(request.language)
         ? request.language : DEFAULT_VERSION;
     const compiler = ['C99', 'C11'].indexOf(lang) > -1
@@ -45,19 +46,17 @@ function getRunParams(request: RunEventBody): {
         throw new ClientValidationError('Submitted args exceed max length!');
     }
 
-    const includeFile = {
-        name: request.includeFile.name || '',
-        data: (request.includeFile.data instanceof Buffer)
-            ? request.includeFile.data : Buffer.alloc(0),
-    };
-    if (includeFile.name.length > db.INCLUDE_FILE_NAME_MAX_LEN) {
-        throw new ClientValidationError('Include file name exceeds max length!');
+    const includeFileData = request.includeFileId
+        ? await db.getFileContents(request.includeFileId)
+        : null;
+    if (request.includeFileId && includeFileData === null) {
+        throw new ClientValidationError('includeFileId is invalid');
     }
-    if (includeFile.data.length > db.INCLUDE_FILE_DATA_MAX_LEN) {
-        throw new ClientValidationError('Include file data exceeds max size!');
-    }
+    const includeFileId = includeFileData === null ? null : request.includeFileId;
 
-    return { compiler, cflags, code, argsStr, includeFile };
+    return {
+        compiler, cflags, code, argsStr, includeFileId, includeFileData,
+    };
 }
 
 
@@ -85,7 +84,7 @@ export default class SocketConnection {
         socket.on('disconnect', this.onSocketDisconnect);
     }
 
-    private startContainer = (request: RunEventBody): void => {
+    private startContainer = async (request: RunEventBody): Promise<void> => {
         if (this.container) {
             console.warn(`${this.logPrefix}Got run command even though we `
                 + 'already have a container running');
@@ -99,9 +98,12 @@ export default class SocketConnection {
         let cflags: string;
         let code: string;
         let argsStr: string;
-        let includeFile: IncludeFile;
+        let includeFileId: string;
+        let includeFileData: Buffer;
         try {
-            ({ compiler, cflags, code, argsStr, includeFile } = getRunParams(request));
+            ({
+                compiler, cflags, code, argsStr, includeFileId, includeFileData,
+            } = await getRunParams(request));
         } catch (e) {
             console.error(`${this.logPrefix}Failed to get valid run params!`);
             console.error(e);
@@ -115,7 +117,7 @@ export default class SocketConnection {
         let alias: string;
         let runId: number;
         db.insertProgram(
-            compiler, cflags, code, argsStr, includeFile, this.sourceIP, this.sourceUA,
+            compiler, cflags, code, argsStr, includeFileId, this.sourceIP, this.sourceUA,
         ).then((row) => {
             alias = row.alias;
             console.log(`${this.logPrefix}Program is at alias ${alias}`);
@@ -125,7 +127,7 @@ export default class SocketConnection {
             console.log(`${this.logPrefix}Run logged with ID ${runId}`);
             this.socket.emit('saved', alias);
             this.container = new Container(
-                this.logPrefix, code, includeFile, compiler, cflags, argsStr, rows, cols,
+                this.logPrefix, code, includeFileData, compiler, cflags, argsStr, rows, cols,
                 this.onContainerOutput, this.onContainerExit,
             );
         });

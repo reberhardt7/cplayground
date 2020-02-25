@@ -7,7 +7,6 @@ import * as ptylib from 'node-pty';
 
 import * as db from './db';
 import { Compiler } from '../common/constants';
-import { IncludeFile } from '../common/communication';
 import { getPathFromRoot } from './util';
 
 // eslint-disable-next-line no-undef
@@ -55,7 +54,7 @@ export default class Container {
     constructor(
         logPrefix: string,
         code: string,
-        includeFile: IncludeFile,
+        includeFileData: Buffer | null,
         compiler: Compiler,
         cflags: string,
         argsStr: string,
@@ -69,7 +68,7 @@ export default class Container {
         this.externalExitCallback = onExit;
 
         // Save the code to disk so that the files can be mounted into the container
-        this.saveCodeFiles(code, includeFile);
+        this.saveCodeFiles(code, includeFileData);
 
         // Start the container
         // TODO: clean up container/files even if the server crashes
@@ -89,14 +88,14 @@ export default class Container {
         this.setCpuQuotaMonitor();
     }
 
-    private saveCodeFiles = (code: string, includeFile: IncludeFile): void => {
+    private saveCodeFiles = (code: string, includeFileData: Buffer | null): void => {
         // Create data directory and save code from request
         console.log(`${this.logPrefix}Saving code to ${this.codeHostPath}`);
         if (!fs.existsSync(this.dataHostPath)) fs.mkdirSync(this.dataHostPath);
         fs.writeFileSync(this.codeHostPath, code);
-        if (includeFile.name) {
+        if (includeFileData) {
             console.log(`Writing include file to ${this.includeFileHostPath}`);
-            fs.writeFileSync(this.includeFileHostPath, includeFile.data);
+            fs.writeFileSync(this.includeFileHostPath, includeFileData);
         }
     };
 

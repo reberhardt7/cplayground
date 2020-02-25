@@ -6,20 +6,37 @@ import {
     COMPILER_FLAGS,
     LINKER_FLAGS, SupportedVersion, CompilerFlag, OptimizationLevel,
 } from '../../common/constants';
+import { uploadFile } from '../server-comm';
+import { filterKeypress } from '../accessibility-utils';
 
 type SidebarProps = {
     selectedVersion: SupportedVersion;
     selectedFlags: CompilerFlag[];
     runtimeArgs: string;
+    includeFileName: string;
     onVersionChange: (version: SupportedVersion) => void;
     onFlagsChange: (flags: CompilerFlag[]) => void;
     onRuntimeArgsChange: (args: string) => void;
+    onIncludeFileChange: (file: {id: string; name: string} | null) => void;
+};
+
+type SidebarState = {
+    currentlyUploadingFile: boolean;
+    fileUploadError: string;
 };
 
 type LabeledCompilerFlags =
     ReadonlyArray<typeof COMPILER_FLAGS[number] | typeof LINKER_FLAGS[number]>;
 
-class Sidebar extends React.PureComponent<SidebarProps> {
+class Sidebar extends React.PureComponent<SidebarProps, SidebarState> {
+    constructor(props: SidebarProps) {
+        super(props);
+        this.state = {
+            currentlyUploadingFile: false,
+            fileUploadError: '',
+        };
+    }
+
     setCompilerVersion = (e: React.ChangeEvent<HTMLSelectElement>): void => {
         this.props.onVersionChange(e.currentTarget.value as SupportedVersion);
     };
@@ -66,6 +83,36 @@ class Sidebar extends React.PureComponent<SidebarProps> {
             ))
         )
     );
+
+    uploadFile = (e: React.ChangeEvent<HTMLInputElement>): void => {
+        const { target } = e;
+        if (target.files.length < 1) {
+            return;
+        }
+        const file = target.files[0];
+        if (file.size > 10 ** 6) {
+            this.setState({
+                fileUploadError: 'The file you selected is too big. Max filesize 1MB',
+            });
+            return;
+        }
+
+        this.setState({
+            fileUploadError: '',
+            currentlyUploadingFile: true,
+        });
+        uploadFile(e.target.files[0]).then((fileId: string): void => {
+            this.setState({
+                currentlyUploadingFile: false,
+            });
+            this.props.onIncludeFileChange({ id: fileId, name: file.name });
+            target.value = null;
+        });
+    };
+
+    clearIncludeFile = (): void => {
+        this.props.onIncludeFileChange(null);
+    };
 
     render(): React.ReactNode {
         const optimizationLevel = [...this.props.selectedFlags].find(
@@ -120,9 +167,24 @@ class Sidebar extends React.PureComponent<SidebarProps> {
                         the source code.
                     </small>
                 </p>
-                <p id="uploaded-filename">{/* {INCLUDE_FILE_NAME} */}</p>
-                <i className="fas fa-times" id="btn-remove-uploaded-file" />
-                <input id="input-include-file" type="file" accept=".zip, application/zip" />
+                {this.state.currentlyUploadingFile && <p><span className="small-loading-spinner" /></p>}
+                <p className="file-upload-error">{this.state.fileUploadError}</p>
+                <p id="uploaded-filename">{this.props.includeFileName}</p>
+                <i
+                    className="fas fa-times"
+                    id="btn-remove-uploaded-file"
+                    role="button"
+                    aria-label="Remove uploaded file"
+                    tabIndex={0}
+                    onClick={this.clearIncludeFile}
+                    onKeyDown={(e): void => filterKeypress(e, this.clearIncludeFile)}
+                />
+                <input
+                    id="input-include-file"
+                    type="file"
+                    accept=".zip, application/zip"
+                    onChange={this.uploadFile}
+                />
 
                 <div className="sidebar-footer-spacer" />
                 <div className="sidebar-footer">

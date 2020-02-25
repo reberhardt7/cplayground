@@ -160,6 +160,16 @@ class App extends React.PureComponent<AppProps, AppState> {
         });
     };
 
+    setIncludeFile = (file: {id: string; name: string} | null): void => {
+        this.setState({
+            program: {
+                ...this.state.program,
+                includeFileId: file && file.id,
+                includeFileName: file && file.name,
+            },
+        });
+    };
+
     render(): React.ReactNode {
         return (
             <>
@@ -188,9 +198,11 @@ class App extends React.PureComponent<AppProps, AppState> {
                             selectedVersion={this.state.program.language}
                             selectedFlags={this.state.program.flags}
                             runtimeArgs={this.state.program.runtimeArgs}
+                            includeFileName={this.state.program.includeFileName}
                             onVersionChange={this.setLanguage}
                             onFlagsChange={this.setCFlags}
                             onRuntimeArgsChange={this.setRuntimeArgs}
+                            onIncludeFileChange={this.setIncludeFile}
                         />
                     )}
                     <Editor

@@ -8,8 +8,8 @@ export function getProgram(programId?: string): Promise<SavedProgram> {
         .then((resp: AxiosResponse): SavedProgram => ({
             code: resp.data.code,
             runtimeArgs: resp.data.runtimeArgs,
+            includeFileId: resp.data.includeFileId,
             includeFileName: resp.data.includeFileName,
-            includeFileData: resp.data.includeFileData,
             language: resp.data.language,
             flags: resp.data.flags,
         }));
@@ -58,10 +58,7 @@ export function startProgram(
         language: program.language,
         flags: [...program.flags],
         args: program.runtimeArgs,
-        includeFile: {
-            name: program.includeFileName,
-            data: program.includeFileData,
-        },
+        includeFileId: program.includeFileId,
         rows,
         cols,
     };
@@ -69,6 +66,14 @@ export function startProgram(
     return new Promise((resolve: () => void): void => {
         socket.on('disconnect', resolve);
     });
+}
+
+export function uploadFile(file: File): Promise<string> {
+    const formData = new FormData();
+    formData.append('file', file);
+    return axios.post('/api/files', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+    }).then((resp: AxiosResponse): string => resp.data.id);
 }
 
 export type BoundSocketListeners = {

@@ -1,6 +1,7 @@
 import * as React from 'react';
 import classNames from 'classnames';
 import { Layout } from './App';
+import { filterKeypress } from '../accessibility-utils';
 
 type TopbarProps = {
     inEmbeddedMode: boolean;
@@ -12,15 +13,6 @@ type TopbarProps = {
     onSplitBtnClick: () => void;
     onOpenInCplayground: () => void;
 };
-
-/**
- * Calls handler() if the pressed key is "enter" or "space."
- */
-function filterKeypress(e: React.KeyboardEvent<HTMLDivElement>, handler: () => void): void {
-    if (e.keyCode === 32 /* space */ || e.keyCode === 13 /* enter */) {
-        handler();
-    }
-}
 
 class Topbar extends React.PureComponent<TopbarProps> {
     render(): React.ReactNode {

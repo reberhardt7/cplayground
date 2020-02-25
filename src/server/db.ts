@@ -3,8 +3,8 @@ import * as process from 'process';
 import * as url from 'url';
 import * as crypto from 'crypto';
 import * as fs from 'fs';
+import uuidv1 from 'uuid/v1';
 
-import { IncludeFile } from '../common/communication';
 import { getPathFromRoot } from './util';
 
 const ANIMALS = fs.readFileSync(getPathFromRoot('src/server/animals.txt'))
@@ -31,9 +31,9 @@ export type ProgramRecord = {
     code: string;
     args: string | null;
     // eslint-disable-next-line camelcase
-    include_file_name: string | null;
+    include_file_id: string | null;
     // eslint-disable-next-line camelcase
-    include_file_data: Buffer;
+    include_file_name: string | null;
 }
 
 if (!process.env.DB_URL) {
@@ -62,12 +62,11 @@ function hashProgram(
     cflags: string,
     code: string,
     args: string,
-    includeFile: IncludeFile,
+    includeFileId: string,
 ): string {
     const hash = crypto.createHash('sha256');
-    const include = { name: includeFile.name, data: includeFile.data.toString('hex') };
     hash.update(JSON.stringify({
-        compiler, cflags, code, args, include,
+        compiler, cflags, code, args, includeFileId,
     }));
     return hash.digest('base64');
 }
@@ -77,24 +76,50 @@ function getProgram(
     cflags: string,
     code: string,
     args: string,
-    includeFile: IncludeFile,
+    includeFileId: string,
 ): Promise<ProgramRecord | null> {
-    const hash = hashProgram(compiler, cflags, code, args, includeFile);
+    const hash = hashProgram(compiler, cflags, code, args, includeFileId);
     return new Promise((resolve) => {
-        pool.query('SELECT * FROM programs WHERE hash = ?', hash, (err, res) => {
+        pool.query(`
+            SELECT programs.*, files.name AS include_file_name
+            FROM programs
+            LEFT JOIN files ON programs.include_file_id = files.id
+            WHERE programs.hash = ?
+        `, hash, (err, res) => {
             if (err) throw err;
-            else if (res) resolve(res[0]);
-            else resolve(null);
+            else if (res) {
+                const row = res[0];
+                resolve({
+                    ...row,
+                    // eslint-disable-next-line @typescript-eslint/camelcase
+                    include_file_id: row.include_file_id && row.include_file_id.toString('hex'),
+                });
+            } else {
+                resolve(null);
+            }
         });
     });
 }
 
 export function getProgramByAlias(alias: string): Promise<ProgramRecord | null> {
     return new Promise((resolve) => {
-        pool.query('SELECT * FROM programs WHERE alias = ?', alias, (err, res) => {
+        pool.query(`
+            SELECT programs.*, files.name AS include_file_name
+            FROM programs
+            LEFT JOIN files ON programs.include_file_id = files.id
+            WHERE alias = ?
+        `, alias, (err, res) => {
             if (err) throw err;
-            else if (res) resolve(res[0]);
-            else resolve(null);
+            else if (res) {
+                const row = res[0];
+                resolve({
+                    ...row,
+                    // eslint-disable-next-line @typescript-eslint/camelcase
+                    include_file_id: row.include_file_id && row.include_file_id.toString('hex'),
+                });
+            } else {
+                resolve(null);
+            }
         });
     });
 }
@@ -104,7 +129,7 @@ export function insertProgram(
     cflags: string,
     code: string,
     args: string,
-    includeFile: IncludeFile,
+    includeFileId: string,
     sourceIp: string,
     sourceUserAgent: string,
 ): Promise<{id: number; alias: string}> {
@@ -114,15 +139,13 @@ export function insertProgram(
     // long hash doesn't make for a good URL for a program, we also generate a unique "alias"
     // containing 3 names of animals. This is what is shown to users (the hash and
     // auto-incrementing ID are never shown).
-    const hash = hashProgram(compiler, cflags, code, args, includeFile);
+    const hash = hashProgram(compiler, cflags, code, args, includeFileId);
     return new Promise((resolve) => {
         function tryInsert(): void {
             // Try generating an alias and insert into it into the database. If
             // it's already taken, we'll generate a new one later.
             const alias = Array.from({ length: 3 },
                 () => ANIMALS[Math.floor(Math.random() * ANIMALS.length)]).join('-');
-            const includeFileName = includeFile.name;
-            const includeFileData = includeFile.data;
             pool.query(
                 'INSERT INTO programs SET ?',
                 {
@@ -133,9 +156,7 @@ export function insertProgram(
                     code,
                     args,
                     // eslint-disable-next-line @typescript-eslint/camelcase
-                    include_file_name: includeFileName,
-                    // eslint-disable-next-line @typescript-eslint/camelcase
-                    include_file_data: includeFileData,
+                    include_file_id: includeFileId && Buffer.from(includeFileId, 'hex'),
                     // eslint-disable-next-line @typescript-eslint/camelcase
                     source_ip: sourceIp,
                     // eslint-disable-next-line @typescript-eslint/camelcase
@@ -149,7 +170,7 @@ export function insertProgram(
                     } else if (error && error.sqlMessage === `Duplicate entry '${
                         hash}' for key 'hash'`) {
                         // Return the existing program info
-                        resolve(getProgram(compiler, cflags, code, args, includeFile));
+                        resolve(getProgram(compiler, cflags, code, args, includeFileId));
                     } else if (error) {
                         console.error('Error inserting program!');
                         console.error(error);
@@ -209,6 +230,68 @@ export function logView(
         }, (err, res) => {
             if (err) throw err;
             resolve(res.insertId);
+        });
+    });
+}
+
+function getFileId(name: string, contents: Buffer): Promise<string> {
+    return new Promise((resolve) => {
+        pool.query('SELECT id FROM files WHERE name = ? AND contents = ?', [name, contents],
+            (err, res) => {
+                if (err) throw err;
+                else if (res) resolve((res[0].id as Buffer).toString('hex'));
+                else resolve(null);
+            });
+    });
+}
+
+export function insertFile(name: string, contents: Buffer, sourceIp: string): Promise<string> {
+    const uuidBuf = Buffer.from(uuidv1().replace(/-/g, ''), 'hex');
+    // Move the "randomest" bytes to the middle for better indexing performance:
+    const id = Buffer.concat([
+        uuidBuf.slice(6, 8),
+        uuidBuf.slice(4, 6),
+        uuidBuf.slice(0, 4),
+        uuidBuf.slice(8, 16),
+    ]);
+    return new Promise((resolve) => {
+        pool.query(
+            'INSERT INTO files SET ?',
+            {
+                id,
+                name,
+                contents,
+                // eslint-disable-next-line @typescript-eslint/camelcase
+                source_ip: sourceIp,
+            },
+            (error) => {
+                if (error && error.sqlMessage.startsWith('Duplicate entry')) {
+                    // If the file already exists, let's use the existing ID
+                    resolve(getFileId(name, contents));
+                } else if (error) {
+                    console.error('Error inserting file!');
+                    console.error(error);
+                    throw error;
+                } else {
+                    resolve(id.toString('hex'));
+                }
+            },
+        );
+    });
+}
+
+export function getFileContents(id: string): Promise<Buffer | null> {
+    const binaryId = Buffer.from(id, 'hex');
+    if (binaryId.length !== 16) {
+        // This can't possibly be a valid ID
+        console.warn('getFileContents was called with an invalid ID', id);
+        return Promise.resolve(null);
+    }
+    return new Promise((resolve) => {
+        pool.query('SELECT contents FROM files WHERE id = ?', [binaryId], (err, res) => {
+            if (err) throw err;
+            else if (res) resolve(res[0].contents);
+            else resolve(null);
         });
     });
 }

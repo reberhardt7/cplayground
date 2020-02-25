@@ -1,25 +1,21 @@
 import * as fs from 'fs';
-import * as stringArgv from 'string-argv';
 import express, { Request, Response } from 'express';
+import multer from 'multer';
 import http from 'http';
 import socketio from 'socket.io';
 import consoleStamp from 'console-stamp';
 
-import * as db from './db';
-import { SavedProgram } from '../common/communication';
 import {
-    SUPPORTED_VERSIONS,
-    SupportedVersion,
-    DEFAULT_VERSION,
-    CompilerFlag,
     THEMES,
 } from '../common/constants';
 import SocketConnection from './socket-connection';
-import { getPathFromRoot, getSourceIpFromRequest } from './util';
+import { getPathFromRoot } from './util';
+import * as httpApi from './http-api';
 
 const app = express();
 const server = new http.Server(app);
 const io = socketio(server);
+const upload = multer();
 
 const port = process.env.PORT || 3000;
 
@@ -34,86 +30,36 @@ function generateIndexHtml(req: Request, res: Response): void {
     res.send(INDEX_HTML_CODE.replace('{{THEME}}', theme));
 }
 
-function generateProgramJson(
-    code: string, runtimeArgs: string, includeFileName: string, includeFileData: Buffer,
-    language: SupportedVersion, flags: CompilerFlag[],
-): SavedProgram {
-    return {
-        code, runtimeArgs, includeFileName, includeFileData, language, flags,
-    };
-}
+// Unnecessary info leak:
+app.disable('x-powered-by');
 
-const DEFAULT_CODE = fs.readFileSync(getPathFromRoot('src/server/default-code.cpp')).toString().trim();
-const DEFAULT_PROGRAM_JSON = generateProgramJson(
-    DEFAULT_CODE, '', null, null, DEFAULT_VERSION,
-    ['-O2', '-Wall', '-no-pie', '-lm', '-pthread'],
-);
+// Generate HTML for / and /embed:
+app.get('/((embed)?)', generateIndexHtml);
 
-function handleGetProgram(req: Request, res: Response): void {
-    console.info(`Incoming request for ${req.originalUrl}`);
-    if (!req.query.p) {
-        res.send(DEFAULT_PROGRAM_JSON);
-    } else {
-        db.getProgramByAlias(req.query.p).then((result) => {
-            if (result) {
-                console.log(`Returning program ${result.id}`);
-                const sourceIP = getSourceIpFromRequest(req);
-                const sourceUA = req.headers['user-agent'] || '';
-                db.logView(result.id, sourceIP, sourceUA);
-                const includeFileName = result.include_file_name || null;
-                const includeFileData = includeFileName && result.include_file_data;
-                const langMatch = /-std=([A-Za-z0-9+]+)/.exec(result.cflags);
-                const parsedLang = langMatch ? langMatch[1].toUpperCase() : DEFAULT_VERSION;
-                const lang = SUPPORTED_VERSIONS.includes(parsedLang)
-                    ? (parsedLang as SupportedVersion)
-                    : DEFAULT_VERSION;
-                res.send(generateProgramJson(
-                    result.code, result.args, includeFileName, includeFileData,
-                    lang, stringArgv.parseArgsStringToArgv(result.cflags) as CompilerFlag[],
-                ));
-            } else {
-                console.info('Program not found, sending default!');
-                // TODO: send redirect to /
-                res.send(DEFAULT_PROGRAM_JSON);
-            }
-        });
-    }
-}
+// HTTP API routes:
+app.get('/api/getProgram', httpApi.getProgram);
+app.post('/api/files', upload.single('file'), httpApi.uploadFile);
 
-function addExpressRoutes(): void {
-    app.disable('x-powered-by');
-    app.get('/((embed)?)',
-        (req, res) => generateIndexHtml(req, res));
-    app.get('/api/getProgram',
-        (req, res) => handleGetProgram(req, res));
-    app.get('/styles.css', (req, res) => {
-        res.sendFile(getPathFromRoot('dist/client/css/styles.css'));
-    });
-    for (const theme of THEMES) {
-        app.get(`/theme-${theme}.css`, (req, res) => {
-            res.sendFile(getPathFromRoot(`dist/client/css/theme-${theme}.css`));
-        });
-    }
-    app.get('/app.js', (req, res) => {
-        res.sendFile(getPathFromRoot('dist/client/bundle.js'));
-    });
-    app.get('/bundle.js.map', (req, res) => {
-        res.sendFile(getPathFromRoot('dist/client/bundle.js.map'));
-    });
-    app.get('/ace-builds/src-noconflict/ace.js', (req, res) => {
-        res.sendFile(getPathFromRoot('node_modules/ace-builds/src-noconflict/ace.js'));
-    });
-    app.get('/ace-builds/src-noconflict/mode-c_cpp.js', (req, res) => {
-        res.sendFile(getPathFromRoot('node_modules/ace-builds/src-noconflict/mode-c_cpp.js'));
-    });
-    app.get('/xterm.css', (req, res) => {
-        res.sendFile(getPathFromRoot('node_modules/xterm/css/xterm.css'));
+// Static assets:
+function addStaticHandler(urlPath: string, filePath: string): void {
+    app.get(urlPath, (req, res) => {
+        res.sendFile(getPathFromRoot(filePath));
     });
 }
-addExpressRoutes();
+addStaticHandler('/styles.css', 'dist/client/css/styles.css');
+for (const theme of THEMES) {
+    addStaticHandler(`/theme-${theme}.css`, `dist/client/css/theme-${theme}.css`);
+}
+addStaticHandler('/app.js', 'dist/client/bundle.js');
+addStaticHandler('/bundle.js.map', 'dist/client/bundle.js.map');
+addStaticHandler('/ace-builds/src-noconflict/ace.js', 'node_modules/ace-builds/src-noconflict/ace.js');
+addStaticHandler('/ace-builds/src-noconflict/mode-c_cpp.js', 'node_modules/ace-builds/src-noconflict/mode-c_cpp.js');
+addStaticHandler('/xterm.css', 'node_modules/xterm/css/xterm.css');
 
+// Handle websocket connections:
 io.on('connection', (socket) => new SocketConnection(socket, `[${socket.conn.id}] `));
 
+// Ready to roll -- start the server!
 server.listen(port, () => {
     console.log(`Server listening on *:${port}`);
 });

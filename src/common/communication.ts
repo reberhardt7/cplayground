@@ -3,15 +3,10 @@ import { CompilerFlag, SupportedVersion } from './constants';
 export type SavedProgram = {
     code: string;
     runtimeArgs: string;
-    includeFileName: string;
-    includeFileData: Buffer;
+    includeFileId: string | null;
+    includeFileName: string | null;
     language: SupportedVersion;
     flags: CompilerFlag[];
-}
-
-export type IncludeFile = {
-    name: string;
-    data?: Buffer;
 }
 
 export type RunEventBody = {
@@ -19,10 +14,7 @@ export type RunEventBody = {
     language: string;
     flags: string[];
     args: string;
-    includeFile: {
-        name: string;
-        data: Buffer;
-    };
+    includeFileId: string | null;
     rows: number;
     cols: number;
 }
