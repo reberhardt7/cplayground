@@ -209,8 +209,14 @@ export function updateRun(
         pool.query('UPDATE runs SET ? WHERE id = ?',
             // eslint-disable-next-line @typescript-eslint/camelcase
             [{ runtime_ms: runtimeMs, exit_status: exitStatus, output }, id],
-            (err) => {
+            (err, res) => {
                 if (err) throw err;
+                if (res.affectedRows !== 1) {
+                    console.error(
+                        'updateRun expected 1 run to be updated, but none were!',
+                        { id, runtimeMs, exitStatus, output },
+                    );
+                }
                 resolve();
             });
     });

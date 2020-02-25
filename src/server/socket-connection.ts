@@ -114,17 +114,14 @@ export default class SocketConnection {
         }
 
         // Log to db and start running the container
-        let alias: string;
-        let runId: number;
         db.insertProgram(
             compiler, cflags, code, argsStr, includeFileId, this.sourceIP, this.sourceUA,
         ).then((row) => {
-            alias = row.alias;
-            console.log(`${this.logPrefix}Program is at alias ${alias}`);
-            return db.createRun(row.id, this.sourceIP, this.sourceUA);
-        }).then((id) => {
-            runId = id;
-            console.log(`${this.logPrefix}Run logged with ID ${runId}`);
+            console.log(`${this.logPrefix}Program is at alias ${row.alias}`);
+            return Promise.all([row.alias, db.createRun(row.id, this.sourceIP, this.sourceUA)]);
+        }).then(([alias, runId]) => {
+            this.runId = runId;
+            console.log(`${this.logPrefix}Run logged with ID ${this.runId}`);
             this.socket.emit('saved', alias);
             this.container = new Container(
                 this.logPrefix, code, includeFileData, compiler, cflags, argsStr, rows, cols,
