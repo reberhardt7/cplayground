@@ -46,6 +46,10 @@
 
 /* File uploads: */
 
+input[type=file] {
+    width: 100%;
+}
+
 /* Don't show uploaded file status if nothing has been uploaded */
 #uploaded-filename:empty { display: none; }
 #uploaded-filename:empty + #btn-remove-uploaded-file { display: none; }
@@ -62,4 +66,17 @@
     margin-bottom: $sidebar-spacing;
 }
 
+.small-loading-spinner {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid $topbar-font-color;
+    border-color: $topbar-font-color transparent $topbar-font-color transparent;
+    animation: loading-spinner 1.2s linear infinite;
+}
 
+.file-upload-error:empty { display: none; }
+.file-upload-error {
+    color: $bright-red;
+}

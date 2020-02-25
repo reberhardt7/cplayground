@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/no-var-requires */
+
+const path = require('path');
 const url = require('url');
 const mysql = require('mysql');
 const migration = require('mysql-migrations');
@@ -23,4 +26,4 @@ const pool = mysql.createPool({
     multipleStatements: true,
 });
 
-migration.init(pool, __dirname + '/migrations');
+migration.init(pool, path.resolve(`${__dirname}/migrations`));

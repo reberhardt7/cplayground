@@ -124,10 +124,3 @@
     float: right;
     width: 160px;
 }
-
-body:not(.embedded) #edit-btn,
-body:not(.embedded) #split-pane-btn,
-.show-code-only #edit-btn,
-.show-split #split-pane-btn {
-    display: none;
-}
