@@ -1,15 +1,15 @@
 import * as React from 'react';
 import classNames from 'classnames';
-import * as Url from 'url-parse';
+import Url from 'url-parse';
 
 import Topbar from './Topbar';
 import Sidebar from './Sidebar';
 import Editor from './Editor';
 import Terminal from './Terminal';
 
+import { SavedProgram } from '../../common/communication';
+import { CompilerFlag, SupportedVersion } from '../../common/constants';
 import * as Server from '../server-comm';
-
-import Program = Server.Program;
 
 // Layouts for embedded mode (where split pane doesn't look so good)
 export enum Layout {
@@ -25,7 +25,7 @@ type AppProps = {
 type AppState = {
     layout: Layout;
     showSettingsPane: boolean;
-    program?: Program;
+    program?: SavedProgram;
     terminalSize: { rows: number; cols: number };
     programRunning: boolean;
     socket?: SocketIOClient.Socket;
@@ -49,7 +49,7 @@ class App extends React.PureComponent<AppProps, AppState> {
         // Load program for current URL
         const currentLocation = Url(window.location.href, window.location, true);
         const programId = currentLocation.query.p;
-        Server.getProgram(programId).then((program: Program) => {
+        Server.getProgram(programId).then((program: SavedProgram) => {
             this.setState({ program });
         });
 
@@ -105,17 +105,15 @@ class App extends React.PureComponent<AppProps, AppState> {
         }
 
         // Run the program
-        const sock = Server.makeDockerSocket(
-            this.state.terminalSize.rows,
-            this.state.terminalSize.cols,
-        );
-        Server.startProgram(sock, this.state.program)
-            .then((): void => {
-                this.setState({
-                    programRunning: false,
-                    socket: null,
-                });
+        const sock = Server.makeDockerSocket();
+        Server.startProgram(
+            sock, this.state.program, this.state.terminalSize.rows, this.state.terminalSize.cols,
+        ).then((): void => {
+            this.setState({
+                programRunning: false,
+                socket: null,
             });
+        });
         this.setState({
             programRunning: true,
             socket: sock,
@@ -126,7 +124,7 @@ class App extends React.PureComponent<AppProps, AppState> {
         this.setState({ layout });
     };
 
-    setLanguage = (language: typeof Server.SUPPORTED_VERSIONS[number]): void => {
+    setLanguage = (language: SupportedVersion): void => {
         this.setState({
             program: {
                 ...this.state.program,
@@ -135,7 +133,7 @@ class App extends React.PureComponent<AppProps, AppState> {
         });
     };
 
-    setCFlags = (flags: Set<string>): void => {
+    setCFlags = (flags: CompilerFlag[]): void => {
         this.setState({
             program: {
                 ...this.state.program,
@@ -168,6 +166,16 @@ class App extends React.PureComponent<AppProps, AppState> {
         });
     };
 
+    setIncludeFile = (file: {id: string; name: string} | null): void => {
+        this.setState({
+            program: {
+                ...this.state.program,
+                includeFileId: file && file.id,
+                includeFileName: file && file.name,
+            },
+        });
+    };
+
     render(): React.ReactNode {
         return (
             <>
@@ -194,11 +202,13 @@ class App extends React.PureComponent<AppProps, AppState> {
                     {this.state.program && (
                         <Sidebar
                             selectedVersion={this.state.program.language}
-                            selectedFlags={new Set(this.state.program.flags)}
+                            selectedFlags={this.state.program.flags}
                             runtimeArgs={this.state.program.runtimeArgs}
+                            includeFileName={this.state.program.includeFileName}
                             onVersionChange={this.setLanguage}
                             onFlagsChange={this.setCFlags}
                             onRuntimeArgsChange={this.setRuntimeArgs}
+                            onIncludeFileChange={this.setIncludeFile}
                         />
                     )}
                     <Editor

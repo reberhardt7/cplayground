@@ -1,6 +1,7 @@
 import * as React from 'react';
 import classNames from 'classnames';
 import { Layout } from './App';
+import { filterKeypress } from '../accessibility-utils';
 
 type TopbarProps = {
     inEmbeddedMode: boolean;
@@ -23,7 +24,7 @@ class Topbar extends React.PureComponent<TopbarProps> {
                         className="btn has-shortcut"
                         id="edit-btn"
                         onClick={this.props.onEditBtnClick}
-                        onKeyDown={this.props.onEditBtnClick}
+                        onKeyDown={(e): void => filterKeypress(e, this.props.onEditBtnClick)}
                         tabIndex={0}
                     >
                         <div className="main-text">
@@ -38,7 +39,7 @@ class Topbar extends React.PureComponent<TopbarProps> {
                     className="btn"
                     id="split-pane-btn"
                     onClick={this.props.onSplitBtnClick}
-                    onKeyDown={this.props.onSplitBtnClick}
+                    onKeyDown={(e): void => filterKeypress(e, this.props.onSplitBtnClick)}
                     tabIndex={0}
                 >
                     <div className="main-text">
@@ -51,7 +52,7 @@ class Topbar extends React.PureComponent<TopbarProps> {
                     className="btn"
                     id="open-in-cplayground-btn"
                     onClick={this.props.onOpenInCplayground}
-                    onKeyDown={this.props.onOpenInCplayground}
+                    onKeyDown={(e): void => filterKeypress(e, this.props.onOpenInCplayground)}
                     tabIndex={0}
                 >
                     <div className="main-text">
@@ -68,7 +69,7 @@ class Topbar extends React.PureComponent<TopbarProps> {
                     className="btn has-shortcut"
                     id="settings-btn"
                     onClick={this.props.onSettingsBtnClick}
-                    onKeyDown={this.props.onSettingsBtnClick}
+                    onKeyDown={(e): void => filterKeypress(e, this.props.onSettingsBtnClick)}
                     tabIndex={0}
                 >
                     <div className="main-text"><i className="fas fa-cog" /></div>
@@ -79,7 +80,7 @@ class Topbar extends React.PureComponent<TopbarProps> {
                     className={classNames('btn', 'has-shortcut', { disabled: this.props.isProgramRunning })}
                     id="run-btn"
                     onClick={this.props.onRunBtnClick}
-                    onKeyDown={this.props.onRunBtnClick}
+                    onKeyDown={(e): void => filterKeypress(e, this.props.onRunBtnClick)}
                     tabIndex={0}
                 >
                     <div className="main-text">

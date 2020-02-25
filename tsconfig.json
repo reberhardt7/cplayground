@@ -5,6 +5,11 @@
         "noImplicitAny": true,
         "module": "commonjs",
         "target": "es2016",
-        "jsx": "react"
-    }
+        "jsx": "react",
+        "esModuleInterop": true
+    },
+    "include": [
+        "src/common",
+        "src/server"
+    ]
 }

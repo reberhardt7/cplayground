@@ -4,7 +4,7 @@ import { FitAddon } from 'xterm-addon-fit';
 import { WebLinksAddon } from 'xterm-addon-web-links';
 // eslint-disable-next-line @typescript-eslint/ban-ts-ignore
 // @ts-ignore: There are no TS defs for this library, but I don't have time to write some
-import * as XtermWebfont from 'xterm-webfont/src';
+import XtermWebfont from 'xterm-webfont/src';
 import { ResizeSensor } from 'css-element-queries';
 import { bindSocketToTerminal, BoundSocketListeners, releaseSocketFromTerminal } from '../server-comm';
 // eslint-disable-next-line no-undef
