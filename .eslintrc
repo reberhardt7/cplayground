@@ -43,6 +43,13 @@
                 },
             },
         ],
+        // Airbnb lint sets "never" for js, mjs, and jsx, but we need ts and tsx
+        'import/extensions': ['error', 'ignorePackages', {
+            js: 'never',
+            jsx: 'never',
+            ts: 'never',
+            tsx: 'never',
+        }],
     },
     "env": {
         "browser": true,
