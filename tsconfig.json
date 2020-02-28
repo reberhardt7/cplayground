@@ -4,7 +4,12 @@
         "sourceMap": true,
         "noImplicitAny": true,
         "module": "commonjs",
-        "target": "es2016",
-        "jsx": "react"
-    }
+        "target": "es2019",
+        "jsx": "react",
+        "esModuleInterop": true
+    },
+    "include": [
+        "src/common",
+        "src/server"
+    ]
 }

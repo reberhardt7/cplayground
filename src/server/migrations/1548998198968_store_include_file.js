@@ -1,14 +1,14 @@
 module.exports = {
-    "up": `
+    up: `
         ALTER TABLE programs
         ADD COLUMN include_file_name varchar(30) NOT NULL AFTER args;
         ALTER TABLE programs
         ADD COLUMN include_file_data MEDIUMBLOB NOT NULL AFTER include_file_name;
     `,
-    "down": `
+    down: `
         ALTER TABLE programs
         DROP COLUMN include_file_name;
         ALTER TABLE programs
         DROP COLUMN include_file_data;
     `,
-}
+};

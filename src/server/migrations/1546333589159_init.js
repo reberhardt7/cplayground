@@ -1,5 +1,5 @@
 module.exports = {
-    "up": `
+    up: `
         CREATE TABLE programs (
           id char(44) NOT NULL,
           alias varchar(50) NOT NULL,
@@ -25,5 +25,5 @@ module.exports = {
             FOREIGN KEY (program_id) REFERENCES programs (id)
         );
     `,
-    "down": "DROP TABLE programs; DROP TABLE runs;"
-}
+    down: 'DROP TABLE programs; DROP TABLE runs;',
+};

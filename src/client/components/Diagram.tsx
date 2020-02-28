@@ -1,6 +1,7 @@
 import * as React from 'react';
 import * as joint from 'jointjs';
 
+import { Process, OpenFileEntry, VNode, ContainerInfo } from '../../common/communication';
 import { bindSocketToDebugger, BoundSocketListeners, releaseSocketFromDebugger } from '../server-comm';
 
 import Rectangle = joint.shapes.standard.Rectangle;
@@ -54,35 +55,6 @@ const TERMINAL_ICON = (
     + 'hlRlzCJt8ZhFm6n/moP5R8R0X04AAAAAAAAAAA75C49zaS/t8QFIAAAAAElFTkSuQmCC'
 );
 const FILE_ICON = 'https://s3.amazonaws.com/iconbros/icons/icon_pngs/000/000/211/original/document.png?1510299755';
-
-interface Process {
-    pid: number;
-    ppid: number;
-    pgid: number;
-    command: string;
-    fds: {[key: string]: {
-        file: string;
-        closeOnExec: boolean;
-    };};
-}
-
-interface OpenFileEntry {
-    position: number;
-    flags: string[];
-    refcount: number;
-    vnode: string;
-}
-
-interface VNode {
-    name: string;
-    refcount: number;
-}
-
-interface ContainerInfo {
-    processes: Process[];
-    openFiles: {[key: string]: OpenFileEntry};
-    vnodes: {[key: string]: VNode};
-}
 
 const FONT_SIZE = 12;
 

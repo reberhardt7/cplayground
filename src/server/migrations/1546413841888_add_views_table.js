@@ -1,5 +1,5 @@
 module.exports = {
-    "up": `
+    up: `
         CREATE TABLE views (
           id int(11) unsigned NOT NULL AUTO_INCREMENT,
           program_id char(44) NOT NULL,
@@ -11,5 +11,5 @@ module.exports = {
             FOREIGN KEY (program_id) REFERENCES programs (id)
         );
     `,
-    "down": "DROP TABLE views",
-}
+    down: 'DROP TABLE views',
+};
