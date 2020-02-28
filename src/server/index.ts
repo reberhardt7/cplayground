@@ -4,6 +4,7 @@ import multer from 'multer';
 import http from 'http';
 import socketio from 'socket.io';
 import consoleStamp from 'console-stamp';
+import sourceMap from 'source-map-support';
 
 import {
     THEMES,
@@ -11,6 +12,10 @@ import {
 import SocketConnection from './socket-connection';
 import { getPathFromRoot } from './util';
 import * as httpApi from './http-api';
+
+// https://stackoverflow.com/a/43994921
+sourceMap.install();
+process.on('unhandledRejection', console.error);
 
 const app = express();
 const server = new http.Server(app);
