@@ -2,41 +2,39 @@ const crypto = require('crypto');
 
 module.exports = {
     async up(conn, callback) {
-        // Create new files table
         await new Promise((resolve) => conn.query(`
+            # Create new files table:
             CREATE TABLE files (
-                id binary(16) NOT NULL,
+                id binary(28) NOT NULL,
                 name varchar(40) NOT NULL,
                 contents mediumblob NOT NULL,
                 source_ip varchar(40) NOT NULL,
                 created timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                PRIMARY KEY (id),
-                UNIQUE KEY file (name, contents)
+                PRIMARY KEY (id)
             );
-        `, () => resolve()));
 
-        // Backfill the files table with existing files from the programs table
-        await new Promise((resolve) => conn.query(`
-            INSERT INTO files (id, name, contents)
-            SELECT UNHEX(REPLACE(UUID(), "-", "")), existing_files.*
-            FROM (
-                SELECT DISTINCT include_file_name, include_file_data
-                FROM programs
-                WHERE include_file_name IS NOT NULL AND include_file_name != ""
-            ) AS existing_files;
-        `, () => resolve()));
+            # Backfill files table using info from programs table:
+            INSERT INTO files (id, name, contents, source_ip)
+            SELECT DISTINCT
+                UNHEX(SHA2(CONCAT(include_file_name, ':', include_file_data), 224)) AS file_id,
+                include_file_name,
+                include_file_data,
+                SUBSTRING_INDEX(GROUP_CONCAT(source_ip), ',', 1) AS source_ip
+            FROM programs
+            WHERE include_file_name != ''
+            GROUP BY file_id
+            ORDER BY created;
 
-        // Update programs table to reference the new files
-        await new Promise((resolve) => conn.query(`
+            # Add include_file_id column to programs table
             ALTER TABLE programs
-            ADD COLUMN include_file_id binary(16) AFTER include_file_data,
+            ADD COLUMN include_file_id binary(28) AFTER include_file_data,
             ADD CONSTRAINT include_file_id_fk FOREIGN KEY (include_file_id) REFERENCES files(id);
-        `, () => resolve()));
-        await new Promise((resolve) => conn.query(`
+
+            # Set include_file_id column in programs table to reference rows in the files table:
             UPDATE programs
-            LEFT JOIN files ON programs.include_file_name = files.name AND programs.include_file_data = files.contents
-            SET programs.include_file_id = files.id;
-        `, () => resolve()));
+            SET include_file_id = UNHEX(SHA2(CONCAT(include_file_name, ':', include_file_data), 224))
+            WHERE include_file_name != '';
+        `, (err) => { if (err) throw err; resolve(); }));
 
         // Recalculate program hashes based on the new include_file_id column
         const programRows = await new Promise((resolve, reject) => conn.query(
@@ -70,7 +68,7 @@ module.exports = {
             ALTER TABLE programs
             DROP COLUMN include_file_name,
             DROP COLUMN include_file_data;
-        `, () => resolve()));
+        `, (err) => { if (err) throw err; resolve(); }));
 
         callback();
     },

@@ -3,7 +3,6 @@ import * as process from 'process';
 import * as url from 'url';
 import * as crypto from 'crypto';
 import * as fs from 'fs';
-import uuidv1 from 'uuid/v1';
 
 import { getPathFromRoot } from './util';
 
@@ -87,7 +86,7 @@ function getProgram(
             WHERE programs.hash = ?
         `, hash, (err, res) => {
             if (err) throw err;
-            else if (res) {
+            else if (res && res.length > 0) {
                 const row = res[0];
                 resolve({
                     ...row,
@@ -110,7 +109,7 @@ export function getProgramByAlias(alias: string): Promise<ProgramRecord | null> 
             WHERE alias = ?
         `, alias, (err, res) => {
             if (err) throw err;
-            else if (res) {
+            else if (res && res.length > 0) {
                 const row = res[0];
                 resolve({
                     ...row,
@@ -245,50 +244,38 @@ function getFileId(name: string, contents: Buffer): Promise<string> {
         pool.query('SELECT id FROM files WHERE name = ? AND contents = ?', [name, contents],
             (err, res) => {
                 if (err) throw err;
-                else if (res) resolve((res[0].id as Buffer).toString('hex'));
+                else if (res && res.length) resolve((res[0].id as Buffer).toString('hex'));
                 else resolve(null);
             });
     });
 }
 
 export function insertFile(name: string, contents: Buffer, sourceIp: string): Promise<string> {
-    const uuidBuf = Buffer.from(uuidv1().replace(/-/g, ''), 'hex');
-    // Move the "randomest" bytes to the middle for better indexing performance:
-    const id = Buffer.concat([
-        uuidBuf.slice(6, 8),
-        uuidBuf.slice(4, 6),
-        uuidBuf.slice(0, 4),
-        uuidBuf.slice(8, 16),
-    ]);
     return new Promise((resolve) => {
-        pool.query(
-            'INSERT INTO files SET ?',
-            {
-                id,
-                name,
-                contents,
-                // eslint-disable-next-line @typescript-eslint/camelcase
-                source_ip: sourceIp,
-            },
-            (error) => {
-                if (error && error.sqlMessage.startsWith('Duplicate entry')) {
-                    // If the file already exists, let's use the existing ID
-                    resolve(getFileId(name, contents));
-                } else if (error) {
-                    console.error('Error inserting file!');
-                    console.error(error);
-                    throw error;
-                } else {
-                    resolve(id.toString('hex'));
-                }
-            },
-        );
+        pool.query(`
+            INSERT INTO files (id, name, contents, source_ip)
+            SELECT UNHEX(SHA2(CONCAT(name, ':', contents), 224)), name, contents, source_ip
+            FROM (SELECT ? AS name, ? AS contents, ? AS source_ip) AS vals
+        `,
+        [name, contents, sourceIp],
+        (error, result) => {
+            if (error && error.sqlMessage.startsWith('Duplicate entry')) {
+                // If the file already exists, let's use the existing ID
+                resolve(getFileId(name, contents));
+            } else if (error) {
+                console.error('Error inserting file!');
+                console.error(error);
+                throw error;
+            } else {
+                resolve(result.insertId.toString('hex'));
+            }
+        });
     });
 }
 
 export function getFileContents(id: string): Promise<Buffer | null> {
     const binaryId = Buffer.from(id, 'hex');
-    if (binaryId.length !== 16) {
+    if (binaryId.length !== 28) { // Length of binary id column in the database
         // This can't possibly be a valid ID
         console.warn('getFileContents was called with an invalid ID', id);
         return Promise.resolve(null);
@@ -296,7 +283,7 @@ export function getFileContents(id: string): Promise<Buffer | null> {
     return new Promise((resolve) => {
         pool.query('SELECT contents FROM files WHERE id = ?', [binaryId], (err, res) => {
             if (err) throw err;
-            else if (res) resolve(res[0].contents);
+            else if (res && res.length) resolve(res[0].contents);
             else resolve(null);
         });
     });
