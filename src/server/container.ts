@@ -146,7 +146,7 @@ export default class Container {
             '--ulimit', 'cpu=10:11',
             '--ulimit', 'nofile=64',
             '--network', 'none',
-            'cplayground', '/run.sh',
+            'cplayground', '/run.py',
         ].concat(
             // Safely parse argument string from user
             stringArgv.parseArgsStringToArgv(argsStr),
@@ -209,7 +209,7 @@ export default class Container {
     };
 
     private showErrorBanner = (text: string): void => {
-        // Note: if you modify these constants, be sure to update run.sh to
+        // Note: if you modify these constants, be sure to update run.py to
         // match
         const fg = '\x1b[91m'; // red
         const bg = '\x1b[100m'; // light gray

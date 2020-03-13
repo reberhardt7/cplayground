@@ -374,7 +374,7 @@ function cleanContainerData(
     }
 
     const processes = Object.values(rawProcesses)
-    // Omit the runc container-creating process, as well as our run.sh script
+    // Omit the runc container-creating process, as well as our run.py script
         .filter((proc) => proc.containerPID > 1);
     const files = processes
         .map((process) => Object.values(process.files))
