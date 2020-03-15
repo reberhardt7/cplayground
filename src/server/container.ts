@@ -1,15 +1,23 @@
 import * as path from 'path';
 import * as fs from 'fs';
+import * as net from 'net';
+import * as os from 'os';
 import * as childProcess from 'child_process';
 import * as stringArgv from 'string-argv';
 import uuidv4 from 'uuid/v4';
 import * as ptylib from 'node-pty';
+import semver from 'semver';
+import { GDB } from 'gdb-js';
+// Import regeneratorRuntime as a global to fix errors in gdb-js:
+// eslint-disable-next-line import/extensions
+import 'regenerator-runtime/runtime.js';
 
 import * as db from './db';
 import * as debugging from './debugging';
 import { ContainerInfo } from '../common/communication';
 import { Compiler } from '../common/constants';
 import { getPathFromRoot } from './util';
+import { SystemConfigurationError } from './error';
 
 // eslint-disable-next-line no-undef
 import Timeout = NodeJS.Timeout;
@@ -37,11 +45,15 @@ export default class Container {
     private readonly containerName = uuidv4();
     private containerId: string | null = null;
     private readonly startTime = process.hrtime();
-    private readonly pty: ptylib.IPty;
+    private pty: ptylib.IPty | null = null;
 
     private readonly dataHostPath = getPathFromRoot('data');
     private readonly codeHostPath = path.join(this.dataHostPath, this.containerName);
     private readonly includeFileHostPath = path.join(this.dataHostPath, `${this.containerName}-include.zip`);
+
+    private gdbSocketPath: string | null = null;
+    private gdbMiServer: net.Server | null = null;
+    private gdb: GDB | null = null;
 
     private readonly externalOutputCallback: (data: string) => void;
     private readonly externalExitCallback: (data: ContainerExitNotification) => void;
@@ -77,9 +89,113 @@ export default class Container {
         // Save the code to disk so that the files can be mounted into the container
         this.saveCodeFiles(code, includeFileData);
 
+        // Set up debug socket, if applicable; then, start the container
+        (enableDebugging ? this.initializeDebugSocket() : Promise.resolve()).then(() => {
+            this.startContainer(compiler, cflags, argsStr, rows, cols, enableDebugging).then();
+        });
+    }
+
+    private saveCodeFiles = (code: string, includeFileData: Buffer | null): void => {
+        // Create data directory and save code from request
+        console.log(`${this.logPrefix}Saving code to ${this.codeHostPath}`);
+        if (!fs.existsSync(this.dataHostPath)) fs.mkdirSync(this.dataHostPath);
+        fs.writeFileSync(this.codeHostPath, code);
+        if (includeFileData) {
+            console.log(`${this.logPrefix}Writing include file to ${this.includeFileHostPath}`);
+            fs.writeFileSync(this.includeFileHostPath, includeFileData);
+        }
+    };
+
+    /**
+     * Set up Unix domain socket that can be bind-mounted into the container, so that we can
+     * communicate with gdb (running inside the container)
+     */
+    private initializeDebugSocket = (): Promise<void> => {
+        this.gdbSocketPath = path.join(this.dataHostPath, `${this.containerName}-gdb.sock`);
+        this.gdbMiServer = net.createServer(this.onGdbSocketConnection);
+        return new Promise((resolve) => {
+            this.gdbMiServer.listen(this.gdbSocketPath, () => {
+                resolve();
+            });
+        }).then(
+            // TODO: figure out a way to allow access from the container's user (uid 999)
+            //  without allowing access to *all* users. Keep in mind that we don't know what the
+            //  host's uid is at compile time.
+            () => fs.promises.chmod(this.gdbSocketPath, '777'),
+        ).then(() => {
+            console.log(`${this.logPrefix}Successfully created gdb socket at ${
+                this.gdbSocketPath}`);
+        });
+    };
+
+    private generateDockerRunArgs = async (
+        compiler: Compiler, cflags: string, argsStr: string,
+    ): Promise<string[]> => {
+        const fileExtension = compiler === 'gcc' ? '.c' : '.cpp';
+        const codeContainerPath = `/cplayground/code${fileExtension}`;
+
+        const runArgs = [
+            '-it', '--name', this.containerName,
+            // Make the entire FS read-only, except for the home directory
+            // /cplayground, which we impose a 32MB storage quota on.
+            // NOTE: In the future, it may be easier to impose a disk quota
+            // using the --storage-opt flag. However, this currently requires
+            // use of a specific storage driver and backing filesystem, and
+            // it's too complicated to set up on the host. Links for future
+            // reference:
+            // https://forums.docker.com/t/./37653
+            // https://github.com/machinelabs/machinelabs/issues/703
+            '--read-only',
+            '--tmpfs', '/cplayground:mode=0777,size=32m,exec',
+            // Add the code to the container and set options
+            '-v', `${this.codeHostPath}:${codeContainerPath}:ro`,
+            '-v', `${this.includeFileHostPath}:/cplayground/include.zip:ro`,
+            '-e', `COMPILER=${compiler}`,
+            '-e', `CFLAGS=${cflags}`,
+            '-e', `SRCPATH=${codeContainerPath}`,
+            // Drop all capabilities. (We add back the ptrace capability if debugging is enabled)
+            '--cap-drop=all',
+            // Set more resource limits and disable networking
+            '--memory', '96mb',
+            '--memory-swap', '128mb',
+            '--memory-reservation', '32mb',
+            '--cpu-shares', '512',
+            '--pids-limit', '16',
+            '--ulimit', 'cpu=10:11',
+            '--ulimit', 'nofile=64',
+            '--network', 'none',
+        ];
+        // If debugging is enabled, set up for gdb
+        if (this.gdbSocketPath) {
+            // Bind mount the gdb socket so that we can communicate with gdb
+            runArgs.push('-v', `${this.gdbSocketPath}:/gdb.sock`);
+            // Make sure it's safe to use ptrace
+            if (os.platform() !== 'linux' || semver.lt(semver.coerce(os.release()), '4.8.0')) {
+                throw new SystemConfigurationError('ptrace is not safe to use on linux versions '
+                    + 'older than 4.8, as it can be used to bypass seccomp.');
+            }
+            // Grant ptrace capability for gdb
+            runArgs.push('--cap-add=SYS_PTRACE');
+            // Tell run.py to run in debug mode
+            runArgs.push('-e', 'CPLAYGROUND_DEBUG=1');
+        }
+
+        return ['run',
+            ...runArgs,
+            'cplayground', '/run.py',
+        ].concat(
+            // Safely parse argument string from user
+            stringArgv.parseArgsStringToArgv(argsStr),
+        );
+    };
+
+    private startContainer = async (
+        compiler: Compiler, cflags: string, argsStr: string, rows: number, cols: number,
+        enableDebugging: boolean,
+    ): Promise<void> => {
         // Start the container
         // TODO: clean up container/files even if the server crashes
-        const dockerRunArgs = this.generateDockerRunArgs(compiler, cflags, argsStr);
+        const dockerRunArgs = await this.generateDockerRunArgs(compiler, cflags, argsStr);
         console.log(`${this.logPrefix}Starting container: docker ${dockerRunArgs.join(' ')}`);
         console.log(`${this.logPrefix}Initial terminal size ${rows}x${cols}`);
         this.pty = ptylib.spawn('docker', dockerRunArgs, {
@@ -100,57 +216,6 @@ export default class Container {
                 `${this.logPrefix}Debugging is disabled. "debug" events will not be sent to the client.`,
             );
         }
-    }
-
-    private saveCodeFiles = (code: string, includeFileData: Buffer | null): void => {
-        // Create data directory and save code from request
-        console.log(`${this.logPrefix}Saving code to ${this.codeHostPath}`);
-        if (!fs.existsSync(this.dataHostPath)) fs.mkdirSync(this.dataHostPath);
-        fs.writeFileSync(this.codeHostPath, code);
-        if (includeFileData) {
-            console.log(`Writing include file to ${this.includeFileHostPath}`);
-            fs.writeFileSync(this.includeFileHostPath, includeFileData);
-        }
-    };
-
-    private generateDockerRunArgs = (
-        compiler: Compiler, cflags: string, argsStr: string,
-    ): string[] => {
-        const fileExtension = compiler === 'gcc' ? '.c' : '.cpp';
-        const codeContainerPath = `/cplayground/code${fileExtension}`;
-
-        return ['run', '-it', '--name', this.containerName,
-            // Make the entire FS read-only, except for the home directory
-            // /cplayground, which we impose a 32MB storage quota on.
-            // NOTE: In the future, it may be easier to impose a disk quota
-            // using the --storage-opt flag. However, this currently requires
-            // use of a specific storage driver and backing filesystem, and
-            // it's too complicated to set up on the host. Links for future
-            // reference:
-            // https://forums.docker.com/t/./37653
-            // https://github.com/machinelabs/machinelabs/issues/703
-            '--read-only',
-            '--tmpfs', '/cplayground:mode=0777,size=32m,exec',
-            // Add the code to the container and set options
-            '-v', `${this.codeHostPath}:${codeContainerPath}:ro`,
-            '-v', `${this.includeFileHostPath}:/cplayground/include.zip:ro`,
-            '-e', `COMPILER=${compiler}`,
-            '-e', `CFLAGS=${cflags}`,
-            '-e', `SRCPATH=${codeContainerPath}`,
-            // Set more resource limits and disable networking
-            '--memory', '96mb',
-            '--memory-swap', '128mb',
-            '--memory-reservation', '32mb',
-            '--cpu-shares', '512',
-            '--pids-limit', '16',
-            '--ulimit', 'cpu=10:11',
-            '--ulimit', 'nofile=64',
-            '--network', 'none',
-            'cplayground', '/run.py',
-        ].concat(
-            // Safely parse argument string from user
-            stringArgv.parseArgsStringToArgv(argsStr),
-        );
     };
 
     private trySettingContainerId = (): Promise<void> => new Promise((resolve) => {
@@ -199,6 +264,10 @@ export default class Container {
         // with)
         try { fs.unlinkSync(this.codeHostPath); } catch { /* ignore */ }
         try { fs.unlinkSync(this.includeFileHostPath); } catch { /* ignore */ }
+        // Shut down gdb server, if it's running
+        if (this.gdbMiServer) {
+            this.gdbMiServer.close();
+        }
 
         this.externalExitCallback({
             runtimeMs: runtime,
@@ -223,6 +292,73 @@ export default class Container {
     private getContainerRunTimeMs = (): number => {
         const runtimeHt = process.hrtime(this.startTime);
         return runtimeHt[0] * 1000 + runtimeHt[1] / 1000000;
+    };
+
+    private onGdbSocketConnection = async (sock: net.Socket): Promise<void> => {
+        console.log(`${this.logPrefix}Received connection on gdb socket`);
+        this.gdb = new GDB({
+            stdin: sock,
+            stdout: sock,
+            stderr: sock,
+        });
+        // gdb-js adds an error listener that terminates our node server if an error occurs on
+        // the socket. This is obviously bad... Let's replace it
+        sock.removeAllListeners('error');
+        sock.on('error', (err) => {
+            console.warn('Error on gdb socket: ', err);
+            sock.destroy();
+            sock.unref();
+        });
+        this.gdb.on('notify', async (e) => {
+            console.debug(`${this.logPrefix}[gdb] event: notify`, e);
+            // Quit gdb once thread 1 exits. (We do this since cplayground terminates the
+            // container after the main process exits when running in non-debug mode.)
+            if (e.state === 'thread-group-exited' && e.data.id === 'i1') {
+                // Inferior 1 has exited
+                if (e.data['exit-code'] !== undefined) {
+                    // Process exited normally
+                    await this.gdb.execCLI(`quit ${e.data['exit-code']}`);
+                } else {
+                    // If the exit code is undefined, we assume the process was signalled.
+                    // Unfortunately, gdb doesn't provide the signal in the thread-group-exited
+                    // event (it appears in the stopped event but it's kind of complicated to get),
+                    // so we rely on the gdb $_exitsignal variable. This could cause a race
+                    // condition if a second inferior were to be killed after the delivery of
+                    // this event but before we send the quit command (since $_exitsignal would
+                    // contain that inferior's signal), but the likelihood of this is small
+                    // enough that we won't worry about it for now.
+                    await this.gdb.execCLI('quit 128 + $_exitsignal');
+                }
+            }
+        });
+        this.gdb.on('exec', (e) => {
+            console.debug(`${this.logPrefix}[gdb] event: exec`, e);
+        });
+        this.gdb.on('stopped', (e) => {
+            console.debug(`${this.logPrefix}[gdb] event: stopped`, e);
+        });
+        this.gdb.on('running', (e) => {
+            console.debug(`${this.logPrefix}[gdb] event: running`, e);
+        });
+        this.gdb.on('thread-created', (e) => {
+            console.debug(`${this.logPrefix}[gdb] event: thread-created`, e);
+        });
+        this.gdb.on('thread-exited', (e) => {
+            console.debug(`${this.logPrefix}[gdb] event: thread-exited`, e);
+        });
+        this.gdb.on('thread-group-created', (e) => {
+            console.debug(`${this.logPrefix}[gdb] event: thread-group-created`, e);
+        });
+        this.gdb.on('thread-group-exited', (e) => {
+            console.debug(`${this.logPrefix}[gdb] event: thread-group-exited`, e);
+        });
+        this.gdb.logStream.on('data', (e) => {
+            console.debug(`${this.logPrefix}[gdb] log message`, e);
+        });
+        await this.gdb.init();
+        await this.gdb.enableAsync();
+        await this.gdb.attachOnFork();
+        await this.gdb.run();
     };
 
     /**

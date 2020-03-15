@@ -5,6 +5,7 @@ import subprocess
 import shlex
 import time
 import sys
+import socket
 
 # TODO: in the future, make BANNER_WIDTH dependent on the size of the terminal.
 # (This might be tricky; there seems to be a race condition with docker or
@@ -29,12 +30,22 @@ def format_execution_time(elapsed_s):
     else:
         return f'{(elapsed_s * 1000):.3f} ms'
 
+def status_matches_signal(status, signal):
+    """
+    Check whether a returned status code indicates that the process was terminated with the given
+    signal. (If the process was launched using Python's subprocess library and was killed by
+    signal n, the given code will be -n. However, this isn't technically a valid return code,
+    since status codes are unsigned ints, so shells typically report signals as 128 + n. We do
+    something similar if the process is being debugged under gdb.)
+    """
+    return status == -signal or status == signal + 128
+
 def print_exit_status(status):
-    # SIGXCPU signal 24 or 30
-    if status == -24 or status == -30:
+    # SIGXCPU
+    if status_matches_signal(status, 24) or status_matches_signal(status, 30):
         print_banner('The program exceeded its CPU quota.', RED, LIGHT_GRAY)
     # SIGKILL (possibly from OOM killer?)
-    elif status == -9:
+    elif status_matches_signal(status, 9):
         print_banner('The program was killed by SIGKILL. If you aren\'t sure', RED, LIGHT_GRAY)
         print_banner('why, it was probably using too much memory.', RED, LIGHT_GRAY)
     # Print exit status
@@ -56,7 +67,15 @@ def compile():
 
 def run():
     user_start_time = time.time()
-    user_proc = subprocess.run(['/cplayground/output'] + sys.argv[1:])
+    if os.environ.get('CPLAYGROUND_DEBUG', False):
+        with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as gdbsock:
+            gdbsock.connect('/gdb.sock')
+            sockfile = gdbsock.makefile('b', 0)
+            args = ['gdb', '--tty=/dev/pts/0', '-i=mi', '--args', '/cplayground/output'] + sys.argv[1:]
+            user_proc = subprocess.Popen(args, stdin=sockfile, stdout=sockfile, stderr=sockfile)
+            user_proc.wait()
+    else:
+        user_proc = subprocess.run(['/cplayground/output'] + sys.argv[1:])
     return (user_proc.returncode, time.time() - user_start_time)
 
 def main():

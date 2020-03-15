@@ -1,6 +1,6 @@
 FROM ubuntu:latest
 RUN apt-get update && \
-    apt-get install -y apt-utils build-essential bc unzip nsnake python3
+    apt-get install -y apt-utils build-essential bc unzip nsnake python3 gdb
 
 RUN groupadd -g 999 cplayground \
     && useradd -r -u 999 -g cplayground -d /cplayground cplayground
