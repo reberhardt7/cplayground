@@ -1,5 +1,6 @@
 import * as React from 'react';
 import AceEditor from 'react-ace';
+import { Ace } from 'ace-builds';
 
 // Scroll margin applied to editor if we are in embedded mode. This is because the editor margins
 // are removed in embedded mode (since there isn't as much real estate, and only one pane is showing
@@ -25,6 +26,13 @@ type AceMouseEvent = {
     clientX: number;
     clientY: number;
     getDocumentPosition: () => { row: number; column: number };
+};
+
+type AceChangeEvent = {
+    start: Ace.Point;
+    end: Ace.Point;
+    action: 'insert' | 'remove';
+    lines: string[];
 };
 
 class Editor extends React.PureComponent<EditorProps> {
@@ -67,6 +75,11 @@ class Editor extends React.PureComponent<EditorProps> {
         editor.removeEventListener('gutterclick', this.toggleBreakpoint);
     }
 
+    onChange = (code: string, e: AceChangeEvent): void => {
+        this.props.onCodeChange(code);
+        this.updateBreakpointsForCodeChange(e);
+    };
+
     toggleBreakpoint = (e: AceMouseEvent): void => {
         const { editor } = this.aceComponent.current;
         // 0-indexed
@@ -92,13 +105,31 @@ class Editor extends React.PureComponent<EditorProps> {
         }
     };
 
+    updateBreakpointsForCodeChange = (e: AceChangeEvent): void => {
+        // Rows are 0-indexed, so add 1 to get line numbers.
+        const startLine = e.start.row + 1;
+        // e.lines includes all lines that were modified. If its length is 1, no lines were
+        // added or removed, but if it's greater than 1, then the number of lines added/removed
+        // is e.lines.length - 1
+        const lineCountDiff = (e.lines.length - 1) * (e.action === 'insert' ? 1 : -1);
+        if (lineCountDiff !== 0) {
+            // Shift breakpoints over: remove breakpoints that are past where the modification
+            // happened, then add them back, shifted over by lineCountDiff
+            const newBreakpoints = this.props.breakpoints.filter((line) => line <= startLine);
+            this.props.breakpoints.filter((line) => line > startLine).forEach((line) => {
+                newBreakpoints.push(line + lineCountDiff);
+            });
+            this.props.onBreakpointChange(newBreakpoints);
+        }
+    };
+
     render(): React.ReactNode {
         return (
             <div className="code-container">
                 <AceEditor
                     ref={this.aceComponent}
                     mode="c_cpp"
-                    onChange={this.props.onCodeChange}
+                    onChange={this.onChange}
                     value={this.props.code}
                     width="100%"
                     height="100%"
