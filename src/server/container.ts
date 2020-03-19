@@ -236,16 +236,15 @@ export default class Container {
         }
     };
 
-    private trySettingContainerId = (): Promise<void> => new Promise((resolve) => {
+    private trySettingContainerId = (): void => {
         childProcess.execFile('docker',
             ['ps', '--no-trunc', '-aqf', `name=${this.containerName}`],
             (err, out) => {
                 if (err) throw err;
                 this.containerId = out.trim();
                 console.log(`${this.logPrefix}Container id: ${this.containerId}`);
-                resolve();
             });
-    });
+    };
 
     private onOutput = async (data: string): Promise<void> => {
         // Get container ID. This is jank, but this is the best way to set the container ID
@@ -254,7 +253,7 @@ export default class Container {
         // the container starts printing stuff. So, if we get here, we know it's safe to query
         // the container ID.
         if (!this.containerId) {
-            await this.trySettingContainerId();
+            this.trySettingContainerId();
         }
 
         // Store output
