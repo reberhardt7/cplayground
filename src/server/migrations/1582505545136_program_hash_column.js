@@ -15,10 +15,9 @@ module.exports = {
 
         ALTER TABLE programs ADD COLUMN id INT NOT NULL FIRST;
         # Fill with sequential numbers ordered by created column:
-        UPDATE programs
-        JOIN (SELECT @rank := 0) r
-        SET id=@rank:=@rank+1
-        ORDER BY created;
+        SET @rownumber = 0;
+        UPDATE programs SET id = (@rownumber:=@rownumber+1)
+        ORDER BY created ASC;
         # Promote to primary key, and set autoincrement:
         ALTER TABLE programs MODIFY COLUMN id INT NOT NULL AUTO_INCREMENT PRIMARY KEY;
 
