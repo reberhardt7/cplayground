@@ -58,9 +58,35 @@ export type RunEventBody = {
     includeFileId: string | null;
     rows: number;
     cols: number;
+    debug: boolean;
+    breakpoints?: number[];
 }
 
 export type ResizeEventBody = {
     rows: number;
     cols: number;
+}
+
+export type DebugSetBreakpointBody = {
+    line: number;
+}
+
+export type DebugRemoveBreakpointBody = {
+    line: number;
+}
+
+export type DebugProceedBody = {
+    threadId: number;
+}
+
+export type DebugStepInBody = {
+    threadId: number;
+}
+
+export type DebugStepOutBody = {
+    threadId: number;
+}
+
+export type DebugNextBody = {
+    threadId: number;
 }

@@ -61,6 +61,7 @@ export function startProgram(
         includeFileId: program.includeFileId,
         rows,
         cols,
+        debug: true,
     };
     socket.emit('run', body);
     return new Promise((resolve: () => void): void => {

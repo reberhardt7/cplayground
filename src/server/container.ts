@@ -7,7 +7,7 @@ import * as stringArgv from 'string-argv';
 import uuidv4 from 'uuid/v4';
 import * as ptylib from 'node-pty';
 import semver from 'semver';
-import { GDB } from 'gdb-js';
+import { GDB, Breakpoint, Thread, ThreadGroup } from 'gdb-js';
 // Import regeneratorRuntime as a global to fix errors in gdb-js:
 // eslint-disable-next-line import/extensions
 import 'regenerator-runtime/runtime.js';
@@ -17,7 +17,7 @@ import * as debugging from './debugging';
 import { ContainerInfo } from '../common/communication';
 import { Compiler } from '../common/constants';
 import { getPathFromRoot } from './util';
-import { SystemConfigurationError } from './error';
+import { DebugStateError, SystemConfigurationError } from './error';
 
 // eslint-disable-next-line no-undef
 import Timeout = NodeJS.Timeout;
@@ -50,10 +50,16 @@ export default class Container {
     private readonly dataHostPath = getPathFromRoot('data');
     private readonly codeHostPath = path.join(this.dataHostPath, this.containerName);
     private readonly includeFileHostPath = path.join(this.dataHostPath, `${this.containerName}-include.zip`);
+    private readonly codeContainerPath: string;
 
     private gdbSocketPath: string | null = null;
     private gdbMiServer: net.Server | null = null;
     private gdb: GDB | null = null;
+
+    private readonly initialBreakpoints: number[];
+    private breakpoints: {[line: number]: Breakpoint} = {};
+    private threads: {[threadId: number]: Thread} = {};
+    private processes: {[inferiorId: number]: ThreadGroup} = {};
 
     private readonly externalOutputCallback: (data: string) => void;
     private readonly externalExitCallback: (data: ContainerExitNotification) => void;
@@ -77,21 +83,36 @@ export default class Container {
         rows: number,
         cols: number,
         enableDebugging: boolean,
+        breakpoints: number[],
         onOutput: (data: string) => void,
         onExit: (data: ContainerExitNotification) => void,
         onDebugInfo: (data: ContainerInfo) => void,
     ) {
+        // Validate debug config. (NOTE: make sure all validation is done before
+        // this.saveCodeFiles, so that we don't leak resources on exception.)
+        if (!enableDebugging && breakpoints.length > 0) {
+            throw new DebugStateError('Debugging is not enabled, yet breakpoints are specified');
+        }
+
         this.logPrefix = logPrefix;
         this.externalOutputCallback = onOutput;
         this.externalExitCallback = onExit;
         this.externalDebugCallback = onDebugInfo;
+        this.initialBreakpoints = breakpoints;
 
         // Save the code to disk so that the files can be mounted into the container
         this.saveCodeFiles(code, includeFileData);
 
+        const fileExtension = compiler === 'gcc' ? '.c' : '.cpp';
+        this.codeContainerPath = `/cplayground/code${fileExtension}`;
+
+        // Add -g flag to compiler if debugging is enabled. (Otherwise, the compiler won't
+        // generate a symbol table for the debugger to use.)
+        const debugAwareCflags = enableDebugging ? `-g ${cflags}` : cflags;
         // Set up debug socket, if applicable; then, start the container
         (enableDebugging ? this.initializeDebugSocket() : Promise.resolve()).then(() => {
-            this.startContainer(compiler, cflags, argsStr, rows, cols, enableDebugging).then();
+            this.startContainer(compiler, debugAwareCflags, argsStr, rows, cols, enableDebugging)
+                .then();
         });
     }
 
@@ -131,9 +152,6 @@ export default class Container {
     private generateDockerRunArgs = async (
         compiler: Compiler, cflags: string, argsStr: string,
     ): Promise<string[]> => {
-        const fileExtension = compiler === 'gcc' ? '.c' : '.cpp';
-        const codeContainerPath = `/cplayground/code${fileExtension}`;
-
         const runArgs = [
             '-it', '--name', this.containerName,
             // Make the entire FS read-only, except for the home directory
@@ -148,11 +166,11 @@ export default class Container {
             '--read-only',
             '--tmpfs', '/cplayground:mode=0777,size=32m,exec',
             // Add the code to the container and set options
-            '-v', `${this.codeHostPath}:${codeContainerPath}:ro`,
+            '-v', `${this.codeHostPath}:${this.codeContainerPath}:ro`,
             '-v', `${this.includeFileHostPath}:/cplayground/include.zip:ro`,
             '-e', `COMPILER=${compiler}`,
             '-e', `CFLAGS=${cflags}`,
-            '-e', `SRCPATH=${codeContainerPath}`,
+            '-e', `SRCPATH=${this.codeContainerPath}`,
             // Drop all capabilities. (We add back the ptrace capability if debugging is enabled)
             '--cap-drop=all',
             // Set more resource limits and disable networking
@@ -340,17 +358,21 @@ export default class Container {
         this.gdb.on('running', (e) => {
             console.debug(`${this.logPrefix}[gdb] event: running`, e);
         });
-        this.gdb.on('thread-created', (e) => {
-            console.debug(`${this.logPrefix}[gdb] event: thread-created`, e);
+        this.gdb.on('thread-created', (thread: Thread) => {
+            console.debug(`${this.logPrefix}[gdb] event: thread-created`, thread);
+            this.threads[thread.id] = thread;
         });
-        this.gdb.on('thread-exited', (e) => {
-            console.debug(`${this.logPrefix}[gdb] event: thread-exited`, e);
+        this.gdb.on('thread-exited', (thread: Thread) => {
+            console.debug(`${this.logPrefix}[gdb] event: thread-exited`, thread);
+            delete this.threads[thread.id];
         });
-        this.gdb.on('thread-group-created', (e) => {
-            console.debug(`${this.logPrefix}[gdb] event: thread-group-created`, e);
+        this.gdb.on('thread-group-started', (group: ThreadGroup) => {
+            console.debug(`${this.logPrefix}[gdb] event: thread-group-started`, group);
+            this.processes[group.id] = group;
         });
-        this.gdb.on('thread-group-exited', (e) => {
-            console.debug(`${this.logPrefix}[gdb] event: thread-group-exited`, e);
+        this.gdb.on('thread-group-exited', (group: ThreadGroup) => {
+            console.debug(`${this.logPrefix}[gdb] event: thread-group-exited`, group);
+            delete this.processes[group.id];
         });
         this.gdb.logStream.on('data', (e) => {
             console.debug(`${this.logPrefix}[gdb] log message`, e);
@@ -358,6 +380,17 @@ export default class Container {
         await this.gdb.init();
         await this.gdb.enableAsync();
         await this.gdb.attachOnFork();
+
+        // Set and save initial breakpoints
+        const initialBreakpointObjs = await Promise.all(this.initialBreakpoints.map(
+            (lineno) => this.gdb.addBreak(this.codeContainerPath, lineno),
+        ));
+        initialBreakpointObjs.forEach((bp) => { this.breakpoints[bp.id] = bp; });
+        console.debug(`${this.logPrefix}Set ${initialBreakpointObjs.length} initial breakpoints`,
+            initialBreakpointObjs);
+
+        // Go!
+        console.debug(`${this.logPrefix}Issuing run command!`);
         await this.gdb.run();
     };
 
@@ -455,5 +488,64 @@ export default class Container {
         console.log(`${this.logPrefix}Stopping container...`);
         childProcess.execFile('docker', ['stop', '-t', '2', this.containerName], {},
             () => childProcess.execFile('docker', ['rm', this.containerName]));
+    };
+
+    gdbSetBreakpoint = async (line: number): Promise<void> => {
+        if (!this.gdbSocketPath) {
+            throw new DebugStateError('Debugging is not enabled');
+        }
+        const breakpoint = await this.gdb.addBreak(this.codeContainerPath, line);
+        this.breakpoints[breakpoint.id] = breakpoint;
+    };
+
+    gdbRemoveBreakpoint = async (line: number): Promise<void> => {
+        if (!this.gdbSocketPath) {
+            throw new DebugStateError('Debugging is not enabled');
+        }
+        if (this.breakpoints[line] === undefined) {
+            throw new DebugStateError(`No known breakpoint at ${line}`);
+        }
+        await this.gdb.removeBreak(this.breakpoints[line]);
+        delete this.breakpoints[line];
+    };
+
+    gdbProceed = async (threadId: number): Promise<void> => {
+        if (!this.gdbSocketPath) {
+            throw new DebugStateError('Debugging is not enabled');
+        }
+        if (this.threads[threadId] === undefined) {
+            throw new DebugStateError(`No known thread with id ${threadId}`);
+        }
+        await this.gdb.proceed(this.threads[threadId]);
+    };
+
+    gdbStepIn = async (threadId: number): Promise<void> => {
+        if (!this.gdbSocketPath) {
+            throw new DebugStateError('Debugging is not enabled');
+        }
+        if (this.threads[threadId] === undefined) {
+            throw new DebugStateError(`No known thread with id ${threadId}`);
+        }
+        await this.gdb.stepIn(this.threads[threadId]);
+    };
+
+    gdbStepOut = async (threadId: number): Promise<void> => {
+        if (!this.gdbSocketPath) {
+            throw new DebugStateError('Debugging is not enabled');
+        }
+        if (this.threads[threadId] === undefined) {
+            throw new DebugStateError(`No known thread with id ${threadId}`);
+        }
+        await this.gdb.stepOut(this.threads[threadId]);
+    };
+
+    gdbNext = async (threadId: number): Promise<void> => {
+        if (!this.gdbSocketPath) {
+            throw new DebugStateError('Debugging is not enabled');
+        }
+        if (this.threads[threadId] === undefined) {
+            throw new DebugStateError(`No known thread with id ${threadId}`);
+        }
+        await this.gdb.next(this.threads[threadId]);
     };
 }
