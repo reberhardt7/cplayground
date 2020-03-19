@@ -8,6 +8,16 @@
         background: $background-color;
         color: $editor-gutter-color;
     }
+    .ace_gutter-cell.ace_breakpoint::before {
+        content: '';
+        position: absolute;
+        top: 2.5px;
+        left: 0;
+        width: 11px;
+        height: 11px;
+        background: #ff7e7e;
+        border-radius: 10px;
+    }
     .ace_print-margin {
         width: 0px;
         background: #FFF;
