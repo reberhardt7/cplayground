@@ -1,14 +1,24 @@
 import { Socket } from 'socket.io';
 import * as db from './db';
 import Container, { ContainerExitNotification } from './container';
-import { ResizeEventBody, RunEventBody } from '../common/communication';
+import {
+    ContainerInfo,
+    ResizeEventBody,
+    RunEventBody,
+    DebugNextBody,
+    DebugProceedBody,
+    DebugRemoveBreakpointBody,
+    DebugSetBreakpointBody,
+    DebugStepInBody,
+    DebugStepOutBody,
+} from '../common/communication';
 import {
     SUPPORTED_VERSIONS,
     FLAG_WHITELIST,
     DEFAULT_VERSION,
     Compiler,
 } from '../common/constants';
-import { ClientValidationError } from './error';
+import { ClientValidationError, DebugStateError } from './error';
 import { getSourceIpFromSocket, getUserAgentFromSocket } from './util';
 
 async function getRunParams(request: RunEventBody): Promise<{
@@ -18,6 +28,8 @@ async function getRunParams(request: RunEventBody): Promise<{
     argsStr: string;
     includeFileId: string | null;
     includeFileData: Buffer | null;
+    debug: boolean;
+    breakpoints: number[];
 }> {
     const lang = SUPPORTED_VERSIONS.includes(request.language)
         ? request.language : DEFAULT_VERSION;
@@ -54,11 +66,18 @@ async function getRunParams(request: RunEventBody): Promise<{
     }
     const includeFileId = includeFileData === null ? null : request.includeFileId;
 
+    const breakpoints = Array.isArray(request.breakpoints) ? request.breakpoints : [];
+    const debug = Boolean(request.debug);
+    if (!debug && breakpoints.length > 0) {
+        throw new ClientValidationError(
+            'Breakpoints are specified even though debugging is not enabled',
+        );
+    }
+
     return {
-        compiler, cflags, code, argsStr, includeFileId, includeFileData,
+        compiler, cflags, code, argsStr, includeFileId, includeFileData, debug, breakpoints,
     };
 }
-
 
 export default class SocketConnection {
     private readonly sourceIP: string;
@@ -82,6 +101,26 @@ export default class SocketConnection {
         socket.on('run', this.startContainer);
         socket.on('resize', this.onTerminalResize);
         socket.on('disconnect', this.onSocketDisconnect);
+
+        // Handle debug commands
+        socket.on('debugSetBreakpoint', this.makeDebugHandler(
+            (data: DebugSetBreakpointBody) => this.container.gdbSetBreakpoint(data.line),
+        ));
+        socket.on('debugRemoveBreakpoint', this.makeDebugHandler(
+            (data: DebugRemoveBreakpointBody) => this.container.gdbRemoveBreakpoint(data.line),
+        ));
+        socket.on('debugProceed', this.makeDebugHandler(
+            (data: DebugProceedBody) => this.container.gdbProceed(data.threadId),
+        ));
+        socket.on('debugStepIn', this.makeDebugHandler(
+            (data: DebugStepInBody) => this.container.gdbStepIn(data.threadId),
+        ));
+        socket.on('debugStepOut', this.makeDebugHandler(
+            (data: DebugStepOutBody) => this.container.gdbStepOut(data.threadId),
+        ));
+        socket.on('debugNext', this.makeDebugHandler(
+            (data: DebugNextBody) => this.container.gdbNext(data.threadId),
+        ));
     }
 
     private startContainer = async (request: RunEventBody): Promise<void> => {
@@ -100,9 +139,11 @@ export default class SocketConnection {
         let argsStr: string;
         let includeFileId: string;
         let includeFileData: Buffer;
+        let debug: boolean;
+        let breakpoints: number[];
         try {
             ({
-                compiler, cflags, code, argsStr, includeFileId, includeFileData,
+                compiler, cflags, code, argsStr, includeFileId, includeFileData, debug, breakpoints,
             } = await getRunParams(request));
         } catch (e) {
             console.error(`${this.logPrefix}Failed to get valid run params!`);
@@ -125,7 +166,8 @@ export default class SocketConnection {
             this.socket.emit('saved', alias);
             this.container = new Container(
                 this.logPrefix, code, includeFileData, compiler, cflags, argsStr, rows, cols,
-                this.onContainerOutput, this.onContainerExit,
+                debug, breakpoints,
+                this.onContainerOutput, this.onContainerExit, this.onDebugInfo,
             );
         });
     };
@@ -139,6 +181,10 @@ export default class SocketConnection {
 
     private onContainerOutput = (data: string): void => {
         this.socket.emit('data', Buffer.from(data));
+    };
+
+    private onDebugInfo = (data: ContainerInfo): void => {
+        this.socket.emit('debug', data);
     };
 
     private onTerminalResize = (data: ResizeEventBody): void => {
@@ -167,4 +213,24 @@ export default class SocketConnection {
         db.updateRun(this.runId, data.runtimeMs, data.exitStatus, data.output);
         this.container = null;
     };
+
+    private makeDebugHandler = <T>(executeCommand: (data: T) => void): ((data: T) => void) => (
+        (data: T): void => {
+            if (!this.container) {
+                this.socket.emit('cplaygroundError', {
+                    error: 'No program is currently running.',
+                });
+            } else {
+                try {
+                    executeCommand(data);
+                } catch (e) {
+                    if (e instanceof DebugStateError) {
+                        this.socket.emit('cplaygroundError', {
+                            error: e.message,
+                        });
+                    }
+                }
+            }
+        }
+    );
 }

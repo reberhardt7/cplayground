@@ -17,4 +17,5 @@
       }
     ],
   },
+  "ignorePatterns": [ "gdb-js.d.ts" ],
 }

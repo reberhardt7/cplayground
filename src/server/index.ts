@@ -12,6 +12,7 @@ import {
 import SocketConnection from './socket-connection';
 import { getPathFromRoot } from './util';
 import * as httpApi from './http-api';
+import * as debugging from './debugging';
 
 // https://stackoverflow.com/a/43994921
 sourceMap.install();
@@ -26,6 +27,14 @@ const port = process.env.PORT || 3000;
 
 // Add timestamps to log messages
 consoleStamp(console, { pattern: 'isoDateTime' });
+
+// Initialize debugging timer
+if (debugging.ENABLE_DEBUGGING) {
+    debugging.init();
+} else {
+    console.warn('Debugging is disabled (maybe because the kernel extension is not '
+        + 'loaded). `debug` events will not be sent to the client.');
+}
 
 const INDEX_HTML_CODE = fs.readFileSync(getPathFromRoot('src/client/index.html')).toString();
 
@@ -60,6 +69,8 @@ addStaticHandler('/bundle.js.map', 'dist/client/bundle.js.map');
 addStaticHandler('/ace-builds/src-noconflict/ace.js', 'node_modules/ace-builds/src-noconflict/ace.js');
 addStaticHandler('/ace-builds/src-noconflict/mode-c_cpp.js', 'node_modules/ace-builds/src-noconflict/mode-c_cpp.js');
 addStaticHandler('/xterm.css', 'node_modules/xterm/css/xterm.css');
+addStaticHandler('/img/read-icon.png', 'src/client/img/read-icon.png');
+addStaticHandler('/img/write-icon.png', 'src/client/img/write-icon.png');
 
 // Handle websocket connections:
 io.on('connection', (socket) => new SocketConnection(socket, `[${socket.conn.id}] `));

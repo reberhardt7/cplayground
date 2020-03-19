@@ -61,6 +61,7 @@ export function startProgram(
         includeFileId: program.includeFileId,
         rows,
         cols,
+        debug: true,
     };
     socket.emit('run', body);
     return new Promise((resolve: () => void): void => {
@@ -77,7 +78,8 @@ export function uploadFile(file: File): Promise<string> {
 }
 
 export type BoundSocketListeners = {
-    data: (data: ArrayBuffer) => void;
+    data?: (data: ArrayBuffer) => void;
+    debug?: (data: ArrayBuffer) => void;
 };
 
 /**
@@ -121,6 +123,25 @@ export function bindSocketToTerminal(
  * @param boundListeners
  */
 export function releaseSocketFromTerminal(
+    socket: Socket,
+    boundListeners: BoundSocketListeners,
+): void {
+    Object.keys(boundListeners).forEach(
+        (event: keyof BoundSocketListeners) => socket.removeListener(event, boundListeners[event]),
+    );
+}
+
+export function bindSocketToDebugger(
+    socket: Socket,
+    onData: (data: {}) => void,
+): BoundSocketListeners {
+    socket.on('debug', onData);
+    return {
+        debug: onData,
+    };
+}
+
+export function releaseSocketFromDebugger(
     socket: Socket,
     boundListeners: BoundSocketListeners,
 ): void {

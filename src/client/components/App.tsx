@@ -5,7 +5,7 @@ import Url from 'url-parse';
 import Topbar from './Topbar';
 import Sidebar from './Sidebar';
 import Editor from './Editor';
-import Terminal from './Terminal';
+import ProgramPane from './ProgramPane';
 
 import { SavedProgram } from '../../common/communication';
 import { CompilerFlag, SupportedVersion } from '../../common/constants';
@@ -220,7 +220,7 @@ class App extends React.PureComponent<AppProps, AppState> {
                         breakpoints={this.state.breakpoints}
                         onBreakpointChange={this.onBreakpointChange}
                     />
-                    <Terminal
+                    <ProgramPane
                         onResize={this.setTerminalSize}
                         socket={this.state.socket}
                     />
