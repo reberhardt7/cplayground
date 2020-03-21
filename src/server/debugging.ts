@@ -432,31 +432,10 @@ export async function init(): Promise<void> {
     }, 1000);
 }
 
-export async function getContainerInfo(containerId: string): Promise<ContainerInfo> {
+export async function getContainerInfo(containerPid: number): Promise<ContainerInfo> {
     if (USE_MOCK_DATA) {
         console.warn('CP_MOCK_DEBUGGER is set. Mock container data will be used.');
         return MOCK_DATA;
     }
-
-    const pidFile = `/sys/fs/cgroup/pids/docker/${containerId}/cgroup.procs`;
-    let initPID;
-
-    const stream = fs.createReadStream(pidFile);
-    stream.on('error', (err) => {
-        if (err.code === 'ENOENT') {
-            console.log(`Note: file ${pidFile} has disappeared. This is probably `
-                + 'okay; the container probably just exited.');
-        } else {
-            console.error(`Unexpected error reading ${pidFile}:`, err);
-        }
-    });
-    const rl = readline.createInterface({
-        input: stream,
-    });
-    for await (const line of rl) {
-        initPID = parseInt(line, 10);
-        rl.close();
-        break;
-    }
-    return processInfo[initPID];
+    return processInfo[containerPid];
 }

@@ -7,6 +7,7 @@ import * as stringArgv from 'string-argv';
 import uuidv4 from 'uuid/v4';
 import * as ptylib from 'node-pty';
 import semver from 'semver';
+import * as readline from 'readline';
 import { GDB, Breakpoint, Thread, ThreadGroup } from 'gdb-js';
 // Import regeneratorRuntime as a global to fix errors in gdb-js:
 // eslint-disable-next-line import/extensions
@@ -44,6 +45,7 @@ export default class Container {
 
     private readonly containerName = uuidv4();
     private containerId: string | null = null;
+    private containerPid: number | null = null;
     private readonly startTime = process.hrtime();
     private pty: ptylib.IPty | null = null;
 
@@ -236,14 +238,42 @@ export default class Container {
         }
     };
 
-    private trySettingContainerId = (): void => {
+    private trySettingContainerId = async (): Promise<void> => new Promise((resolve) => (
         childProcess.execFile('docker',
             ['ps', '--no-trunc', '-aqf', `name=${this.containerName}`],
             (err, out) => {
                 if (err) throw err;
                 this.containerId = out.trim();
                 console.log(`${this.logPrefix}Container id: ${this.containerId}`);
-            });
+                resolve();
+            })
+    ));
+
+    private setContainerPid = async (): Promise<void> => {
+        if (!this.containerId) {
+            await this.trySettingContainerId();
+        }
+        const pidFile = `/sys/fs/cgroup/pids/docker/${this.containerId}/cgroup.procs`;
+        console.log(`${this.logPrefix}Looking up container pid`);
+
+        const stream = fs.createReadStream(pidFile);
+        stream.on('error', (err) => {
+            if (err.code === 'ENOENT') {
+                console.log(`Note: file ${pidFile} has disappeared. This is probably `
+                    + 'okay; the container probably just exited.');
+            } else {
+                console.error(`Unexpected error reading ${pidFile}:`, err);
+            }
+        });
+        const rl = readline.createInterface({
+            input: stream,
+        });
+        for await (const line of rl) {
+            this.containerPid = parseInt(line, 10);
+            rl.close();
+            break;
+        }
+        console.log(`${this.logPrefix}Container pid set: ${this.containerPid}`);
     };
 
     private onOutput = async (data: string): Promise<void> => {
@@ -456,11 +486,14 @@ export default class Container {
         console.assert(this.debuggingMonitor === null);
         // Every second, get info about the container's processes and send to the client.
         this.debuggingMonitor = setInterval(async () => {
-            // If we don't have the containerId yet, the container might not
-            // have started yet, and there's not much we can do
-            if (!this.containerId) return;
-
-            const info = await debugging.getContainerInfo(this.containerId);
+            if (!this.containerId) {
+                // If the container ID hasn't been set yet, there isn't much we can do
+                return;
+            }
+            if (!this.containerPid) {
+                await this.setContainerPid();
+            }
+            const info = await debugging.getContainerInfo(this.containerPid);
             if (info) {
                 this.externalDebugCallback(info);
             } else {
