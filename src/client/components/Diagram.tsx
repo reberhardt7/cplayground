@@ -2,7 +2,7 @@ import * as React from 'react';
 import * as joint from 'jointjs';
 
 import { Process, OpenFileEntry, VNode, ContainerInfo } from '../../common/communication';
-import { bindSocketToDebugger, BoundSocketListeners, releaseSocketFromDebugger } from '../server-comm';
+import { PROCESS_COLORS } from './Debugger';
 
 import Rectangle = joint.shapes.standard.Rectangle;
 import HeaderedRectangle = joint.shapes.standard.HeaderedRectangle;
@@ -26,8 +26,6 @@ const ICON_SIZE = 15;
 const ICON_X_OFFSET = 5; // offset from right side of box to right side of icon
 const ICON_Y_OFFSET = 5;
 const ICON_SPACING = 2;
-const ARROW_COLOR = '#7aa843';
-const FD_ARROW_COLORS = [ARROW_COLOR, '#85628f', '#a63939', '#6297c9'];
 
 // TODO: make sure there are no copyright issues here
 const PIPE_ICON = 'https://cdn0.iconfinder.com/data/icons/interior-buildings/48/37-512.png';
@@ -59,7 +57,7 @@ const FILE_ICON = 'https://s3.amazonaws.com/iconbros/icons/icon_pngs/000/000/211
 const FONT_SIZE = 12;
 
 type DiagramProps = {
-    socket?: SocketIOClient.Socket;
+    data: ContainerInfo | null;
 }
 
 class Diagram extends React.Component<DiagramProps> {
@@ -68,11 +66,6 @@ class Diagram extends React.Component<DiagramProps> {
     graph: joint.dia.Graph;
 
     links: Array<joint.shapes.standard.Link>;
-
-    // Opaque object containing functions that were bound to the socket as event listeners.
-    // We just need to remember these so that we can unbind the functions if this component
-    // unmounts.
-    boundSocketListeners?: BoundSocketListeners;
 
     constructor(props: DiagramProps) {
         super(props);
@@ -134,52 +127,26 @@ class Diagram extends React.Component<DiagramProps> {
             }
         });
 
-        if (this.props.socket) {
-            this.bindToSocket(this.props.socket);
+        if (this.props.data) {
+            this.drawDiagram();
         }
     }
 
     componentDidUpdate(prevProps: Readonly<DiagramProps>): void {
-        if (this.props.socket === prevProps.socket) {
-            return;
-        }
-
-        // Handle changes in socket
-        if (prevProps.socket) {
-            this.detachFromSocket(prevProps.socket);
-        }
-        if (this.props.socket) {
-            this.bindToSocket(this.props.socket);
+        if (prevProps.data !== this.props.data) {
             this.graph.clear();
+            if (this.props.data) {
+                this.drawDiagram();
+            }
         }
     }
 
-    componentWillUnmount(): void {
-        if (this.props.socket) {
-            this.detachFromSocket(this.props.socket);
-        }
-    }
-
-    bindToSocket = (socket: SocketIOClient.Socket): void => {
-        this.boundSocketListeners = bindSocketToDebugger(socket, this.receiveUpdatedData);
-    };
-
-    detachFromSocket = (socket: SocketIOClient.Socket): void => {
-        releaseSocketFromDebugger(socket, this.boundSocketListeners);
-        this.boundSocketListeners = null;
-    };
-
-    receiveUpdatedData = (data: ContainerInfo): void => {
-        this.graph.clear();
-        this.drawDiagram(data);
-    };
-
-    drawDiagram = (data: ContainerInfo): void => {
+    drawDiagram = (): void => {
         this.links = [];
 
-        const vnodeTable = this.drawVnodeTable(data.vnodes);
-        const openFileTable = this.drawOpenFileTable(data.openFiles, vnodeTable);
-        this.drawFileDescriptorTables(data.processes, openFileTable);
+        const vnodeTable = this.drawVnodeTable(this.props.data.vnodes);
+        const openFileTable = this.drawOpenFileTable(this.props.data.openFiles, vnodeTable);
+        this.drawFileDescriptorTables(this.props.data.processes, openFileTable);
     };
 
     drawVnodeTable = (vnodes: {[vnodeId: string]: VNode}): {[index: string]: Rectangle} => {
@@ -308,7 +275,7 @@ class Diagram extends React.Component<DiagramProps> {
             link.attr({
                 line: {
                     connection: true,
-                    stroke: ARROW_COLOR,
+                    stroke: PROCESS_COLORS[0],
                 },
             });
             this.links.push(link);
@@ -399,7 +366,7 @@ class Diagram extends React.Component<DiagramProps> {
             link.attr({
                 line: {
                     connection: true,
-                    stroke: FD_ARROW_COLORS[processIdx % FD_ARROW_COLORS.length],
+                    stroke: PROCESS_COLORS[processIdx % PROCESS_COLORS.length],
                 },
             });
             this.links.push(link);
@@ -409,9 +376,7 @@ class Diagram extends React.Component<DiagramProps> {
 
     render(): React.ReactNode {
         return (
-            <div className="diagram-container">
-                <div id="diagram" ref={this.divRef} />
-            </div>
+            <div id="diagram" ref={this.divRef} />
         );
     }
 }

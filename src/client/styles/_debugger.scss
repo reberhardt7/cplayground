@@ -1,0 +1,90 @@
+$debugger-tabbar-height: 30px;
+
+.debugger-tabbar {
+  width: 100%;
+  height: $debugger-tabbar-height;
+  background-color: $topbar-bg-color;
+  border-bottom: 1px solid $topbar-border-color;
+  color: $topbar-font-color;
+  font-size: 0.85em;
+}
+
+.debugger-tab {
+  height:100%;
+  padding: 0 15px;
+  display: inline-flex;
+  justify-content: center;
+  flex-direction: column;
+  transition: background-color 0.15s ease-out;
+  cursor: pointer;
+}
+
+.debugger-tab.active {
+  background-color: $topbar-border-color;
+}
+
+.debugger-tab:hover {
+  background-color: $topbar-border-color;
+}
+
+.debugger-body {
+  width: 100%;
+  height: calc(100% - #{$debugger-tabbar-height});
+  padding: $pane-padding;
+  overflow: auto;
+}
+
+$process-listing-padding: 8px;
+
+.process {
+  width: 100%;
+  max-width: 400px;
+  margin: 0 auto $pane-padding auto;
+  border: 1px solid $topbar-border-color;
+}
+
+.process:last-of-type {
+  margin-bottom: 0;
+}
+
+.process-header {
+  height: 30px;
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  flex-direction: row;
+  padding: 0 $process-listing-padding;
+  background-color: $topbar-border-color;
+  font-size: 0.85em;
+
+  .pill:first-of-type {
+    margin-right: 8px;
+  }
+}
+
+.debug-controls {
+  flex-grow: 2;
+  text-align: right;
+}
+
+.debug-controls .button {
+  margin: 0 3px;
+
+  &:first-of-type {
+    margin-left: 0;
+  }
+
+  &:last-of-type {
+    margin-right: 0;
+  }
+}
+
+.process-body {
+  width:100%;
+  padding: $process-listing-padding;
+}
+
+#diagram {
+  width: 100%;
+  height: 100%;
+}

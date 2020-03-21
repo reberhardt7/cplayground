@@ -1,5 +1,5 @@
 import axios, { AxiosResponse } from 'axios';
-import { RunEventBody, SavedProgram } from '../common/communication';
+import { RunEventBody, SavedProgram, Thread } from '../common/communication';
 // eslint-disable-next-line no-undef
 import Socket = SocketIOClient.Socket;
 
@@ -49,9 +49,10 @@ export function makeDockerSocket(): Socket {
  * @param program: Program to execute
  * @param rows: Width of terminal
  * @param cols: Height of terminal
+ * @param breakpoints: Line numbers where initial breakpoints should be placed
  */
 export function startProgram(
-    socket: Socket, program: SavedProgram, rows: number, cols: number,
+    socket: Socket, program: SavedProgram, rows: number, cols: number, breakpoints: number[],
 ): Promise<void> {
     const body: RunEventBody = {
         code: program.code,
@@ -62,6 +63,7 @@ export function startProgram(
         rows,
         cols,
         debug: true,
+        breakpoints,
     };
     socket.emit('run', body);
     return new Promise((resolve: () => void): void => {
@@ -148,4 +150,30 @@ export function releaseSocketFromDebugger(
     Object.keys(boundListeners).forEach(
         (event: keyof BoundSocketListeners) => socket.removeListener(event, boundListeners[event]),
     );
+}
+
+export function setBreakpoint(socket: Socket, line: number): void {
+    socket.emit('debugSetBreakpoint', { line });
+}
+
+export function removeBreakpoint(socket: Socket, line: number): void {
+    socket.emit('debugRemoveBreakpoint', { line });
+}
+
+export function proceed(socket: Socket, thread: Thread): void {
+    socket.emit('debugProceed', {
+        threadId: thread.debuggerId,
+    });
+}
+
+export function next(socket: Socket, thread: Thread): void {
+    socket.emit('debugNext', {
+        threadId: thread.debuggerId,
+    });
+}
+
+export function stepIn(socket: Socket, thread: Thread): void {
+    socket.emit('debugStepIn', {
+        threadId: thread.debuggerId,
+    });
 }

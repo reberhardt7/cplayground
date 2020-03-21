@@ -1,7 +1,7 @@
 import * as React from 'react';
 
 import Terminal from './Terminal';
-import Diagram from './Diagram';
+import Debugger from './Debugger';
 
 type ProgramPaneProps = {
     socket?: SocketIOClient.Socket;
@@ -11,7 +11,7 @@ type ProgramPaneProps = {
 const ProgramPane: React.FunctionComponent<ProgramPaneProps> = (props: ProgramPaneProps) => (
     <div className="program-pane">
         <Terminal socket={props.socket} onResize={props.onResize} />
-        <Diagram socket={props.socket} />
+        <Debugger socket={props.socket} />
     </div>
 );
 

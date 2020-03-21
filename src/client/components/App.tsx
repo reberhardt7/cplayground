@@ -57,6 +57,23 @@ class App extends React.PureComponent<AppProps, AppState> {
         document.onkeydown = this.handleKeyboardEvent;
     }
 
+    componentDidUpdate(prevProps: AppProps, prevState: AppState): void {
+        if (prevState.breakpoints !== this.state.breakpoints && this.state.programRunning) {
+            // User changed breakpoints while program is running. We need to inform the server
+            // of the change.
+            const oldBreakpoints = new Set(prevState.breakpoints);
+            const newBreakpoints = new Set(this.state.breakpoints);
+            // Added breakpoints:
+            this.state.breakpoints.filter((line) => !oldBreakpoints.has(line)).forEach((line) => {
+                Server.setBreakpoint(this.state.socket, line);
+            });
+            // Removed breakpoints:
+            prevState.breakpoints.filter((line) => !newBreakpoints.has(line)).forEach((line) => {
+                Server.removeBreakpoint(this.state.socket, line);
+            });
+        }
+    }
+
     handleKeyboardEvent = (e: KeyboardEvent): boolean => {
         // Execute code on shift+enter
         if (e.keyCode === 13 && e.shiftKey) {
@@ -108,6 +125,7 @@ class App extends React.PureComponent<AppProps, AppState> {
         const sock = Server.makeDockerSocket();
         Server.startProgram(
             sock, this.state.program, this.state.terminalSize.rows, this.state.terminalSize.cols,
+            this.state.breakpoints,
         ).then((): void => {
             this.setState({
                 programRunning: false,

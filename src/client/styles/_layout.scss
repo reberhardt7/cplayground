@@ -104,10 +104,8 @@ html, body, #app {
     height: 50%;
 }
 
-.diagram-container {
+.debugger {
     width: 100%;
     height: 50%;
-    padding: $pane-padding;
     border-top: 1px solid $topbar-border-color;
-    overflow: auto;
 }

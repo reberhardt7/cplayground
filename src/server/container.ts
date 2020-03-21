@@ -414,7 +414,7 @@ export default class Container {
         const initialBreakpointObjs = await Promise.all(this.initialBreakpoints.map(
             (lineno) => this.gdb.addBreak(this.codeContainerPath, lineno),
         ));
-        initialBreakpointObjs.forEach((bp) => { this.breakpoints[bp.id] = bp; });
+        initialBreakpointObjs.forEach((bp) => { this.breakpoints[bp.line] = bp; });
         console.debug(`${this.logPrefix}Set ${initialBreakpointObjs.length} initial breakpoints`,
             initialBreakpointObjs);
 
@@ -530,7 +530,7 @@ export default class Container {
         }
         console.log(`${this.logPrefix} got debugging command: set breakpoint`, line);
         const breakpoint = await this.gdb.addBreak(this.codeContainerPath, line);
-        this.breakpoints[breakpoint.id] = breakpoint;
+        this.breakpoints[line] = breakpoint;
     };
 
     gdbRemoveBreakpoint = async (line: number): Promise<void> => {
