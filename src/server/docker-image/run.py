@@ -57,7 +57,7 @@ def compile():
         .decode('utf-8')
         .strip())
     static_libraries = static_libraries_str.split('\n') if static_libraries_str else []
-    compile_cmd = [os.environ['COMPILER'], '-o', '/cplayground/output', os.environ['SRCPATH'],
+    compile_cmd = [os.environ['COMPILER'], '-o', '/cplayground/cplayground', os.environ['SRCPATH'],
         '-I/cplayground/include', '-L/cplayground/lib', *static_libraries,
         *shlex.split(os.environ['CFLAGS'])]
     print(' '.join(compile_cmd))
@@ -71,11 +71,11 @@ def run():
         with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as gdbsock:
             gdbsock.connect('/gdb.sock')
             sockfile = gdbsock.makefile('b', 0)
-            args = ['gdb', '--tty=/dev/pts/0', '-i=mi', '--args', '/cplayground/output'] + sys.argv[1:]
+            args = ['gdb', '--tty=/dev/pts/0', '-i=mi', '--args', '/cplayground/cplayground'] + sys.argv[1:]
             user_proc = subprocess.Popen(args, stdin=sockfile, stdout=sockfile, stderr=sockfile)
             user_proc.wait()
     else:
-        user_proc = subprocess.run(['/cplayground/output'] + sys.argv[1:])
+        user_proc = subprocess.run(['/cplayground/cplayground'] + sys.argv[1:])
     return (user_proc.returncode, time.time() - user_start_time)
 
 def main():
