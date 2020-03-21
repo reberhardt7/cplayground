@@ -10,11 +10,17 @@ export type SavedProgram = {
 }
 
 export type Process = {
+    debuggerId: number | null;
     pid: number;
     ppid: number;
     pgid: number;
     command: string;
+    threads: Thread[];
     fds: FileDescriptorTable;
+}
+
+export type Thread = {
+    debuggerId: number;
 }
 
 export type FileDescriptorTable = {

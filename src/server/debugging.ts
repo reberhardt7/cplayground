@@ -1,5 +1,6 @@
 import fs from 'fs';
 import readline from 'readline';
+import { Thread, ThreadGroup } from 'gdb-js';
 
 import {
     FileDescriptorTable, ContainerInfo, Process, OpenFileTable, VnodeTable,
@@ -67,12 +68,14 @@ type CleanedInfoByNamespace = {
     [globalPID: number]: ContainerInfo;
 }
 
-const MOCK_DATA = {
+const MOCK_DATA: ContainerInfo = {
     processes: [{
+        debuggerId: null,
         pid: 20,
         ppid: 1,
         pgid: 1,
         command: 'output',
+        threads: [],
         fds: {
             0: {
                 file: '6d2b62b056631445f3a906498f0ab45fea4c4e68a198af6f268a34269fb30caa',
@@ -92,10 +95,12 @@ const MOCK_DATA = {
             },
         },
     }, {
+        debuggerId: null,
         pid: 21,
         ppid: 20,
         pgid: 1,
         command: 'output',
+        threads: [],
         fds: {
             0: {
                 file: '6d2b62b056631445f3a906498f0ab45fea4c4e68a198af6f268a34269fb30caa',
@@ -300,10 +305,12 @@ function populateProcessTable(rawProcesses: RawProcessInfo[]): Process[] {
             fds[fd.fd] = { file: fd.openFileID, closeOnExec: fd.closeOnExec };
         }
         processes.push({
+            debuggerId: null,
             pid: proc.containerPID,
             ppid: proc.containerPPID,
             pgid: proc.containerPGID,
             command: proc.command,
+            threads: [],
             fds,
         });
     }
@@ -374,8 +381,10 @@ function cleanContainerData(
     }
 
     const processes = Object.values(rawProcesses)
-    // Omit the runc container-creating process, as well as our run.py script
-        .filter((proc) => proc.containerPID > 1);
+    // Omit the runc container-creating process, our run.py script, and any other processes that
+    // are run from the run.py script (e.g. gcc and gdb)
+        .filter((proc) => proc.containerPID > 1
+            && !(proc.containerPPID === 1 && proc.command !== 'cplayground'));
     const files = processes
         .map((process) => Object.values(process.files))
         .flat();
@@ -432,10 +441,41 @@ export async function init(): Promise<void> {
     }, 1000);
 }
 
-export async function getContainerInfo(containerPid: number): Promise<ContainerInfo> {
+export async function getContainerInfo(
+    containerPid: number, gdbProcesses: ThreadGroup[], gdbThreads: Thread[],
+): Promise<ContainerInfo> {
     if (USE_MOCK_DATA) {
         console.warn('CP_MOCK_DEBUGGER is set. Mock container data will be used.');
         return MOCK_DATA;
     }
-    return processInfo[containerPid];
+    const kernelData = processInfo[containerPid];
+    for (const process of kernelData.processes) {
+        const gdbProcess = gdbProcesses.find((proc) => proc.pid === process.pid);
+        if (!gdbProcess) {
+            console.warn(
+                `[container pid ${containerPid}] Could not find gdb inferior with pid ${process.pid}`,
+                'Kernel data:', kernelData,
+                'Gdb processes:', gdbProcesses,
+            );
+            continue;
+        }
+        process.debuggerId = gdbProcess.id;
+        process.threads = gdbThreads
+            .filter((gdbThread) => gdbThread.group.id === gdbProcess.id)
+            .map((gdbThread) => ({
+                debuggerId: gdbThread.id,
+            }));
+    }
+
+    // Check for any processes that seem to be missing in our kernel data
+    const kernelPids = new Set(kernelData.processes.map((proc) => proc.pid));
+    const leftoverPids = gdbProcesses.map((proc) => proc.pid).filter((pid) => !kernelPids.has(pid));
+    if (leftoverPids.length > 0) {
+        console.warn(
+            `[container pid ${containerPid}] Gdb reports processes that are missing from our kernel data`,
+            leftoverPids,
+        );
+    }
+
+    return kernelData;
 }

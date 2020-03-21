@@ -493,7 +493,9 @@ export default class Container {
             if (!this.containerPid) {
                 await this.setContainerPid();
             }
-            const info = await debugging.getContainerInfo(this.containerPid);
+            const info = await debugging.getContainerInfo(
+                this.containerPid, Object.values(this.processes), Object.values(this.threads),
+            );
             if (info) {
                 this.externalDebugCallback(info);
             } else {
