@@ -10,6 +10,9 @@ import { DebugDataError } from './error';
 const CPLAYGROUND_PROCFILE = '/proc/cplayground';
 const USE_MOCK_DATA = Boolean(process.env.CP_MOCK_DEBUGGER);
 export const ENABLE_DEBUGGING = USE_MOCK_DATA || fs.existsSync(CPLAYGROUND_PROCFILE);
+// To prevent too much unnecessary I/O load, we only read the procfile at most once every
+// PROCFILE_MAX_REFRESH_PERIOD milliseconds. This improves scalability at the expense of latency.
+const PROCFILE_MAX_REFRESH_PERIOD = 120; // ms
 
 const FILE_FLAGS = {
     // Open flags:
@@ -423,32 +426,83 @@ function reconstructTables(namespaces: RawInfoByNamespace): CleanedInfoByNamespa
     return containers;
 }
 
-let processInfo: CleanedInfoByNamespace | null = null;
+class Procfile {
+    private processInfo: CleanedInfoByNamespace | null = null;
+    private lastRefresh: Date;
+    private pendingRefreshes: (() => void)[] = [];
 
-/**
- * Start the polling mechanism that loads info from /proc/cplayground
- */
-export async function init(): Promise<void> {
-    if (USE_MOCK_DATA) {
-        // We don't actually need to poll /proc/cplayground
-        return;
+    private async refresh(): Promise<void> {
+        this.lastRefresh = new Date();
+        const startTime = process.hrtime();
+        this.processInfo = reconstructTables(await loadRawProcessInfo());
+        const elapsed = process.hrtime(startTime);
+        const elapsedMs = elapsed[0] * 1E3 + elapsed[1] / 1E6;
+        console.log(`Refreshed procfile data in ${elapsedMs} ms`);
+        if (elapsedMs > PROCFILE_MAX_REFRESH_PERIOD) {
+            console.warn('Procfile data refresh took longer than PROCFILE_MAX_REFRESH_PERIOD! We'
+                + ' are lagging behind schedule, and there may be multiple functions trying to read'
+                + ' read concurrently. Consider increasing PROCFILE_MAX_REFRESH_PERIOD or finding'
+                + ' a way to optimize procfile reads.');
+        }
     }
 
-    processInfo = reconstructTables(await loadRawProcessInfo());
-    // TODO: only poll the file if there is an active debugging session
-    setInterval(async () => {
-        processInfo = reconstructTables(await loadRawProcessInfo());
-    }, 1000);
+    private scheduleRefresh(): void {
+        const elapsedSinceLastRefresh = new Date().getTime()
+            - this.lastRefresh.getTime();
+        console.log(`Scheduling refresh in ${elapsedSinceLastRefresh} ms`, new Date().getTime());
+        setTimeout(async () => {
+            await this.refresh();
+            for (const resolveFunc of this.pendingRefreshes) {
+                resolveFunc();
+            }
+            console.log(`Refreshed and unblocked ${this.pendingRefreshes.length} functions`);
+            this.pendingRefreshes = [];
+        }, PROCFILE_MAX_REFRESH_PERIOD - elapsedSinceLastRefresh);
+    }
+
+    async getProcessInfo(containerPid: number): Promise<ContainerInfo | null> {
+        // If we've never been run yet, or if it's been a while since the last refresh, then
+        // do a refresh immediately
+        if (!this.lastRefresh
+            || new Date().getTime() - this.lastRefresh.getTime() > PROCFILE_MAX_REFRESH_PERIOD) {
+            await this.refresh();
+        } else {
+            console.info(
+                'Debugging info refresh was called, but not enough time has passed since '
+                + 'the last refresh.', new Date().getTime(), this.lastRefresh.getTime(),
+            );
+            // Not enough time has elapsed since the last refresh. Do another refresh in a few ms
+            await new Promise((resolve) => {
+                console.log(
+                    `Enqueueing refresh... Existing queue size is ${this.pendingRefreshes.length}`,
+                );
+                // Enqueue the resolve function to be called after the next refresh is done
+                this.pendingRefreshes.push(resolve);
+                // If we're the first one in the queue, we are responsible for making sure the
+                // next refresh happens.
+                if (this.pendingRefreshes.length === 1) {
+                    this.scheduleRefresh();
+                }
+            });
+        }
+        return this.processInfo[containerPid] || null;
+    }
 }
+
+const procfile = new Procfile();
 
 export async function getContainerInfo(
     containerPid: number, gdbProcesses: ThreadGroup[], gdbThreads: Thread[],
-): Promise<ContainerInfo> {
+): Promise<ContainerInfo | null> {
     if (USE_MOCK_DATA) {
         console.warn('CP_MOCK_DEBUGGER is set. Mock container data will be used.');
         return MOCK_DATA;
     }
-    const kernelData = processInfo[containerPid];
+    const kernelData = await procfile.getProcessInfo(containerPid);
+    if (!kernelData) {
+        // Can't find that container. It may have already exited.
+        return null;
+    }
     for (const process of kernelData.processes) {
         const gdbProcess = gdbProcesses.find((proc) => proc.pid === process.pid);
         if (!gdbProcess) {

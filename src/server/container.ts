@@ -390,6 +390,9 @@ export default class Container {
                 this.threads[e.thread.id].status = e.thread.status;
                 this.threads[e.thread.id].frame = e.thread.frame;
             }
+            // Send the client an update. (Reset the debugging monitor so that we don't
+            // inadvertently send two updates in quick succession, which is unnecessary.)
+            this.reportDebugInfo().then(this.setDebuggingMonitor);
         });
         this.gdb.on('running', (e) => {
             console.debug(`${this.logPrefix}[gdb] event: running`, e);
@@ -398,6 +401,9 @@ export default class Container {
                 this.threads[e.thread.id].status = e.thread.status;
                 this.threads[e.thread.id].frame = e.thread.frame;
             }
+            // Send the client an update. (Reset the debugging monitor so that we don't
+            // inadvertently send two updates in quick succession, which is unnecessary.)
+            this.reportDebugInfo().then(this.setDebuggingMonitor);
         });
         this.gdb.on('thread-created', (thread: Thread) => {
             console.debug(`${this.logPrefix}[gdb] event: thread-created`, thread);
@@ -494,28 +500,33 @@ export default class Container {
         }, 1000);
     };
 
-    private setDebuggingMonitor = (): void => {
-        console.assert(this.debuggingMonitor === null);
-        // Every second, get info about the container's processes and send to the client.
-        this.debuggingMonitor = setInterval(async () => {
-            if (!this.containerId) {
-                // If the container ID hasn't been set yet, there isn't much we can do
-                return;
-            }
-            if (!this.containerPid) {
-                await this.setContainerPid();
-            }
-            const info = await debugging.getContainerInfo(
-                this.containerPid, Object.values(this.processes), Object.values(this.threads),
+    private reportDebugInfo = async (): Promise<void> => {
+        if (!this.containerId) {
+            // If the container ID hasn't been set yet, there isn't much we can do
+            return;
+        }
+        if (!this.containerPid) {
+            await this.setContainerPid();
+        }
+        const info = await debugging.getContainerInfo(
+            this.containerPid, Object.values(this.processes), Object.values(this.threads),
+        );
+        if (info) {
+            this.externalDebugCallback(info);
+        } else {
+            console.warn(
+                `${this.logPrefix}Container is running but has no debugging info available`,
             );
-            if (info) {
-                this.externalDebugCallback(info);
-            } else {
-                console.warn(
-                    `${this.logPrefix}Container is running but has no debugging info available`,
-                );
-            }
-        }, 1000);
+        }
+    };
+
+    private setDebuggingMonitor = (): void => {
+        // If there is already a timer running, stop it so we can reset it
+        if (this.debuggingMonitor !== null) {
+            clearInterval(this.debuggingMonitor);
+        }
+        // Every second, get info about the container's processes and send to the client.
+        this.debuggingMonitor = setInterval(this.reportDebugInfo, 1000);
     };
 
     onInput = (data: string): void => {

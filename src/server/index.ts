@@ -28,10 +28,7 @@ const port = process.env.PORT || 3000;
 // Add timestamps to log messages
 consoleStamp(console, { pattern: 'isoDateTime' });
 
-// Initialize debugging timer
-if (debugging.ENABLE_DEBUGGING) {
-    debugging.init();
-} else {
+if (!debugging.ENABLE_DEBUGGING) {
     console.warn('Debugging is disabled (maybe because the kernel extension is not '
         + 'loaded). `debug` events will not be sent to the client.');
 }
