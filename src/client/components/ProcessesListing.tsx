@@ -19,24 +19,31 @@ const Process: React.FunctionComponent<ProcessProps> = (props: ProcessProps) => 
             <Pill text={`pid ${props.process.pid}`} color={PROCESS_COLORS[props.index]} />
             {props.process.command}
             <div className="debug-controls">
-                <Button
-                    title="Continue execution"
-                    onClick={(): void => props.onProceed(props.process.threads[0])}
-                >
-                    <i className="fas fa-play" />
-                </Button>
-                <Button
-                    title="Next line"
-                    onClick={(): void => props.onNext(props.process.threads[0])}
-                >
-                    N
-                </Button>
-                <Button
-                    title="Step into function"
-                    onClick={(): void => props.onStepIn(props.process.threads[0])}
-                >
-                    SI
-                </Button>
+                {props.process.threads.length && props.process.threads[0].status === 'stopped' && (
+                    <>
+                        <Button
+                            title="Continue execution"
+                            onClick={(): void => props.onProceed(props.process.threads[0])}
+                        >
+                            <i className="fas fa-play" />
+                        </Button>
+                        <Button
+                            title="Next line"
+                            onClick={(): void => props.onNext(props.process.threads[0])}
+                        >
+                            N
+                        </Button>
+                        <Button
+                            title="Step into function"
+                            onClick={(): void => props.onStepIn(props.process.threads[0])}
+                        >
+                            SI
+                        </Button>
+                    </>
+                )}
+                {props.process.threads.length && props.process.threads[0].status === 'running' && (
+                    <div className="small-loading-spinner" />
+                )}
             </div>
         </div>
         {/* <table className="process-body">

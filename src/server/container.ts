@@ -383,9 +383,21 @@ export default class Container {
         });
         this.gdb.on('stopped', (e) => {
             console.debug(`${this.logPrefix}[gdb] event: stopped`, e);
+            // Update thread status and frame. We don't replace the whole thread object because
+            // the thread group isn't included in the thread info for these events, so if we do
+            // that, we would lose track of which threads below to which processes.
+            if (e.thread) {
+                this.threads[e.thread.id].status = e.thread.status;
+                this.threads[e.thread.id].frame = e.thread.frame;
+            }
         });
         this.gdb.on('running', (e) => {
             console.debug(`${this.logPrefix}[gdb] event: running`, e);
+            // Update thread status and frame
+            if (e.thread) {
+                this.threads[e.thread.id].status = e.thread.status;
+                this.threads[e.thread.id].frame = e.thread.frame;
+            }
         });
         this.gdb.on('thread-created', (thread: Thread) => {
             console.debug(`${this.logPrefix}[gdb] event: thread-created`, thread);

@@ -464,6 +464,9 @@ export async function getContainerInfo(
             .filter((gdbThread) => gdbThread.group.id === gdbProcess.id)
             .map((gdbThread) => ({
                 debuggerId: gdbThread.id,
+                status: gdbThread.status,
+                stoppedAt: gdbThread.frame && gdbThread.frame.file.startsWith('/cplayground/code')
+                    ? gdbThread.frame.line : null,
             }));
     }
 

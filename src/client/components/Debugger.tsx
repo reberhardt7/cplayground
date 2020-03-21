@@ -51,8 +51,28 @@ class Debugger extends React.Component<DebuggerProps, DebuggerState> {
         // Handle changes in socket
         if (prevProps.socket) {
             this.detachFromSocket(prevProps.socket);
+            // Hack: If we just disconnected, nothing is running anymore. Let's set the state of
+            // all threads to "terminated" so that the "running" icons aren't shown and won't
+            // confuse users
+            if (!this.props.socket) {
+                // eslint-disable-next-line react/no-did-update-set-state
+                this.setState({
+                    data: {
+                        processes: this.state.data.processes.map((proc) => ({
+                            ...proc,
+                            threads: proc.threads.map((thread) => ({
+                                ...thread,
+                                status: 'terminated',
+                            })),
+                        })),
+                        openFiles: this.state.data.openFiles,
+                        vnodes: this.state.data.vnodes,
+                    },
+                });
+            }
         }
         if (this.props.socket) {
+            // Clear diagrams/tables before the next run starts
             // eslint-disable-next-line react/no-did-update-set-state
             this.setState({ data: null });
             this.bindToSocket(this.props.socket);

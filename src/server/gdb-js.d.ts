@@ -85,7 +85,7 @@ declare module 'gdb-js' {
          *
          * @type {?string}
          */
-        status: string | null;
+        status: 'running' | 'stopped' | null;
         /**
          * The thread group.
          *
