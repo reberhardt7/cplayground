@@ -83,10 +83,6 @@ export type DebugStepInBody = {
     threadId: number;
 }
 
-export type DebugStepOutBody = {
-    threadId: number;
-}
-
 export type DebugNextBody = {
     threadId: number;
 }

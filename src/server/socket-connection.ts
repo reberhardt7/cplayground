@@ -10,7 +10,6 @@ import {
     DebugRemoveBreakpointBody,
     DebugSetBreakpointBody,
     DebugStepInBody,
-    DebugStepOutBody,
 } from '../common/communication';
 import {
     SUPPORTED_VERSIONS,
@@ -114,9 +113,6 @@ export default class SocketConnection {
         ));
         socket.on('debugStepIn', this.makeDebugHandler(
             (data: DebugStepInBody) => this.container.gdbStepIn(data.threadId),
-        ));
-        socket.on('debugStepOut', this.makeDebugHandler(
-            (data: DebugStepOutBody) => this.container.gdbStepOut(data.threadId),
         ));
         socket.on('debugNext', this.makeDebugHandler(
             (data: DebugNextBody) => this.container.gdbNext(data.threadId),

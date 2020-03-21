@@ -558,17 +558,8 @@ export default class Container {
         if (this.threads[threadId] === undefined) {
             throw new DebugStateError(`No known thread with id ${threadId}`);
         }
+        console.log(`${this.containerId} got debugging command: step in`, threadId);
         await this.gdb.stepIn(this.threads[threadId]);
-    };
-
-    gdbStepOut = async (threadId: number): Promise<void> => {
-        if (!this.gdbSocketPath) {
-            throw new DebugStateError('Debugging is not enabled');
-        }
-        if (this.threads[threadId] === undefined) {
-            throw new DebugStateError(`No known thread with id ${threadId}`);
-        }
-        await this.gdb.stepOut(this.threads[threadId]);
     };
 
     gdbNext = async (threadId: number): Promise<void> => {
