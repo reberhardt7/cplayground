@@ -526,6 +526,7 @@ export default class Container {
         if (!this.gdbSocketPath) {
             throw new DebugStateError('Debugging is not enabled');
         }
+        console.log(`${this.logPrefix} got debugging command: set breakpoint`, line);
         const breakpoint = await this.gdb.addBreak(this.codeContainerPath, line);
         this.breakpoints[breakpoint.id] = breakpoint;
     };
@@ -537,6 +538,7 @@ export default class Container {
         if (this.breakpoints[line] === undefined) {
             throw new DebugStateError(`No known breakpoint at ${line}`);
         }
+        console.log(`${this.logPrefix} got debugging command: remove breakpoint`, line);
         await this.gdb.removeBreak(this.breakpoints[line]);
         delete this.breakpoints[line];
     };
@@ -548,6 +550,7 @@ export default class Container {
         if (this.threads[threadId] === undefined) {
             throw new DebugStateError(`No known thread with id ${threadId}`);
         }
+        console.log(`${this.logPrefix} got debugging command: proceed`, threadId);
         await this.gdb.proceed(this.threads[threadId]);
     };
 
@@ -558,7 +561,7 @@ export default class Container {
         if (this.threads[threadId] === undefined) {
             throw new DebugStateError(`No known thread with id ${threadId}`);
         }
-        console.log(`${this.containerId} got debugging command: step in`, threadId);
+        console.log(`${this.logPrefix} got debugging command: step in`, threadId);
         await this.gdb.stepIn(this.threads[threadId]);
     };
 
@@ -569,6 +572,7 @@ export default class Container {
         if (this.threads[threadId] === undefined) {
             throw new DebugStateError(`No known thread with id ${threadId}`);
         }
+        console.log(`${this.logPrefix} got debugging command: next`, threadId);
         await this.gdb.next(this.threads[threadId]);
     };
 }
