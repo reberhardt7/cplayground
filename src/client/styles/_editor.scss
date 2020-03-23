@@ -1,5 +1,5 @@
 .ace-tm {
-    font-family: 'Ubuntu Mono', monospace;
+    font-family: $code-font;
     font-size: 12pt;
     background-color: $background-color;
     color: $foreground-color;
@@ -99,4 +99,24 @@
     .ace_indent-guide {
         background: none;
     }
+}
+
+.inline-controls {
+  $element-spacing: 10px;
+  display: inline-flex;
+  height: 100%;
+  margin-left: 10px;
+  padding: 0 $element-spacing;
+  font-size: 0.8em;
+  background-color: $foreground-color;
+  color: $background-color;
+  border-radius: 1em;
+  font-family: $primary-font;
+  cursor: auto;
+  pointer-events: all;
+
+  .pill {
+    margin-right: $element-spacing;
+    color: $foreground-color;
+  }
 }

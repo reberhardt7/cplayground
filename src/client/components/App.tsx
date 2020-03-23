@@ -255,6 +255,9 @@ class App extends React.PureComponent<AppProps, AppState> {
                         settingsPaneIsOpen={this.state.showSettingsPane}
                         breakpoints={this.state.breakpoints}
                         onBreakpointChange={this.onBreakpointChange}
+                        processes={this.state.debugData && this.state.debugData.processes}
+                        pidColorMap={this.generatePidColorMap()}
+                        debugServer={this.state.debugServer}
                     />
                     <ProgramPane
                         onResize={this.setTerminalSize}

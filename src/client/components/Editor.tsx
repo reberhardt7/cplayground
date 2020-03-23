@@ -2,6 +2,10 @@ import * as React from 'react';
 import AceEditor from 'react-ace';
 import { Ace } from 'ace-builds';
 
+import { Process } from '../../common/communication';
+import { DebugServer } from '../server-comm';
+import { generateInlineDebugControlNode } from './InlineDebugControls';
+
 // Scroll margin applied to editor if we are in embedded mode. This is because the editor margins
 // are removed in embedded mode (since there isn't as much real estate, and only one pane is showing
 // so the side padding is unnecessary), but we still want some vertical spacing. We could remove
@@ -18,6 +22,9 @@ type EditorProps = {
     code: string;
     breakpoints: number[];
     onBreakpointChange: (breakpoints: number[]) => void;
+    processes: Process[] | null;
+    pidColorMap: {[pid: number]: string};
+    debugServer: DebugServer;
 };
 
 type AceMouseEvent = {
@@ -35,8 +42,9 @@ type AceChangeEvent = {
     lines: string[];
 };
 
-class Editor extends React.PureComponent<EditorProps> {
+class Editor extends React.Component<EditorProps> {
     aceComponent: React.RefObject<AceEditor>;
+    debugControlWidgets: {[line: number]: HTMLDivElement[] };
 
     constructor(props: EditorProps) {
         super(props);
@@ -51,6 +59,7 @@ class Editor extends React.PureComponent<EditorProps> {
             editor.session.setBreakpoint(this.props.breakpoints[i]);
         }
         editor.addEventListener('gutterclick', this.toggleBreakpoint);
+        editor.renderer.on('afterRender', this.renderDebuggerControls);
     }
 
     componentDidUpdate(prevProps: Readonly<EditorProps>): void {
@@ -64,9 +73,15 @@ class Editor extends React.PureComponent<EditorProps> {
         for (let i = 0; i < this.props.breakpoints.length; i += 1) {
             editor.session.setBreakpoint(this.props.breakpoints[i] - 1);
         }
+
+        // Manually resize ACE editor after CSS transition has completed
         if (this.props.settingsPaneIsOpen !== prevProps.settingsPaneIsOpen) {
-            // Manually resize ACE editor after CSS transition has completed
             setTimeout(() => editor.resize(), 400);
+        }
+
+        // Update inline controls for stopped threads
+        if (this.props.processes !== prevProps.processes) {
+            this.regenerateDebugControlWidgets();
         }
     }
 
@@ -74,6 +89,42 @@ class Editor extends React.PureComponent<EditorProps> {
         const { editor } = this.aceComponent.current;
         editor.removeEventListener('gutterclick', this.toggleBreakpoint);
     }
+
+    regenerateDebugControlWidgets = (): void => {
+        // Remove old nodes from the DOM
+        if (this.debugControlWidgets) {
+            Object.values(this.debugControlWidgets).forEach((widgets) => {
+                widgets.forEach((widget) => {
+                    if (widget.parentElement) {
+                        widget.parentElement.removeChild(widget);
+                    }
+                });
+            });
+        }
+        this.debugControlWidgets = {};
+
+        // Generate new nodes
+        if (!this.props.processes) {
+            return;
+        }
+        const stoppedThreads = this.props.processes.map((process) => (
+            process.threads
+            // Only show threads that are stopped somewhere we can render
+                .filter((thread) => thread.status === 'stopped' && thread.stoppedAt)
+                .map((thread) => ({ process, thread }))
+        )).flat();
+        stoppedThreads.forEach((thread) => {
+            if (this.debugControlWidgets[thread.thread.stoppedAt] === undefined) {
+                this.debugControlWidgets[thread.thread.stoppedAt] = [];
+            }
+            this.debugControlWidgets[thread.thread.stoppedAt].push(
+                generateInlineDebugControlNode(
+                    thread.process.pid, this.props.pidColorMap[thread.process.pid],
+                    thread.thread, this.props.debugServer,
+                ),
+            );
+        });
+    };
 
     onChange = (code: string, e: AceChangeEvent): void => {
         this.props.onCodeChange(code);
@@ -120,6 +171,53 @@ class Editor extends React.PureComponent<EditorProps> {
                 newBreakpoints.push(line + lineCountDiff);
             });
             this.props.onBreakpointChange(newBreakpoints);
+        }
+    };
+
+    /**
+     * This function hooks into the Ace rendering internals to add elements at the end of lines
+     * displaying debugger controls. (If the debugger is paused at a certain line, this function
+     * will render controls at the end of that line.) Since this deals with Ace internals, the
+     * type annotations are shit. Sorry :(
+     *
+     * Adapted from: https://groups.google.com/forum/#!topic/ace-discuss/2dYYGcR_NyI
+     * http://plnkr.co/edit/fGqwUnaVndzVavi5JCu3?p=preview&preview
+     *
+     * I also considered using Ace's dynamic marker API instead of doing this, but it seems more
+     * oriented around highlighting lines and less around inserting interactive
+     * buttons/controls. Also, the documentation is TERRIBLE. I couldn't figure out how to do
+     * anything relevant.
+     */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    renderDebuggerControls = (changes: number, renderer: any): void => {
+        if (!this.debugControlWidgets || !Object.keys(this.debugControlWidgets).length) {
+            // There's nothing to render
+            return;
+        }
+
+        const textLayer = renderer.$textLayer;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { config, session } = textLayer as { session: Ace.EditSession; config: any };
+
+        const lineElements = textLayer.element.childNodes;
+        for (let row = config.firstRow; row <= config.lastRow; row += 1) {
+            const foldLine = session.getNextFoldLine(row);
+            // If we're inside a fold (i.e. collapsed block), jump to the end of the fold and
+            // skip past it. (We can't render anything inside the fold.)
+            if (foldLine && row > foldLine.start.row) {
+                row = foldLine.end.row;
+                continue;
+            }
+            const line = config.firstRow + row + 1; // Line numbers are 1-indexed
+            const lineElement = lineElements[line - 1]; // Array is 0-indexed
+            const widgets = this.debugControlWidgets[line];
+            if (lineElement && widgets) {
+                widgets.forEach((widget) => {
+                    if (widget.parentElement !== lineElement) {
+                        lineElement.appendChild(widget);
+                    }
+                });
+            }
         }
     };
 
