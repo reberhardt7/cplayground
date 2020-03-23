@@ -24,6 +24,7 @@
         "react": "^16.12.0",
         "react-ace": "^8.0.0",
         "react-dom": "^16.12.0",
+        "react-fast-compare": "^3.0.1",
         "regenerator-runtime": "^0.13.5",
         "semver": "^7.1.3",
         "socket.io": "^2.3.0",

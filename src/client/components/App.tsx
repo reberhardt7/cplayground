@@ -1,6 +1,7 @@
 import * as React from 'react';
 import classNames from 'classnames';
 import Url from 'url-parse';
+import isEqual from 'react-fast-compare';
 
 import Topbar from './Topbar';
 import Sidebar from './Sidebar';
@@ -141,7 +142,14 @@ class App extends React.PureComponent<AppProps, AppState> {
         this.setState({
             programRunning: true,
             socket: sock,
-            debugServer: new Server.DebugServer(sock, (debugData) => this.setState({ debugData })),
+            debugServer: new Server.DebugServer(sock, (debugData) => {
+                // Only update stored data if the data has actually changed. (We get new data
+                // every second, and it's a different object even if the contents are the same.
+                // If we setState unconditionally, we'll be rerendering every second.)
+                if (!isEqual(this.state.debugData, debugData)) {
+                    this.setState({ debugData });
+                }
+            }),
             debugData: null,
         });
     };
