@@ -293,7 +293,7 @@ class Diagram extends React.Component<DiagramProps> {
         let xPosition = 0;
         processes.forEach((process: Process, i: number) => {
             // TODO: set this based on the command name, so that the text never overflows
-            const minWidth = 150;
+            const minWidth = 180;
             const numFds = (
                 Math.max(...Object.keys(process.fds).map((fd: string) => parseInt(fd, 10))) + 1
             );
