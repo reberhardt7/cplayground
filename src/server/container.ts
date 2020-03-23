@@ -554,6 +554,9 @@ export default class Container {
         console.log(`${this.logPrefix} got debugging command: set breakpoint`, line);
         const breakpoint = await this.gdb.addBreak(this.codeContainerPath, line);
         this.breakpoints[line] = breakpoint;
+
+        // Extend run timeout for people in debugging sessions
+        this.setRunTimeoutMonitor();
     };
 
     gdbRemoveBreakpoint = async (line: number): Promise<void> => {
@@ -566,6 +569,9 @@ export default class Container {
         console.log(`${this.logPrefix} got debugging command: remove breakpoint`, line);
         await this.gdb.removeBreak(this.breakpoints[line]);
         delete this.breakpoints[line];
+
+        // Extend run timeout for people in debugging sessions
+        this.setRunTimeoutMonitor();
     };
 
     gdbProceed = async (threadId: number): Promise<void> => {
@@ -577,6 +583,9 @@ export default class Container {
         }
         console.log(`${this.logPrefix} got debugging command: proceed`, threadId);
         await this.gdb.proceed(this.threads[threadId]);
+
+        // Extend run timeout for people in debugging sessions
+        this.setRunTimeoutMonitor();
     };
 
     gdbStepIn = async (threadId: number): Promise<void> => {
@@ -588,6 +597,9 @@ export default class Container {
         }
         console.log(`${this.logPrefix} got debugging command: step in`, threadId);
         await this.gdb.stepIn(this.threads[threadId]);
+
+        // Extend run timeout for people in debugging sessions
+        this.setRunTimeoutMonitor();
     };
 
     gdbNext = async (threadId: number): Promise<void> => {
@@ -599,5 +611,8 @@ export default class Container {
         }
         console.log(`${this.logPrefix} got debugging command: next`, threadId);
         await this.gdb.next(this.threads[threadId]);
+
+        // Extend run timeout for people in debugging sessions
+        this.setRunTimeoutMonitor();
     };
 }
