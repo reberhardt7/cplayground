@@ -2,7 +2,7 @@ import * as React from 'react';
 import * as joint from 'jointjs';
 
 import { Process, OpenFileEntry, VNode, ContainerInfo } from '../../common/communication';
-import { PROCESS_COLORS } from './Debugger';
+import { PROCESS_COLORS } from './App';
 
 import Rectangle = joint.shapes.standard.Rectangle;
 import HeaderedRectangle = joint.shapes.standard.HeaderedRectangle;
@@ -58,6 +58,7 @@ const FONT_SIZE = 12;
 
 type DiagramProps = {
     data: ContainerInfo | null;
+    pidColorMap: {[pid: number]: string};
 }
 
 class Diagram extends React.Component<DiagramProps> {
@@ -366,7 +367,7 @@ class Diagram extends React.Component<DiagramProps> {
             link.attr({
                 line: {
                     connection: true,
-                    stroke: PROCESS_COLORS[processIdx % PROCESS_COLORS.length],
+                    stroke: this.props.pidColorMap[process.pid],
                 },
             });
             this.links.push(link);

@@ -7,7 +7,7 @@ import Sidebar from './Sidebar';
 import Editor from './Editor';
 import ProgramPane from './ProgramPane';
 
-import { SavedProgram } from '../../common/communication';
+import { ContainerInfo, SavedProgram } from '../../common/communication';
 import { CompilerFlag, SupportedVersion } from '../../common/constants';
 import * as Server from '../server-comm';
 
@@ -17,6 +17,9 @@ export enum Layout {
     SPLIT,
     RUN,
 }
+
+// Colors used in debugger to indicate different processes
+export const PROCESS_COLORS = ['#7aa843', '#85628f', '#a63939', '#6297c9'];
 
 type AppProps = {
     inEmbeddedMode: boolean;
@@ -29,6 +32,8 @@ type AppState = {
     terminalSize: { rows: number; cols: number };
     programRunning: boolean;
     socket?: SocketIOClient.Socket;
+    debugServer?: Server.DebugServer;
+    debugData?: ContainerInfo;
     breakpoints: number[];
 };
 
@@ -65,11 +70,11 @@ class App extends React.PureComponent<AppProps, AppState> {
             const newBreakpoints = new Set(this.state.breakpoints);
             // Added breakpoints:
             this.state.breakpoints.filter((line) => !oldBreakpoints.has(line)).forEach((line) => {
-                Server.setBreakpoint(this.state.socket, line);
+                this.state.debugServer.setBreakpoint(line);
             });
             // Removed breakpoints:
             prevState.breakpoints.filter((line) => !newBreakpoints.has(line)).forEach((line) => {
-                Server.removeBreakpoint(this.state.socket, line);
+                this.state.debugServer.removeBreakpoint(line);
             });
         }
     }
@@ -130,11 +135,14 @@ class App extends React.PureComponent<AppProps, AppState> {
             this.setState({
                 programRunning: false,
                 socket: null,
+                debugServer: null,
             });
         });
         this.setState({
             programRunning: true,
             socket: sock,
+            debugServer: new Server.DebugServer(sock, (debugData) => this.setState({ debugData })),
+            debugData: null,
         });
     };
 
@@ -194,6 +202,16 @@ class App extends React.PureComponent<AppProps, AppState> {
         });
     };
 
+    generatePidColorMap = (): {[pid: number]: string} => {
+        const colorMap: {[pid: number]: string} = {};
+        if (this.state.debugData) {
+            this.state.debugData.processes.forEach((proc, i) => {
+                colorMap[proc.pid] = PROCESS_COLORS[i % PROCESS_COLORS.length];
+            });
+        }
+        return colorMap;
+    };
+
     render(): React.ReactNode {
         return (
             <>
@@ -241,6 +259,9 @@ class App extends React.PureComponent<AppProps, AppState> {
                     <ProgramPane
                         onResize={this.setTerminalSize}
                         socket={this.state.socket}
+                        debugServer={this.state.debugServer}
+                        debugData={this.state.debugData}
+                        pidColorMap={this.generatePidColorMap()}
                     />
                 </div>
             </>

@@ -1,5 +1,5 @@
 import axios, { AxiosResponse } from 'axios';
-import { RunEventBody, SavedProgram, Thread } from '../common/communication';
+import { ContainerInfo, RunEventBody, SavedProgram, Thread } from '../common/communication';
 // eslint-disable-next-line no-undef
 import Socket = SocketIOClient.Socket;
 
@@ -133,47 +133,68 @@ export function releaseSocketFromTerminal(
     );
 }
 
-export function bindSocketToDebugger(
-    socket: Socket,
-    onData: (data: {}) => void,
-): BoundSocketListeners {
-    socket.on('debug', onData);
-    return {
-        debug: onData,
+export class DebugServer {
+    private readonly socket: Socket;
+    private readonly extCallback: (data: ContainerInfo) => void;
+    private data: ContainerInfo | null = null;
+
+    constructor(socket: Socket, onNewData: (data: ContainerInfo) => void) {
+        this.socket = socket;
+        this.extCallback = onNewData;
+
+        this.socket.on('disconnect', this.onDisconnect);
+        this.socket.on('debug', this.onData);
+    }
+
+    onData = (data: ContainerInfo): void => {
+        this.data = data;
+        this.extCallback(this.data);
     };
-}
 
-export function releaseSocketFromDebugger(
-    socket: Socket,
-    boundListeners: BoundSocketListeners,
-): void {
-    Object.keys(boundListeners).forEach(
-        (event: keyof BoundSocketListeners) => socket.removeListener(event, boundListeners[event]),
-    );
-}
+    onDisconnect = (): void => {
+        // Mark all threads as terminated. This way, the UI won't show processes still running
+        // even after we've disconnected from the server (and the processes have presumably been
+        // terminated server-side).
+        this.data = {
+            processes: this.data.processes.map((proc) => ({
+                ...proc,
+                threads: proc.threads.map((thread) => ({
+                    ...thread,
+                    status: 'terminated',
+                })),
+            })),
+            openFiles: this.data.openFiles,
+            vnodes: this.data.vnodes,
+        };
+        this.extCallback(this.data);
+        // Remove event listeners
+        this.socket.removeEventListener('disconnect', this.onDisconnect);
+        this.socket.removeEventListener('debug', this.onData);
+    };
 
-export function setBreakpoint(socket: Socket, line: number): void {
-    socket.emit('debugSetBreakpoint', { line });
-}
+    setBreakpoint(line: number): void {
+        this.socket.emit('debugSetBreakpoint', { line });
+    }
 
-export function removeBreakpoint(socket: Socket, line: number): void {
-    socket.emit('debugRemoveBreakpoint', { line });
-}
+    removeBreakpoint(line: number): void {
+        this.socket.emit('debugRemoveBreakpoint', { line });
+    }
 
-export function proceed(socket: Socket, thread: Thread): void {
-    socket.emit('debugProceed', {
-        threadId: thread.debuggerId,
-    });
-}
+    proceed(thread: Thread): void {
+        this.socket.emit('debugProceed', {
+            threadId: thread.debuggerId,
+        });
+    }
 
-export function next(socket: Socket, thread: Thread): void {
-    socket.emit('debugNext', {
-        threadId: thread.debuggerId,
-    });
-}
+    next(thread: Thread): void {
+        this.socket.emit('debugNext', {
+            threadId: thread.debuggerId,
+        });
+    }
 
-export function stepIn(socket: Socket, thread: Thread): void {
-    socket.emit('debugStepIn', {
-        threadId: thread.debuggerId,
-    });
+    stepIn(thread: Thread): void {
+        this.socket.emit('debugStepIn', {
+            threadId: thread.debuggerId,
+        });
+    }
 }
