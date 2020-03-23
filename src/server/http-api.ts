@@ -25,7 +25,7 @@ function generateProgramJson(
 const DEFAULT_CODE = fs.readFileSync(getPathFromRoot('src/server/default-code.cpp')).toString().trim();
 const DEFAULT_PROGRAM_JSON = generateProgramJson(
     DEFAULT_CODE, '', null, null, DEFAULT_VERSION,
-    ['-O2', '-Wall', '-no-pie', '-lm', '-pthread'],
+    ['-O0', '-Wall', '-no-pie', '-lm', '-pthread'],
 );
 
 export function getProgram(req: Request, res: Response): void {
