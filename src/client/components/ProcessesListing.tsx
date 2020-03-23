@@ -11,23 +11,36 @@ type ProcessProps = {
     color: string;
 }
 
-const Process: React.FunctionComponent<ProcessProps> = (props: ProcessProps) => (
-    <div className="process">
-        <div className="process-header">
-            <Pill text={`pid ${props.process.pid}`} color={props.color} />
-            {props.process.command}
-            {props.process.threads.length
-            && <DebugControls debugServer={props.debugServer} thread={props.process.threads[0]} />}
+const Process: React.FunctionComponent<ProcessProps> = (props: ProcessProps) => {
+    const thread = props.process.threads.length && props.process.threads[0];
+    const statusText = thread
+        ? thread.status
+            + (thread.status === 'stopped' && thread.stoppedAt ? ` at line ${thread.stoppedAt}` : '')
+        : null;
+    return (
+        <div className="process">
+            <div className="process-header">
+                <Pill text={`pid ${props.process.pid}`} color={props.color} />
+                {props.process.command}
+                {thread && ` (${statusText})`}
+                {props.process.threads.length
+                    && (
+                        <DebugControls
+                            debugServer={props.debugServer}
+                            thread={props.process.threads[0]}
+                        />
+                    )}
+            </div>
+            {/* <table className="process-body">
+                <tbody>
+                    <tr>
+                        <!-- stack frames and variables... -->
+                    </tr>
+                </tbody>
+            </table> */}
         </div>
-        {/* <table className="process-body">
-            <tbody>
-                <tr>
-                    <!-- stack frames and variables... -->
-                </tr>
-            </tbody>
-        </table> */}
-    </div>
-);
+    );
+};
 
 type ProcessesListingProps = {
     processes: ProcessType[];
