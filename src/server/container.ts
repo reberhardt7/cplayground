@@ -534,11 +534,15 @@ export default class Container {
         // like games or shells.)
         this.setRunTimeoutMonitor();
         // Send input to container
-        this.pty.write(data);
+        if (this.pty) {
+            this.pty.write(data);
+        }
     };
 
     resize = (rows: number, cols: number): void => {
-        this.pty.resize(cols, rows);
+        if (this.pty) {
+            this.pty.resize(cols, rows);
+        }
     };
 
     shutdown = (): void => {
