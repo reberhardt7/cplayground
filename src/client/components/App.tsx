@@ -131,7 +131,7 @@ class App extends React.PureComponent<AppProps, AppState> {
         const sock = Server.makeDockerSocket();
         Server.startProgram(
             sock, this.state.program, this.state.terminalSize.rows, this.state.terminalSize.cols,
-            this.state.breakpoints,
+            this.state.breakpoints.length > 0, this.state.breakpoints,
         ).then((): void => {
             this.setState({
                 programRunning: false,
@@ -227,6 +227,7 @@ class App extends React.PureComponent<AppProps, AppState> {
                     inEmbeddedMode={this.props.inEmbeddedMode}
                     currentLayout={this.state.layout}
                     isProgramRunning={this.state.programRunning}
+                    debug={this.state.breakpoints.length > 0}
                     onSettingsBtnClick={this.toggleSettingsPane}
                     onRunBtnClick={this.runProgram}
                     onEditBtnClick={(): void => this.setLayout(Layout.EDIT)}
@@ -270,6 +271,8 @@ class App extends React.PureComponent<AppProps, AppState> {
                     <ProgramPane
                         onResize={this.setTerminalSize}
                         socket={this.state.socket}
+                        debug={(this.state.programRunning && this.state.breakpoints.length > 0)
+                            || Boolean(this.state.debugData)}
                         debugServer={this.state.debugServer}
                         debugData={this.state.debugData}
                         pidColorMap={this.generatePidColorMap()}

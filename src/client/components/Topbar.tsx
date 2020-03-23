@@ -7,6 +7,7 @@ type TopbarProps = {
     inEmbeddedMode: boolean;
     currentLayout: Layout;
     isProgramRunning: boolean;
+    debug: boolean;
     onSettingsBtnClick: () => void;
     onRunBtnClick: () => void;
     onEditBtnClick: () => void;
@@ -84,11 +85,19 @@ class Topbar extends React.PureComponent<TopbarProps> {
                     tabIndex={0}
                 >
                     <div className="main-text">
-                        <div className="icon play-icon">
-                            <span className="outline">&#9655;</span>
-                            <span className="filled">&#9654;</span>
-                        </div>
-                        Run
+                        {this.props.debug
+                            ? (
+                                <div className="icon run-icon debug-icon">
+                                    <span className="outline"><i className="fas fa-bug" /></span>
+                                    <span className="filled"><i className="fas fa-bug" /></span>
+                                </div>
+                            ) : (
+                                <div className="icon run-icon">
+                                    <span className="outline">&#9655;</span>
+                                    <span className="filled">&#9654;</span>
+                                </div>
+                            )}
+                        { this.props.debug ? 'Debug' : 'Run' }
                     </div>
                     <div className="shortcut">shift+enter</div>
                 </div>

@@ -7,6 +7,7 @@ import { ContainerInfo } from '../../common/communication';
 
 type ProgramPaneProps = {
     socket?: SocketIOClient.Socket;
+    debug: boolean;
     debugServer?: DebugServer;
     debugData?: ContainerInfo;
     pidColorMap?: {[pid: number]: string};
@@ -16,11 +17,13 @@ type ProgramPaneProps = {
 const ProgramPane: React.FunctionComponent<ProgramPaneProps> = (props: ProgramPaneProps) => (
     <div className="program-pane">
         <Terminal socket={props.socket} onResize={props.onResize} />
-        <Debugger
-            debugServer={props.debugServer}
-            debugData={props.debugData}
-            pidColorMap={props.pidColorMap}
-        />
+        {props.debug && (
+            <Debugger
+                debugServer={props.debugServer}
+                debugData={props.debugData}
+                pidColorMap={props.pidColorMap}
+            />
+        )}
     </div>
 );
 

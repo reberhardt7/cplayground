@@ -67,7 +67,7 @@
     margin-right: 10px;
 }
 
-#run-btn .play-icon .filled {
+#run-btn .run-icon .filled {
     position: absolute;
     top: 0;
     left: 2px;
@@ -75,7 +75,11 @@
     transition: opacity 0.3s ease-out, transform 0.3s ease-out;
 }
 
-#run-btn .play-icon:after {
+#run-btn .debug-icon .filled {
+    left: 0;
+}
+
+#run-btn .run-icon:after {
     content: " ";
     position: absolute;
     top: -3px;
@@ -90,7 +94,7 @@
     transition: opacity 0.2s ease-out 0s;
 }
 
-#run-btn.disabled .play-icon:after {
+#run-btn.disabled .run-icon:after {
     opacity: 1;
     animation: loading-spinner 1.2s linear infinite;
     transition: opacity 0.3s ease-out 0.2s;
@@ -105,16 +109,16 @@
     }
 }
 
-#run-btn.disabled .play-icon .filled {
+#run-btn.disabled .run-icon .filled {
     opacity: 1;
     transform: scale(0.75, 0.75);
 }
 
-#run-btn .play-icon .outline {
+#run-btn .run-icon .outline {
     transition: opacity 0.3s ease-out, transform 0.3s ease-out;
 }
 
-#run-btn.disabled .play-icon .outline {
+#run-btn.disabled .run-icon .outline {
     opacity: 0;
     transform: scale(0.75, 0.75);
 }

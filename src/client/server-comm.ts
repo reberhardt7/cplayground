@@ -49,10 +49,12 @@ export function makeDockerSocket(): Socket {
  * @param program: Program to execute
  * @param rows: Width of terminal
  * @param cols: Height of terminal
+ * @param debug: Whether to enable debug mode
  * @param breakpoints: Line numbers where initial breakpoints should be placed
  */
 export function startProgram(
-    socket: Socket, program: SavedProgram, rows: number, cols: number, breakpoints: number[],
+    socket: Socket, program: SavedProgram, rows: number, cols: number,
+    debug: boolean, breakpoints: number[],
 ): Promise<void> {
     const body: RunEventBody = {
         code: program.code,
@@ -62,7 +64,7 @@ export function startProgram(
         includeFileId: program.includeFileId,
         rows,
         cols,
-        debug: true,
+        debug,
         breakpoints,
     };
     socket.emit('run', body);
@@ -155,18 +157,20 @@ export class DebugServer {
         // Mark all threads as terminated. This way, the UI won't show processes still running
         // even after we've disconnected from the server (and the processes have presumably been
         // terminated server-side).
-        this.data = {
-            processes: this.data.processes.map((proc) => ({
-                ...proc,
-                threads: proc.threads.map((thread) => ({
-                    ...thread,
-                    status: 'terminated',
+        if (this.data) {
+            this.data = {
+                processes: this.data.processes.map((proc) => ({
+                    ...proc,
+                    threads: proc.threads.map((thread) => ({
+                        ...thread,
+                        status: 'terminated',
+                    })),
                 })),
-            })),
-            openFiles: this.data.openFiles,
-            vnodes: this.data.vnodes,
-        };
-        this.extCallback(this.data);
+                openFiles: this.data.openFiles,
+                vnodes: this.data.vnodes,
+            };
+            this.extCallback(this.data);
+        }
         // Remove event listeners
         this.socket.removeEventListener('disconnect', this.onDisconnect);
         this.socket.removeEventListener('debug', this.onData);
