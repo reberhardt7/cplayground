@@ -119,4 +119,9 @@
     margin-right: $element-spacing;
     color: $foreground-color;
   }
+
+  svg use {
+    fill: $background-color;
+    stroke: $background-color;
+  }
 }

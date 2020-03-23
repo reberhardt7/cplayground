@@ -3,6 +3,8 @@ import * as React from 'react';
 import Button from './Button';
 import { Thread } from '../../common/communication';
 import { DebugServer } from '../server-comm';
+import NextIcon from '../img/debugger-next.svg';
+import StepInIcon from '../img/debugger-step-in.svg';
 
 type DebugControlsProps = {
     thread: Thread;
@@ -23,13 +25,13 @@ const DebugControls: React.FunctionComponent<DebugControlsProps> = (props: Debug
                     title="Next line"
                     onClick={(): void => props.debugServer.next(props.thread)}
                 >
-                    N
+                    <NextIcon />
                 </Button>
                 <Button
                     title="Step into function"
                     onClick={(): void => props.debugServer.stepIn(props.thread)}
                 >
-                    SI
+                    <StepInIcon />
                 </Button>
             </>
         )}

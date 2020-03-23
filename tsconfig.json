@@ -11,5 +11,6 @@
     "include": [
         "src/common",
         "src/server"
-    ]
+    ],
+    "files": [ "src/client/img/svg.d.ts" ]
 }

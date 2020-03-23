@@ -47,6 +47,7 @@
         "serve": "tsc && node ./dist/server/index.js"
     },
     "devDependencies": {
+        "@svgr/webpack": "^5.3.0",
         "@types/backbone": "^1.4.1",
         "@types/classnames": "^2.2.9",
         "@types/console-stamp": "^0.2.32",
