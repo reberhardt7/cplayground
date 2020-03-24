@@ -15,15 +15,14 @@ module.exports = {
 
             # Backfill files table using info from programs table:
             INSERT INTO files (id, name, contents, source_ip)
-            SELECT DISTINCT
+            SELECT
                 UNHEX(SHA2(CONCAT(include_file_name, ':', include_file_data), 224)) AS file_id,
                 include_file_name,
                 include_file_data,
-                SUBSTRING_INDEX(GROUP_CONCAT(source_ip), ',', 1) AS source_ip
+                SUBSTRING_INDEX(GROUP_CONCAT(DISTINCT source_ip ORDER BY created), ',', 1) AS source_ip
             FROM programs
             WHERE include_file_name != ''
-            GROUP BY file_id
-            ORDER BY created;
+            GROUP BY file_id, include_file_name, include_file_data;
 
             # Add include_file_id column to programs table
             ALTER TABLE programs

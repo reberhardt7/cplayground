@@ -162,12 +162,12 @@ export function insertProgram(
                     source_user_agent: sourceUserAgent,
                 },
                 (error, res) => {
-                    if (error && error.sqlMessage === `Duplicate entry '${
-                        alias}' for key 'alias'`) {
+                    if (error && error.sqlMessage.startsWith('Duplicate entry')
+                        && error.sqlMessage.endsWith('alias\'')) {
                         // If alias is already taken, try a new one
                         tryInsert();
-                    } else if (error && error.sqlMessage === `Duplicate entry '${
-                        hash}' for key 'hash'`) {
+                    } else if (error && error.sqlMessage.startsWith('Duplicate entry')
+                        && error.sqlMessage.endsWith('hash\'')) {
                         // Return the existing program info
                         resolve(getProgram(compiler, cflags, code, args, includeFileId));
                     } else if (error) {
