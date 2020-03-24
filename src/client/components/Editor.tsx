@@ -208,8 +208,8 @@ class Editor extends React.Component<EditorProps> {
                 row = foldLine.end.row;
                 continue;
             }
-            const line = config.firstRow + row + 1; // Line numbers are 1-indexed
-            const lineElement = lineElements[line - 1]; // Array is 0-indexed
+            const line = row + 1; // Line numbers are 1-indexed
+            const lineElement = lineElements[row - config.firstRow];
             const widgets = this.debugControlWidgets[line];
             if (lineElement && widgets) {
                 widgets.forEach((widget) => {
