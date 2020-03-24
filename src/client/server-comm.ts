@@ -1,4 +1,6 @@
 import axios, { AxiosResponse } from 'axios';
+import Url from 'url-parse';
+
 import { ContainerInfo, RunEventBody, SavedProgram, Thread } from '../common/communication';
 // eslint-disable-next-line no-undef
 import Socket = SocketIOClient.Socket;
@@ -25,12 +27,14 @@ export function makeDockerSocket(): Socket {
     const socket = io.connect('');
 
     socket.on('saved', (alias: string) => {
+        const currentLocation = Url(window.location.href, window.location, true);
+        currentLocation.query.p = alias;
         // We use replaceState here (instead of pushState) because we don't
         // want to blow up a user's history if they spend a while in the editor
         // making several runs. (It would be pretty hard to use the back button
         // to get back to whatever site directed them here, if they've run 100
         // iterations of some program.)
-        window.history.replaceState(null, null, `?p=${alias}`);
+        window.history.replaceState(null, null, currentLocation.toString());
         // Inform the parent of this iframe (if this is an embed) that we've
         // loaded new saved code
         window.parent.postMessage({

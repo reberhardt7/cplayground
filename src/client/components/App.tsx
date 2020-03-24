@@ -56,7 +56,12 @@ class App extends React.PureComponent<AppProps, AppState> {
         const currentLocation = Url(window.location.href, window.location, true);
         const programId = currentLocation.query.p;
         Server.getProgram(programId).then((program: SavedProgram) => {
-            this.setState({ program });
+            const breakpoints = currentLocation.query.breakpoints
+                && JSON.parse(currentLocation.query.breakpoints);
+            this.setState({
+                program,
+                breakpoints: Array.isArray(breakpoints) ? breakpoints : [],
+            });
         });
 
         // Add keyboard listeners
@@ -64,19 +69,30 @@ class App extends React.PureComponent<AppProps, AppState> {
     }
 
     componentDidUpdate(prevProps: AppProps, prevState: AppState): void {
-        if (prevState.breakpoints !== this.state.breakpoints && this.state.programRunning) {
-            // User changed breakpoints while program is running. We need to inform the server
-            // of the change.
-            const oldBreakpoints = new Set(prevState.breakpoints);
-            const newBreakpoints = new Set(this.state.breakpoints);
-            // Added breakpoints:
-            this.state.breakpoints.filter((line) => !oldBreakpoints.has(line)).forEach((line) => {
-                this.state.debugServer.setBreakpoint(line);
-            });
-            // Removed breakpoints:
-            prevState.breakpoints.filter((line) => !newBreakpoints.has(line)).forEach((line) => {
-                this.state.debugServer.removeBreakpoint(line);
-            });
+        if (prevState.breakpoints !== this.state.breakpoints) {
+            // Update breakpoints in URL:
+            const currentLocation = Url(window.location.href, window.location, true);
+            if (this.state.breakpoints.length) {
+                currentLocation.query.breakpoints = JSON.stringify(this.state.breakpoints);
+            } else if (currentLocation.query.breakpoints !== undefined) {
+                delete currentLocation.query.breakpoints;
+            }
+            window.history.replaceState(null, null, currentLocation.toString());
+
+            if (this.state.programRunning) {
+                // User changed breakpoints while program is running. We need to inform the server
+                // of the change.
+                const oldBreakpoints = new Set(prevState.breakpoints);
+                const newBreakpoints = new Set(this.state.breakpoints);
+                // Added breakpoints:
+                this.state.breakpoints
+                    .filter((line) => !oldBreakpoints.has(line))
+                    .forEach((line) => { this.state.debugServer.setBreakpoint(line); });
+                // Removed breakpoints:
+                prevState.breakpoints
+                    .filter((line) => !newBreakpoints.has(line))
+                    .forEach((line) => { this.state.debugServer.removeBreakpoint(line); });
+            }
         }
     }
 
