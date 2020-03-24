@@ -6,6 +6,7 @@ import shlex
 import time
 import sys
 import socket
+import signal
 
 # TODO: in the future, make BANNER_WIDTH dependent on the size of the terminal.
 # (This might be tricky; there seems to be a race condition with docker or
@@ -52,6 +53,17 @@ def print_exit_status(status):
     print_banner(f'Execution finished (exit status {status})',
         (GREEN if status == 0 else YELLOW), LIGHT_GRAY)
 
+def become_fg_process():
+    """
+    Executed in the child process to assume control over the terminal
+    """
+    os.setpgrp()
+    ttou_handler = signal.signal(signal.SIGTTOU, signal.SIG_IGN)
+    tty = os.open('/dev/tty', os.O_RDWR)
+    os.tcsetpgrp(tty, os.getpgrp())
+    os.close(tty)
+    signal.signal(signal.SIGTTOU, ttou_handler)
+
 def compile():
     static_libraries_str = (subprocess.check_output(['find', '/cplayground/lib', '-name', '*.a'])
         .decode('utf-8')
@@ -72,10 +84,12 @@ def run():
             gdbsock.connect('/gdb.sock')
             sockfile = gdbsock.makefile('b', 0)
             args = ['gdb', '--tty=/dev/pts/0', '-i=mi', '--args', '/cplayground/cplayground'] + sys.argv[1:]
-            user_proc = subprocess.Popen(args, stdin=sockfile, stdout=sockfile, stderr=sockfile)
+            user_proc = subprocess.Popen(args, stdin=sockfile, stdout=sockfile, stderr=sockfile,
+                                         preexec_fn=become_fg_process)
             user_proc.wait()
     else:
-        user_proc = subprocess.run(['/cplayground/cplayground'] + sys.argv[1:])
+        user_proc = subprocess.run(['/cplayground/cplayground'] + sys.argv[1:],
+                                   preexec_fn=become_fg_process)
     return (user_proc.returncode, time.time() - user_start_time)
 
 def main():
