@@ -81,7 +81,7 @@ class Diagram extends React.Component<DiagramProps> {
             model: this.graph,
             // TODO: set a more reasonable width/height
             width: 2000,
-            height: 2000,
+            height: 320,
             gridSize: 1,
         });
 
