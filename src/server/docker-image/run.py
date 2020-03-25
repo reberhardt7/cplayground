@@ -39,6 +39,9 @@ def print_exit_status(status):
     elif status == 128 + 9:
         print_banner('The program was killed by SIGKILL. If you aren\'t sure', RED, LIGHT_GRAY)
         print_banner('why, it was probably using too much memory.', RED, LIGHT_GRAY)
+    # SIGSEGV
+    elif status == 128 + 11:
+        print('Segmentation fault')
     # Print exit status
     print_banner(f'Execution finished (exit status {status})',
         (GREEN if status == 0 else YELLOW), LIGHT_GRAY)
