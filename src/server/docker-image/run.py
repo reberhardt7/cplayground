@@ -31,22 +31,12 @@ def format_execution_time(elapsed_s):
     else:
         return f'{(elapsed_s * 1000):.3f} ms'
 
-def status_matches_signal(status, signal):
-    """
-    Check whether a returned status code indicates that the process was terminated with the given
-    signal. (If the process was launched using Python's subprocess library and was killed by
-    signal n, the given code will be -n. However, this isn't technically a valid return code,
-    since status codes are unsigned ints, so shells typically report signals as 128 + n. We do
-    something similar if the process is being debugged under gdb.)
-    """
-    return status == -signal or status == signal + 128
-
 def print_exit_status(status):
     # SIGXCPU
-    if status_matches_signal(status, 24) or status_matches_signal(status, 30):
+    if status in [128 + 24, 128 + 30]:
         print_banner('The program exceeded its CPU quota.', RED, LIGHT_GRAY)
     # SIGKILL (possibly from OOM killer?)
-    elif status_matches_signal(status, 9):
+    elif status == 128 + 9:
         print_banner('The program was killed by SIGKILL. If you aren\'t sure', RED, LIGHT_GRAY)
         print_banner('why, it was probably using too much memory.', RED, LIGHT_GRAY)
     # Print exit status
@@ -109,6 +99,10 @@ def main():
     # Run
     print_banner('Executing...', CYAN, LIGHT_GRAY)
     run_status, run_time = run()
+    if run_status < 0:
+        # subprocess.Popen uses a negative status to indicate that a process was killed by a
+        # signal. However, we will use the more-universal convention of 128 + signal
+        run_status = 128 - run_status
     print_exit_status(run_status)
     print_banner('Executed in ' + format_execution_time(run_time),
         (GREEN if run_status == 0 else YELLOW), LIGHT_GRAY)
