@@ -90,16 +90,15 @@ static void hash_pointer(void *ptr, char *hash_buf) {
  * A bunch of this code is plagarized from seq_show in fs/proc/fd.c (the code
  * responsible for writing the contents of /proc/pid/fd/num).
  */
-static void inspect_fd(struct fdtable *fdt, int fd, struct file *file,
+static void inspect_fd(int fd, struct file *file, int cloexec,
         struct seq_file *sfile) {
-    // TODO: locks?
     char path_buf[512];
-    char* path_str = d_path(&file->f_path, path_buf, sizeof(path_buf));
+    char* path_str = file_path(file, path_buf, sizeof(path_buf));
 
     char file_ptr_hash[64 + 1];
     hash_pointer(file, file_ptr_hash);
 
-    // TODO: need to lock before getting f_pos?
+    // TODO: need to lock before getting f_pos? fs/proc/fd.c doesn't do it...
     seq_printf(sfile,
             "%d\t"      // fd
             "%d\t"      // close_on_exec
@@ -107,8 +106,8 @@ static void inspect_fd(struct fdtable *fdt, int fd, struct file *file,
             "%lli\t"    // file position/offset
             "0%o\t"     // flags
             "%s\n",     // vnode id (path_str)
-            fd, close_on_exec(fd, fdt), file_ptr_hash, (long long)file->f_pos,
-            file->f_flags, path_str);
+            fd, cloexec, file_ptr_hash, (long long)file->f_pos, file->f_flags,
+            path_str);
 }
 
 /**
@@ -116,19 +115,23 @@ static void inspect_fd(struct fdtable *fdt, int fd, struct file *file,
  * responsible for writing the contents of /proc/pid/fd/num).
  */
 static void inspect_fds(struct files_struct *files, struct seq_file *sfile) {
-    // TODO: is this necessary? Isn't there some mention of RCU?
     spin_lock(&files->file_lock);
 
     for (int fd = 0; fd < files_fdtable(files)->max_fds; fd++) {
-        // TODO: what exactly does fcheck_files do?
         struct file *file = fcheck_files(files, fd);
         if (file) {
+            // Get everything we need before releasing the spinlock
             struct fdtable *fdt = files_fdtable(files);
-            // TODO: what is this doing? is fput releasing?
+            int cloexec = close_on_exec(fd, fdt);
+            // Increment kernel refcount on the file so it isn't deallocated
+            // while we're using it
             get_file(file);
+            spin_unlock(&files->file_lock);
 
-            inspect_fd(fdt, fd, file, sfile);
+            inspect_fd(fd, file, cloexec, sfile);
 
+            spin_lock(&files->file_lock);
+            // Decrement refcount on file
             fput(file);
         }
     }
@@ -136,10 +139,11 @@ static void inspect_fds(struct files_struct *files, struct seq_file *sfile) {
     spin_unlock(&files->file_lock);
 }
 
-static void inspect_proc(struct task_struct *task, struct pid_namespace *ns,
+static void print_proc_details(void *ns_ptr, int global_pid, int container_pid,
+        int container_ppid, int container_pgid, const char *command,
         struct seq_file *sfile) {
     char ns_ptr_hash[64 + 1];
-    hash_pointer(ns, ns_ptr_hash);
+    hash_pointer(ns_ptr, ns_ptr_hash);
 
     seq_printf(sfile,
             "%s\t"  // namespace ID (i.e. hash of pid_namespace pointer)
@@ -148,38 +152,32 @@ static void inspect_proc(struct task_struct *task, struct pid_namespace *ns,
             "%d\t"  // container PPID
             "%d\t"  // container PGID
             "%s\n", // command
-            ns_ptr_hash, task_pid_nr(task), task_pid_nr_ns(task, ns),
-            task_ppid_nr_ns(task, ns), task_pgrp_nr_ns(task, ns), task->comm);
-    // TODO: get_files_struct is undefined?
-    //files = get_files_struct(task);
-    // TODO: I don't think we need to increment the refcount here since
-    // we're holding the lock for the whole duration
-    struct files_struct *files = task->files;
-    if (files) {
-        inspect_fds(files, sfile);
-    }
-    seq_printf(sfile, "\n");
-    // TODO: put_files_struct is undefined?
-    //put_files_struct(files);
+            ns_ptr_hash, global_pid, container_pid, container_ppid,
+            container_pgid, command);
 }
 
-static int ct_seq_show(struct seq_file *sfile, void *v) {
-    printk("cplayground: in ct_seq_show\n");
-    // Loop through all processes, looking for processes whose pid_namespace
-    // differ from the pid_namespace of the init process (indicating that those
-    // processes are likely containerized)
-    // TODO: only loop through the processes that are in containers of
-    // interest. (This gets us all containerized processes, which is a little
-    // too permissive)
+/**
+ * This function populates a list of containerized task structs, and returns
+ * the length of the list.  The kernel reference count is incremented on each
+ * of the tasks that are placed in this list, so that they don't get
+ * deallocated before we have a chance to do something with them. You MUST call
+ * put_task_struct on each of these tasks to avoid leaking memory.
+ */
+static unsigned int get_containerized_processes(
+        struct task_struct **container_tasks,
+        unsigned int max_container_tasks) {
     task_lock(&init_task);
     struct pid_namespace *init_ns = init_task.nsproxy->pid_ns_for_children;
     task_unlock(&init_task);
 
+    // Loop through all processes, looking for processes whose pid_namespace
+    // differ from the pid_namespace of the init process (indicating that those
+    // processes are likely containerized)
+    int container_tasks_len = 0;
     struct task_struct *task;
+    rcu_read_lock();    // begin critical section, do not sleep!
     for_each_process(task) {
         task_lock(task);
-        // TODO: need to get_task_lock?
-
         struct nsproxy *nsproxy = task->nsproxy;
         if (nsproxy == NULL) {  // indicates zombie process, according to docs
             task_unlock(task);
@@ -190,17 +188,102 @@ static int ct_seq_show(struct seq_file *sfile, void *v) {
             task_unlock(task);
             continue;
         }
-
-        inspect_proc(task, ns, sfile);
-
+        // This is a containerized process!
+        get_task_struct(task);
         task_unlock(task);
+
+        container_tasks[container_tasks_len++] = task;
+        if (container_tasks_len == max_container_tasks) {
+            printk("cplayground: ERROR: container_tasks list hit capacity! We "
+                "may be missing processes from the procfile output.\n");
+            break;
+        }
     }
+    rcu_read_unlock();  // end rcu critical section
+    return container_tasks_len;
+}
+
+/**
+ * This function prints info to the procfile for each process in
+ * container_tasks. It also calls put_task_struct on each task in the list, so
+ * the memory is released.
+ */
+static void print_processes(struct task_struct **container_tasks, unsigned int container_tasks_len,
+        struct seq_file *sfile) {
+    for (unsigned int i = 0; i < container_tasks_len; i++) {
+        struct task_struct *task = container_tasks[i];
+
+        if (seq_has_overflowed(sfile)) {
+            // We wrote more output to the procfile than seqfile had allocated
+            // space for.  seqfile will allocate a bigger buffer, then call us
+            // again to populate it.  Since it's already going to discard our
+            // output, no use producing more.
+            put_task_struct(task);
+            continue;
+        }
+
+        // Begin critical region. The task lock is a spinlock so be sure to not
+        // sleep.
+        task_lock(task);
+        int global_pid = task_pid_nr(task);
+        if (task->nsproxy == NULL) {
+            // The task may have exited in between when we added it to our list
+            // and when we got here. We'll just ignore it and move on
+            task_unlock(task);
+            put_task_struct(task);
+            continue;
+        }
+        struct pid_namespace *ns = task->nsproxy->pid_ns_for_children;
+        int container_pid = task_pid_nr_ns(task, ns);
+        int container_ppid = task_ppid_nr_ns(task, ns);
+        int container_pgid = task_pgrp_nr_ns(task, ns);
+        unsigned char command[sizeof(task->comm)];
+        strncpy(command, task->comm, sizeof(task->comm));
+        task_unlock(task);
+        // End critical region
+
+        // TODO: get_files_struct re-acquires the task_lock. Any way to make
+        // this more efficient?
+        struct files_struct *files = get_files_struct(task);
+        put_task_struct(task);
+        // Ensure no code uses the task struct after this point, since it may
+        // be deallocated
+
+        print_proc_details((void*)ns, global_pid, container_pid,
+                container_ppid, container_pgid, command, sfile);
+
+        if (files) {
+            inspect_fds(files, sfile);
+            put_files_struct(files);
+        }
+
+        seq_printf(sfile, "\n");
+    }
+}
+
+static int ct_seq_show(struct seq_file *sfile, void *v) {
+    printk("cplayground: generating procfile\n");
+
+    const unsigned int max_container_tasks = 4096;  // 16 pids/container * 256 containers
+    struct task_struct **container_tasks = kmalloc(
+        max_container_tasks * sizeof(struct task_struct *), GFP_KERNEL);
+    if (container_tasks == NULL) {
+        printk("cplayground: ERROR: failed to alloc memory for container task pointers\n");
+        return -ENOMEM;
+    }
+
+    unsigned int container_tasks_len =
+        get_containerized_processes(container_tasks, max_container_tasks);
+    printk("cplayground: found %d containerized processes\n",
+            container_tasks_len);
+    print_processes(container_tasks, container_tasks_len, sfile);
+    kfree(container_tasks);
+    printk("cplayground: finished generating procfile\n");
     return 0;
 }
 
 static int ct_open(struct inode *inode, struct file *file) {
-    printk("cplayground: in ct_open\n");
-    // TODO: see if it's worth implementing the full iterator interface
+    printk("cplayground: opening file\n");
     return single_open(file, ct_seq_show, NULL);
 }
 
