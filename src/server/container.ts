@@ -48,6 +48,7 @@ export default class Container {
     private containerPid: number | null = null;
     private readonly startTime = process.hrtime();
     private pty: ptylib.IPty | null = null;
+    private exited = false;
 
     private readonly dataHostPath = getPathFromRoot('data');
     private readonly codeHostPath = path.join(this.dataHostPath, this.containerName);
@@ -299,6 +300,7 @@ export default class Container {
     };
 
     private onExit = ({ exitCode, signal }: {exitCode: number; signal: number}): void => {
+        this.exited = true;
         const runtime = this.getContainerRunTimeMs();
         console.info(`${this.logPrefix}Container exited! Status ${exitCode}, signal ${signal}, `
             + `node-side runtime measured at ${runtime}ms`);
@@ -524,6 +526,10 @@ export default class Container {
         // If there is already a timer running, stop it so we can reset it
         if (this.debuggingMonitor !== null) {
             clearInterval(this.debuggingMonitor);
+        }
+        // If the container already finished running, no reason to start another timer
+        if (this.exited) {
+            return;
         }
         // Every second, get info about the container's processes and send to the client.
         this.debuggingMonitor = setInterval(this.reportDebugInfo, 1000);
