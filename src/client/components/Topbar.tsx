@@ -16,6 +16,12 @@ type TopbarProps = {
 };
 
 class Topbar extends React.PureComponent<TopbarProps> {
+    onRunBtnClick = (): void => {
+        if (!this.props.isProgramRunning) {
+            this.props.onRunBtnClick();
+        }
+    };
+
     render(): React.ReactNode {
         const embeddedModeButtons = (
             <>
@@ -80,8 +86,8 @@ class Topbar extends React.PureComponent<TopbarProps> {
                     role="button"
                     className={classNames('btn', 'has-shortcut', { disabled: this.props.isProgramRunning })}
                     id="run-btn"
-                    onClick={this.props.onRunBtnClick}
-                    onKeyDown={(e): void => filterKeypress(e, this.props.onRunBtnClick)}
+                    onClick={this.onRunBtnClick}
+                    onKeyDown={(e): void => filterKeypress(e, this.onRunBtnClick)}
                     tabIndex={0}
                 >
                     <div className="main-text">
