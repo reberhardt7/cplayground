@@ -24,10 +24,10 @@ import { DebugStateError, SystemConfigurationError } from './error';
 import Timeout = NodeJS.Timeout;
 
 // How long should a program run for?
-const DEFAULT_TIMEOUT = 60000;
+const DEFAULT_TIMEOUT = 90000;
 // A program's timeout timer can be reset by I/O (e.g. so that if you're testing
 // a shell, it doesn't get killed after only a minute), but can't exceed this time
-const HARD_TIMEOUT = 300000;
+const HARD_TIMEOUT = 480000;
 // Prevent forkbombs and bitcoin mining:
 const MAX_CPU_TIME = 15000;
 
