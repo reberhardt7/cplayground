@@ -168,7 +168,11 @@ class Editor extends React.Component<EditorProps> {
             // happened, then add them back, shifted over by lineCountDiff
             const newBreakpoints = this.props.breakpoints.filter((line) => line <= startLine);
             this.props.breakpoints.filter((line) => line > startLine).forEach((line) => {
-                newBreakpoints.push(line + lineCountDiff);
+                // lineCountDiff can be negative. Make sure we don't end up with an invalid
+                // breakpoint
+                if (line + lineCountDiff >= 1) {
+                    newBreakpoints.push(line + lineCountDiff);
+                }
             });
             this.props.onBreakpointChange(newBreakpoints);
         }
