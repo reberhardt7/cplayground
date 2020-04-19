@@ -239,15 +239,13 @@ export function logView(
     });
 }
 
-function getFileId(name: string, contents: Buffer): Promise<string> {
-    return new Promise((resolve) => {
-        pool.query('SELECT id FROM files WHERE name = ? AND contents = ?', [name, contents],
-            (err, res) => {
-                if (err) throw err;
-                else if (res && res.length) resolve((res[0].id as Buffer).toString('hex'));
-                else resolve(null);
-            });
-    });
+function hashFile(name: string, contents: Buffer): Buffer {
+    return crypto.createHash('sha224').update(name).update(':').update(contents)
+        .digest();
+}
+
+function getFileId(name: string, contents: Buffer): string {
+    return hashFile(name, contents).toString('hex');
 }
 
 export function insertFile(name: string, contents: Buffer, sourceIp: string): Promise<string> {
@@ -258,7 +256,7 @@ export function insertFile(name: string, contents: Buffer, sourceIp: string): Pr
             FROM (SELECT ? AS name, ? AS contents, ? AS source_ip) AS vals
         `,
         [name, contents, sourceIp],
-        (error, result) => {
+        (error) => {
             if (error && error.sqlMessage.startsWith('Duplicate entry')) {
                 // If the file already exists, let's use the existing ID
                 resolve(getFileId(name, contents));
@@ -267,7 +265,7 @@ export function insertFile(name: string, contents: Buffer, sourceIp: string): Pr
                 console.error(error);
                 throw error;
             } else {
-                resolve(result.insertId.toString('hex'));
+                resolve(getFileId(name, contents));
             }
         });
     });
