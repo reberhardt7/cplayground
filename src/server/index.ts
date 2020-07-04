@@ -37,7 +37,10 @@ const INDEX_HTML_CODE = fs.readFileSync(getPathFromRoot('src/client/index.html')
 
 function generateIndexHtml(req: Request, res: Response): void {
     console.info(`Incoming request for ${req.originalUrl}`);
-    const theme = THEMES.includes(req.query.theme) ? `theme-${req.query.theme}` : 'styles';
+    const themeName = Array.isArray(req.query.theme) ? req.query.theme[0] : req.query.theme;
+    const theme = typeof themeName === 'string' && THEMES.includes(themeName)
+        ? `theme-${req.query.theme}`
+        : 'styles';
     res.send(INDEX_HTML_CODE.replace('{{THEME}}', theme));
 }
 

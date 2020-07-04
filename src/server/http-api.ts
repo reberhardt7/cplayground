@@ -30,10 +30,11 @@ const DEFAULT_PROGRAM_JSON = generateProgramJson(
 
 export function getProgram(req: Request, res: Response): void {
     console.info(`Incoming request for ${req.originalUrl}`);
-    if (!req.query.p) {
+    const progId = Array.isArray(req.query.p) ? req.query.p[0] : req.query.p;
+    if (!progId || typeof progId !== 'string') {
         res.send(DEFAULT_PROGRAM_JSON);
     } else {
-        db.getProgramByAlias(req.query.p).then((result) => {
+        db.getProgramByAlias(progId).then((result) => {
             if (result) {
                 console.log(`Returning program ${result.id}`);
                 const sourceIP = getSourceIpFromRequest(req);

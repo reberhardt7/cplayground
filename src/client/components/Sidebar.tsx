@@ -197,5 +197,4 @@ class Sidebar extends React.PureComponent<SidebarProps, SidebarState> {
     }
 }
 
-
 export default Sidebar;

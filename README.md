@@ -57,9 +57,9 @@ sudo reboot
 ```
 sudo apt-get install -y build-essential make
 cd cplayground/
-npm install
+yarn install
 sudo docker build -t cplayground src/server/docker-image/
-npm run-script build
+yarn run build
 ```
 
 Create a MySQL database called `cplayground` and add a user for this database.
@@ -68,5 +68,5 @@ Then run the server:
 ```
 export DB_URL="mysql://username:password@localhost"
 node src/server/migrations.js up
-npm run-script serve
+yarn run serve
 ```
