@@ -24,6 +24,16 @@ Vagrant.configure("2") do |config|
     vb.memory = "2048"
   end
 
+  # Analogous configuration for libvirt. Note that our base box doesn't support
+  # libvirt (and Vagrant needs a plugin to support libvirt), so one might want
+  # to look at vagrant-migrate and vagrant-libvirt respectively for that purpose.
+  # You might prefer libvirt if you already have it running as a hypervisor and
+  # don't want to run VirtualBox in addition to it, most likely on Linux.
+  config.vm.provider "libvirt" do |lv|
+    # Customize the amount of memory on the VM:
+    lv.memory = "2048"
+  end
+
   # Automatically configure timezone: https://stackoverflow.com/a/46778032
   require 'time'
   offset = ((Time.zone_offset(Time.now.zone) / 60) / 60)
