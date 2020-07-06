@@ -98,20 +98,66 @@ yarn run serve
 Now, you can visit [http://localhost:3000/](http://localhost:3000/), and C
 Playground should load.
 
-If you are working on frontend code, you may also want to run a watch script
-that will recompile the Typescript and CSS when it is changed. In another
-terminal window:
+That's it!
+
+If you restart your computer, the VM will be shut down. You may run `vagrant
+up` to start the VM again.  This will be much faster than the first `vagrant
+up`, since it won't re-install all the dependencies.
+
+If you're working on a machine with limited memory, you can run `vagrant
+suspend` to stop the VM when you aren't working on it. `vagrant up` will resume
+the VM.
+
+##### Working on frontend code
+
+If you are working on frontend code, in addition to starting the server, you
+may also want to run a watch script that will recompile the Typescript and CSS
+when it is changed. In another terminal window:
 
 ```
 vagrant ssh
 yarn run watch-client
 ```
 
-That's it!
+##### Working on backend code
 
-If you restart your computer, you may run `vagrant up` to start the VM again.
-This will be much faster than the first `vagrant up`, since it won't re-install
-all the dependencies.
+Running `yarn run serve` recompiles the backend code and starts the server.
+Unfortunately, there is currently no hot-reloading (although this would be a
+nice contribution if you have time), so you'll need to rerun this command each
+time you change something in the backend server code.
+
+If you change anything in `src/server/docker-image/`, you will need to rebuild
+the Docker container:
+
+```
+# in the vm (vagrant ssh)
+docker build -t cplayground src/server/docker-image/
+```
+
+##### Working on the kernel module
+
+C Playground uses a loadable kernel module to obtain data for its debugger's
+execution diagrams. If you make a change, you can rebuild and reload the kernel
+module like so:
+
+```
+cd src/server/kernel-mod
+# Build the kernel module
+make
+# Unload the module, if it has already been loaded
+rmmod cplayground
+# Load the recompiled module
+insmod cplayground.ko
+```
+
+If something goes wrong, the kernel logs will be very useful. You can see them
+by running `dmesg` or by having a look at `/var/log/kern.log`.
+
+C Playground also uses a modified Linux kernel. You shouldn't need to rebuild
+the kernel, but if you do, you can `cd` to `src/server/kernel` and run
+`build-kernel.sh`. This will produce a series of `.deb` files, which you can
+install using `dpkg` (the setup scripts do this
+[here](https://github.com/reberhardt7/cplayground/blob/2466bd42b1b958fc24b213e4e4736256a955b8d4/install-deps.sh#L40)).
 
 ### Manual setup instructions
 
