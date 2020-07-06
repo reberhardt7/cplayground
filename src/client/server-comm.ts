@@ -51,8 +51,8 @@ export function makeDockerSocket(): Socket {
  * finishes executing.
  * @param socket: Connected socket used to communicate with server
  * @param program: Program to execute
- * @param rows: Width of terminal
- * @param cols: Height of terminal
+ * @param rows: Height of terminal
+ * @param cols: Width of terminal
  * @param debug: Whether to enable debug mode
  * @param breakpoints: Line numbers where initial breakpoints should be placed
  */
