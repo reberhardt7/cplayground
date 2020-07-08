@@ -91,19 +91,20 @@ class Topbar extends React.PureComponent<TopbarProps> {
                     tabIndex={0}
                 >
                     <div className="main-text">
-                        {this.props.debug
-                            ? (
-                                <div className="icon run-icon debug-icon">
-                                    <span className="outline"><i className="fas fa-bug" /></span>
-                                    <span className="filled"><i className="fas fa-bug" /></span>
-                                </div>
-                            ) : (
-                                <div className="icon run-icon">
-                                    <span className="outline">&#9655;</span>
-                                    <span className="filled">&#9654;</span>
-                                </div>
-                            )}
-                        { this.props.debug ? 'Debug' : 'Run' }
+                        <div className={this.props.debug ? 'active' : 'inactive'}>
+                            <div className="icon run-icon debug-icon">
+                                <span className="outline"><i className="fas fa-bug" /></span>
+                                <span className="filled"><i className="fas fa-bug" /></span>
+                            </div>
+                            Debug
+                        </div>
+                        <div className={this.props.debug ? 'inactive' : 'active'}>
+                            <div className="icon run-icon">
+                                <span className="outline">&#9655;</span>
+                                <span className="filled">&#9654;</span>
+                            </div>
+                            Run
+                        </div>
                     </div>
                     <div className="shortcut">shift+enter</div>
                 </div>

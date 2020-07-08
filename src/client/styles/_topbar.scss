@@ -67,6 +67,24 @@
     margin-right: 10px;
 }
 
+#run-btn .main-text {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#run-btn .main-text .inactive {
+    position: absolute;
+    display: hidden;
+    transform: translateY(500%);
+    transition: transform 0.4s ease-out;
+}
+
+#run-btn .main-text .active {
+    transform: none;
+    transition: transform 0.4s ease-out;
+}
+
 #run-btn .run-icon .filled {
     position: absolute;
     top: 0;
