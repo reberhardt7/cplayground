@@ -4,6 +4,7 @@
 #include <linux/sched.h>            // for_each_process, pr_info
 #include <linux/sched/signal.h>     // for_each_process, pr_info
 #include <linux/nsproxy.h>          // struct nsproxy
+#include <linux/pid_namespace.h>          // task_active_pid_ns
 #include <linux/fdtable.h>
 #include <linux/file.h>
 #include <linux/crypto.h>
@@ -178,12 +179,8 @@ static unsigned int get_containerized_processes(
     rcu_read_lock();    // begin critical section, do not sleep!
     for_each_process(task) {
         task_lock(task);
-        struct nsproxy *nsproxy = task->nsproxy;
-        if (nsproxy == NULL) {  // indicates zombie process, according to docs
-            task_unlock(task);
-            continue;
-        }
-        struct pid_namespace *ns = nsproxy->pid_ns_for_children;
+        
+        struct pid_namespace *ns = task_active_pid_ns(task);
         if (ns == init_ns) {
             task_unlock(task);
             continue;
@@ -226,14 +223,8 @@ static void print_processes(struct task_struct **container_tasks, unsigned int c
         // sleep.
         task_lock(task);
         int global_pid = task_pid_nr(task);
-        if (task->nsproxy == NULL) {
-            // The task may have exited in between when we added it to our list
-            // and when we got here. We'll just ignore it and move on
-            task_unlock(task);
-            put_task_struct(task);
-            continue;
-        }
-        struct pid_namespace *ns = task->nsproxy->pid_ns_for_children;
+        
+        struct pid_namespace *ns = task_active_pid_ns(task);
         int container_pid = task_pid_nr_ns(task, ns);
         int container_ppid = task_ppid_nr_ns(task, ns);
         int container_pgid = task_pgrp_nr_ns(task, ns);
