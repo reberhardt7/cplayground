@@ -6,6 +6,7 @@ import {
     FileDescriptorTable, ContainerInfo, Process, OpenFileTable, VnodeTable,
 } from '../common/communication';
 import { DebugDataError } from './error';
+import { ProcessRunState, PROCESS_RUN_STATES } from '../common/constants';
 
 const CPLAYGROUND_PROCFILE = '/proc/cplayground';
 const USE_MOCK_DATA = Boolean(process.env.CP_MOCK_DEBUGGER);
@@ -53,6 +54,7 @@ type RawProcessInfo = {
     containerPID: number;
     containerPPID: number;
     containerPGID: number;
+    runState: string;
     command: string;
     files: {
         [key: number]: RawFileInfo;
@@ -77,6 +79,7 @@ const MOCK_DATA: ContainerInfo = {
         pid: 20,
         ppid: 1,
         pgid: 1,
+        runState: 'R',
         command: 'output',
         threads: [],
         fds: {
@@ -102,6 +105,7 @@ const MOCK_DATA: ContainerInfo = {
         pid: 21,
         ppid: 20,
         pgid: 1,
+        runState: 'R',
         command: 'output',
         threads: [],
         fds: {
@@ -202,6 +206,7 @@ function readProcessLine(line: string): RawProcessInfo {
         containerPID, // PID of process as it appears within the container
         containerPPID,
         containerPGID,
+        runState,
         command,
     ] = line.split('\t');
     return {
@@ -210,6 +215,7 @@ function readProcessLine(line: string): RawProcessInfo {
         containerPID: Number(containerPID),
         containerPPID: Number(containerPPID),
         containerPGID: Number(containerPGID),
+        runState,
         command,
         files: {},
     };
@@ -307,12 +313,20 @@ function populateProcessTable(rawProcesses: RawProcessInfo[]): Process[] {
         for (const fd of Object.values(proc.files)) {
             fds[fd.fd] = { file: fd.openFileID, closeOnExec: fd.closeOnExec };
         }
+
+        if (!PROCESS_RUN_STATES.includes(proc.runState)) {
+            console.warn(
+                `[container pid ${proc.containerPID}] Unrecognized runstate '${proc.runState}' in PID ${proc.globalPID} (global)`,
+            );
+        }
+
         processes.push({
             debuggerId: null,
             pid: proc.containerPID,
             ppid: proc.containerPPID,
             pgid: proc.containerPGID,
             command: proc.command,
+            runState: proc.runState as ProcessRunState,
             threads: [],
             fds,
         });
@@ -506,11 +520,14 @@ export async function getContainerInfo(
     for (const process of kernelData.processes) {
         const gdbProcess = gdbProcesses.find((proc) => proc.pid === process.pid);
         if (!gdbProcess) {
-            console.warn(
-                `[container pid ${containerPid}] Could not find gdb inferior with pid ${process.pid}`,
-                'Kernel data:', kernelData,
-                'Gdb processes:', gdbProcesses,
-            );
+            // we do not expect to find a GDB process for zombie processes, so don't warn
+            if (process.runState !== 'Z') {
+                console.warn(
+                    `[container pid ${containerPid}] Could not find gdb inferior with pid ${process.pid}`,
+                    'Kernel data:', kernelData,
+                    'Gdb processes:', gdbProcesses,
+                );
+            }
             continue;
         }
         process.debuggerId = gdbProcess.id;

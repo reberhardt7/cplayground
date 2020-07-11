@@ -7,13 +7,13 @@ import NextIcon from '../img/debugger-next.svg';
 import StepInIcon from '../img/debugger-step-in.svg';
 
 type DebugControlsProps = {
-    thread: Thread;
+    thread: Thread | null;
     debugServer: DebugServer;
 }
 
 const DebugControls: React.FunctionComponent<DebugControlsProps> = (props: DebugControlsProps) => (
     <div className="debug-controls">
-        {props.thread.status === 'stopped' && (
+        {props.thread && props.thread.status === 'stopped' && (
             <>
                 <Button
                     title="Continue execution"
@@ -35,7 +35,7 @@ const DebugControls: React.FunctionComponent<DebugControlsProps> = (props: Debug
                 </Button>
             </>
         )}
-        {props.thread.status === 'running' && <div className="small-loading-spinner" />}
+        {props.thread && props.thread.status === 'running' && <div className="small-loading-spinner" />}
     </div>
 );
 

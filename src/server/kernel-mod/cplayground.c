@@ -141,7 +141,7 @@ static void inspect_fds(struct files_struct *files, struct seq_file *sfile) {
 }
 
 static void print_proc_details(void *ns_ptr, int global_pid, int container_pid,
-        int container_ppid, int container_pgid, const char *command,
+        int container_ppid, int container_pgid, char run_state, const char *command,
         struct seq_file *sfile) {
     char ns_ptr_hash[64 + 1];
     hash_pointer(ns_ptr, ns_ptr_hash);
@@ -152,9 +152,10 @@ static void print_proc_details(void *ns_ptr, int global_pid, int container_pid,
             "%d\t"  // container PID
             "%d\t"  // container PPID
             "%d\t"  // container PGID
+            "%c\t"  // run state
             "%s\n", // command
             ns_ptr_hash, global_pid, container_pid, container_ppid,
-            container_pgid, command);
+            container_pgid, run_state, command);
 }
 
 /**
@@ -179,7 +180,7 @@ static unsigned int get_containerized_processes(
     rcu_read_lock();    // begin critical section, do not sleep!
     for_each_process(task) {
         task_lock(task);
-        
+
         struct pid_namespace *ns = task_active_pid_ns(task);
         if (ns == init_ns) {
             task_unlock(task);
@@ -198,6 +199,15 @@ static unsigned int get_containerized_processes(
     }
     rcu_read_unlock();  // end rcu critical section
     return container_tasks_len;
+}
+
+/**
+ * Gets the run state of a process, as is reported by ps and /proc/##/status.
+ * Returns the friendly single-character representation as opposed to the bitflag.
+ */
+static char get_proc_runstatus(struct task_struct *task) {
+    unsigned int friendly_state_id = task_state_index(task);
+	return task_index_to_char(friendly_state_id);
 }
 
 /**
@@ -223,11 +233,12 @@ static void print_processes(struct task_struct **container_tasks, unsigned int c
         // sleep.
         task_lock(task);
         int global_pid = task_pid_nr(task);
-        
+
         struct pid_namespace *ns = task_active_pid_ns(task);
         int container_pid = task_pid_nr_ns(task, ns);
         int container_ppid = task_ppid_nr_ns(task, ns);
         int container_pgid = task_pgrp_nr_ns(task, ns);
+        char run_state = get_proc_runstatus(task);
         unsigned char command[sizeof(task->comm)];
         strncpy(command, task->comm, sizeof(task->comm));
         task_unlock(task);
@@ -241,7 +252,7 @@ static void print_processes(struct task_struct **container_tasks, unsigned int c
         // be deallocated
 
         print_proc_details((void*)ns, global_pid, container_pid,
-                container_ppid, container_pgid, command, sfile);
+                container_ppid, container_pgid, run_state, command, sfile);
 
         if (files) {
             inspect_fds(files, sfile);

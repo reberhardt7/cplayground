@@ -1,4 +1,4 @@
-import { CompilerFlag, SupportedVersion } from './constants';
+import { CompilerFlag, SupportedVersion, ProcessRunState } from './constants';
 
 export type SavedProgram = {
     code: string;
@@ -15,6 +15,7 @@ export type Process = {
     ppid: number;
     pgid: number;
     command: string;
+    runState: ProcessRunState;
     threads: Thread[];
     fds: FileDescriptorTable;
 }
