@@ -49,7 +49,7 @@ export default class Container {
     private readonly startTime = process.hrtime();
     private pty: ptylib.IPty | null = null;
     private exited = false;
-    private cols: number = null;
+    private terminalWidth: number = null;
 
     private readonly dataHostPath = getPathFromRoot('data');
     private readonly codeHostPath = path.join(this.dataHostPath, this.containerName);
@@ -99,7 +99,7 @@ export default class Container {
         }
 
         this.logPrefix = logPrefix;
-        this.cols = cols;
+        this.terminalWidth = cols;
         this.externalOutputCallback = onOutput;
         this.externalExitCallback = onExit;
         this.externalDebugCallback = onDebugInfo;
@@ -333,10 +333,9 @@ export default class Container {
         // match
         const fg = '\x1b[91m'; // red
         const bg = '\x1b[100m'; // light gray
-        const bannerWidth = this.cols;
 
-        const lpad = ' '.repeat(Math.floor((bannerWidth - text.length) / 2));
-        const rpad = ' '.repeat(Math.ceil((bannerWidth - text.length) / 2));
+        const lpad = ' '.repeat(Math.floor((this.terminalWidth - text.length) / 2));
+        const rpad = ' '.repeat(Math.ceil((this.terminalWidth - text.length) / 2));
         this.externalOutputCallback(`${fg + bg + lpad + text + rpad}\x1b[0m`);
     };
 
