@@ -197,8 +197,10 @@ export default class Container {
                 throw new SystemConfigurationError('ptrace is not safe to use on linux versions '
                     + 'older than 4.8, as it can be used to bypass seccomp.');
             }
-            // Grant ptrace capability for gdb
-            runArgs.push('--cap-add=SYS_PTRACE');
+            // Docker itself runs the above check too, and grants the ptrace syscall in its seccomp
+            // profile (without granting the dangerous CAP_SYS_PTRACE) on kernel versions past 4.8,
+            // meaning we need not do anything to give gdb the perms it needs
+
             // Tell run.py to run in debug mode
             runArgs.push('-e', 'CPLAYGROUND_DEBUG=1');
         }
