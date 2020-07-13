@@ -71,18 +71,19 @@
     display: flex;
     justify-content: center;
     align-items: center;
-}
 
-#run-btn .main-text .inactive {
-    position: absolute;
-    display: hidden;
-    transform: translateY(500%);
-    transition: transform 0.4s ease-out;
-}
+    .inactive {
+        position: absolute;
+        transform: rotateX(180deg);
+        transition: transform 0.4s ease-out;
+        backface-visibility: hidden;
+    }
 
-#run-btn .main-text .active {
-    transform: none;
-    transition: transform 0.4s ease-out;
+    .active {
+        transform: none;
+        transition: transform 0.4s ease-out;
+        backface-visibility: hidden;
+    }
 }
 
 #run-btn .run-icon .filled {
