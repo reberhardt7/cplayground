@@ -7,12 +7,8 @@ import time
 import sys
 import socket
 import signal
+import shutil
 
-# TODO: in the future, make BANNER_WIDTH dependent on the size of the terminal.
-# (This might be tricky; there seems to be a race condition with docker or
-# node-pty or something where the terminal size isn't being correctly set until
-# after this script already starts running.)
-BANNER_WIDTH = 60
 RED = '\033[91m'
 GREEN = '\033[92m'
 YELLOW = '\033[93m'
@@ -21,8 +17,10 @@ LIGHT_GRAY = '\033[100m'
 CLEAR = '\033[0m'
 
 def print_banner(msg, fg_color, bg_color):
-    lpad_len = (BANNER_WIDTH - len(msg)) // 2
-    rpad_len = (BANNER_WIDTH - len(msg) + 1) // 2
+    terminal_size = shutil.get_terminal_size()
+    banner_width = terminal_size[0]
+    lpad_len = (banner_width - len(msg)) // 2
+    rpad_len = (banner_width - len(msg) + 1) // 2
     print(f"{fg_color}{bg_color}{' ' * lpad_len}{msg}{' ' * rpad_len}{CLEAR}")
 
 def format_execution_time(elapsed_s):

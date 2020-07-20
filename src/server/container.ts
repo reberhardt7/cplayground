@@ -49,6 +49,7 @@ export default class Container {
     private readonly startTime = process.hrtime();
     private pty: ptylib.IPty | null = null;
     private exited = false;
+    private terminalWidth: number = null;
 
     private readonly dataHostPath = getPathFromRoot('data');
     private readonly codeHostPath = path.join(this.dataHostPath, this.containerName);
@@ -98,6 +99,7 @@ export default class Container {
         }
 
         this.logPrefix = logPrefix;
+        this.terminalWidth = cols;
         this.externalOutputCallback = onOutput;
         this.externalExitCallback = onExit;
         this.externalDebugCallback = onDebugInfo;
@@ -195,8 +197,10 @@ export default class Container {
                 throw new SystemConfigurationError('ptrace is not safe to use on linux versions '
                     + 'older than 4.8, as it can be used to bypass seccomp.');
             }
-            // Grant ptrace capability for gdb
-            runArgs.push('--cap-add=SYS_PTRACE');
+            // Docker itself runs the above check too, and grants the ptrace syscall in its seccomp
+            // profile (without granting the dangerous CAP_SYS_PTRACE) on kernel versions past 4.8,
+            // meaning we need not do anything to give gdb the perms it needs
+
             // Tell run.py to run in debug mode
             runArgs.push('-e', 'CPLAYGROUND_DEBUG=1');
         }
@@ -331,10 +335,9 @@ export default class Container {
         // match
         const fg = '\x1b[91m'; // red
         const bg = '\x1b[100m'; // light gray
-        const bannerWidth = 60;
 
-        const lpad = ' '.repeat(Math.floor((bannerWidth - text.length) / 2));
-        const rpad = ' '.repeat(Math.ceil((bannerWidth - text.length) / 2));
+        const lpad = ' '.repeat(Math.floor((this.terminalWidth - text.length) / 2));
+        const rpad = ' '.repeat(Math.ceil((this.terminalWidth - text.length) / 2));
         this.externalOutputCallback(`${fg + bg + lpad + text + rpad}\x1b[0m`);
     };
 
