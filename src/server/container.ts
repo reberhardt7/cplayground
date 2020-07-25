@@ -327,10 +327,10 @@ export default class Container {
         // with)
         fs.unlink(this.codeHostPath, () => {
             console.log(`${this.logPrefix}Deleted ${this.codeHostPath}`);
-        }); 
+        });
         fs.unlink(this.includeFileHostPath, () => {
             console.log(`${this.logPrefix}Deleted ${this.includeFileHostPath}`);
-        }); 
+        });
         // Shut down gdb server, if it's running
         if (this.gdbMiServer) {
             this.gdbMiServer.close();
@@ -497,7 +497,7 @@ export default class Container {
 
             fs.readFile(
                 `/sys/fs/cgroup/cpu/docker/${this.containerId}/cpuacct.usage`,
-                (err, data) => { 
+                (err, data) => {
                     if (err) {
                         console.warn(`${this.logPrefix}Error loading cgroup CPU usage!`, err);
                         return;
@@ -512,7 +512,7 @@ export default class Container {
                         childProcess.execFile('docker', ['kill', this.containerName]);
                         this.showErrorBanner('The program exceeded its CPU quota.');
                     }
-                }
+                },
             );
         }, 1000);
     };
