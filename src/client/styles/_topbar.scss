@@ -67,6 +67,25 @@
     margin-right: 10px;
 }
 
+#run-btn .main-text {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    .inactive {
+        position: absolute;
+        transform: rotateX(180deg);
+        transition: transform 0.4s ease-out;
+        backface-visibility: hidden;
+    }
+
+    .active {
+        transform: none;
+        transition: transform 0.4s ease-out;
+        backface-visibility: hidden;
+    }
+}
+
 #run-btn .run-icon .filled {
     position: absolute;
     top: 0;
