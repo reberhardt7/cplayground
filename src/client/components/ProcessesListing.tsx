@@ -29,10 +29,12 @@ const Process: React.FunctionComponent<ProcessProps> = (props: ProcessProps) => 
                 <Pill text={`pid ${props.process.pid}`} color={props.color} />
                 {props.process.command}
                 {statusText && ` (${statusText})`}
-                <DebugControls
-                    debugServer={props.debugServer}
-                    thread={props.process.threads[0] || null}
-                />
+                {(props.process.threads[0] && (
+                    <DebugControls
+                        debugServer={props.debugServer}
+                        thread={props.process.threads[0]}
+                    />
+                ))}
             </div>
             {/* <table className="process-body">
                 <tbody>
