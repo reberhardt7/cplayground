@@ -207,7 +207,7 @@ static unsigned int get_containerized_processes(
  */
 static char get_proc_runstatus(struct task_struct *task) {
     unsigned int friendly_state_id = task_state_index(task);
-	return task_index_to_char(friendly_state_id);
+    return task_index_to_char(friendly_state_id);
 }
 
 /**
