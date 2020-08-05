@@ -1,7 +1,7 @@
 import * as React from 'react';
 
 import Pill from './Pill';
-import { Process as ProcessType } from '../../common/communication';
+import { Process as ProcessType, ProcessRunState } from '../../common/communication';
 import { DebugServer } from '../server-comm';
 import DebugControls from './DebugControls';
 
@@ -17,7 +17,7 @@ const Process: React.FunctionComponent<ProcessProps> = (props: ProcessProps) => 
     if (thread) {
         statusText = thread.status
             + (thread.status === 'stopped' && thread.stoppedAt ? ` at line ${thread.stoppedAt}` : '');
-    } else if (props.process.runState === 'Z') {
+    } else if (props.process.runState === ProcessRunState.Zombie) {
         // "zombie" / unreaped is a processwide, not per-thread, state
         // in fact, when in this state, we won't have threads
         // create the friendly status here

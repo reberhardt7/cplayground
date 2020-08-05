@@ -58,7 +58,3 @@ export type CompilerFlag = typeof FLAG_WHITELIST_ARR[number];
 const THEMES_ARR = ['monokai', 'zenburn'] as const;
 export const THEMES = THEMES_ARR as ReadonlyArray<string>;
 export type Theme = typeof THEMES_ARR[number];
-
-const PROCESS_RUN_STATES_ARR = ['R', 'S', 'D', 'T', 't', 'X', 'Z', 'P', 'I'] as const;
-export const PROCESS_RUN_STATES = PROCESS_RUN_STATES_ARR as ReadonlyArray<string>;
-export type ProcessRunState = typeof PROCESS_RUN_STATES_ARR[number];

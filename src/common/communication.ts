@@ -1,4 +1,4 @@
-import { CompilerFlag, SupportedVersion, ProcessRunState } from './constants';
+import { CompilerFlag, SupportedVersion } from './constants';
 
 export type SavedProgram = {
     code: string;
@@ -7,6 +7,18 @@ export type SavedProgram = {
     includeFileName: string | null;
     language: SupportedVersion;
     flags: CompilerFlag[];
+}
+
+export enum ProcessRunState {
+    Running = 'R',
+    Sleeping = 'S',
+    IOSleeping = 'D',
+    Stopped = 'T',
+    TraceStopped = 't',
+    Dead = 'X',
+    Zombie = 'Z',
+    Parked = 'P',
+    Idle = 'I'
 }
 
 export type Process = {
