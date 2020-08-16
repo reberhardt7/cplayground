@@ -1,5 +1,6 @@
 #include <linux/init.h>
 #include <linux/module.h>
+#include <linux/moduleparam.h>
 #include <linux/kernel.h>
 #include <linux/sched.h>            // for_each_process, pr_info
 #include <linux/sched/signal.h>     // for_each_process, pr_info
