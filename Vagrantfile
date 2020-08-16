@@ -102,7 +102,7 @@ Vagrant.configure("2") do |config|
     fi
     (
       cd /cplayground/src/server/kernel-mod
-      sudo insmod cplayground.ko
+      sudo insmod cplayground.ko "file_uid=$(id -u vagrant)" "file_gid=$(id -g vagrant)"
     )
 
     # Virtualbox shared folders don't support unix domain sockets (which we use

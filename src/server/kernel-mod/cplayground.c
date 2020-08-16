@@ -18,6 +18,14 @@ MODULE_AUTHOR("Ryan Eberhardt");
 MODULE_DESCRIPTION("Cplayground debugging module");
 MODULE_VERSION("0.01");
 
+static uid_t file_uid = 0;
+static gid_t file_gid = 0;
+
+module_param(file_uid, uint, 0000);
+MODULE_PARM_DESC(file_uid, "The UID to own the cplayground data file");
+module_param(file_gid, uint, 0000);
+MODULE_PARM_DESC(file_gid, "The GID to own the cplayground data file");
+
 static struct proc_dir_entry *cplayground_dirent = NULL;
 
 // Most of this hashing code is stolen from
@@ -301,9 +309,8 @@ static int __init lkm_example_init(void) {
     if (cplayground_dirent == NULL) {
         return -ENOMEM;
     }
-    // TODO: Don't hardcode uid 1000
-    kuid_t uid = { .val = 1000 };
-    kgid_t gid = { .val = 1000 };
+    kuid_t uid = { .val = file_uid };
+    kgid_t gid = { .val = file_gid };
     proc_set_user(cplayground_dirent, uid, gid);
     return 0;
 }
