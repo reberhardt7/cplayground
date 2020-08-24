@@ -10,12 +10,14 @@ Vagrant.configure("2") do |config|
   config.vm.box = "hashicorp/bionic64"
 
   # Forward host port 3000 to guest port 3000. That way, if you navigate to
-  # localhost:3000, it will load cplayground from the vm.
+  # localhost:3000, it will load cplayground from the vm. Also forward the nodejs debug port.
   config.vm.network "forwarded_port", guest: 3000, host: 3000, host_ip: "127.0.0.1"
+  config.vm.network "forwarded_port", guest: 9229, host: 9229, host_ip: "127.0.0.1"
 
   # Mount ./ from the host (i.e. the cplayground directory) to /cplayground in
   # the vm
   config.vm.synced_folder "./", "/cplayground"
+  config.vm.synced_folder "./", "/vagrant", disabled: true
 
   # Provider-specific configuration so you can fine-tune various
   # backing providers for Vagrant. These expose provider-specific options.
@@ -93,8 +95,8 @@ Vagrant.configure("2") do |config|
     sudo -EHu vagrant ./build-all.sh
   SHELL
 
-  # Finish up with vagrant-specific vm prep
-  config.vm.provision "shell", inline: <<-SHELL
+  # Load cplayground kernel module - do this every boot
+  config.vm.provision "shell", run: 'always', inline: <<-SHELL
     # Mount the kernel module
     echo -e "\e[96m""Mounting kernel module...""\e[0m"
     if lsmod | grep -q 'cplayground'; then
@@ -104,7 +106,10 @@ Vagrant.configure("2") do |config|
       cd /cplayground/src/server/kernel-mod
       sudo insmod cplayground.ko "file_uid=$(id -u vagrant)" "file_gid=$(id -g vagrant)"
     )
+  SHELL
 
+  # Finish up with vagrant-specific vm prep
+  config.vm.provision "shell", inline: <<-SHELL
     # Virtualbox shared folders don't support unix domain sockets (which we use
     # to communicate with gdb in the Docker containers). As a hack, we put the
     # data folder in the parent directory so that it's not in the shared
