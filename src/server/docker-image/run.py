@@ -74,12 +74,14 @@ def run():
         with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as gdbsock:
             gdbsock.connect('/gdb.sock')
             sockfile = gdbsock.makefile('b', 0)
+            # the node server is responsible for ensuring gdb sandboxes its child
             args = ['gdb', '--tty=/dev/pts/0', '-i=mi', '--args', '/cplayground/cplayground'] + sys.argv[1:]
             user_proc = subprocess.Popen(args, stdin=sockfile, stdout=sockfile, stderr=sockfile,
                                          preexec_fn=become_fg_process)
             user_proc.wait()
     else:
-        user_proc = subprocess.run(['/cplayground/cplayground'] + sys.argv[1:],
+        # this script will ensure sandboxing
+        user_proc = subprocess.run(['/sandbox', '/cplayground/cplayground'] + sys.argv[1:],
                                    preexec_fn=become_fg_process)
     return (user_proc.returncode, time.time() - user_start_time)
 
