@@ -6,3 +6,4 @@ Additional thanks to the following people for their contributions:
 * Blanca Villanueva, for developing a prototype of the UI that allows users to set breakpoints
 * Cathy Zhang
 * Noah Geller, for various UI tweaks
+* Glen Husman, for zombie process support

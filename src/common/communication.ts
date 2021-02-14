@@ -9,12 +9,25 @@ export type SavedProgram = {
     flags: CompilerFlag[];
 }
 
+export enum ProcessRunState {
+    Running = 'R',
+    Sleeping = 'S',
+    IOSleeping = 'D',
+    Stopped = 'T',
+    TraceStopped = 't',
+    Dead = 'X',
+    Zombie = 'Z',
+    Parked = 'P',
+    Idle = 'I'
+}
+
 export type Process = {
     debuggerId: number | null;
     pid: number;
     ppid: number;
     pgid: number;
     command: string;
+    runState: ProcessRunState;
     threads: Thread[];
     fds: FileDescriptorTable;
 }

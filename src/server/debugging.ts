@@ -3,7 +3,7 @@ import readline from 'readline';
 import { Thread, ThreadGroup } from 'gdb-js';
 
 import {
-    FileDescriptorTable, ContainerInfo, Process, OpenFileTable, VnodeTable,
+    ContainerInfo, FileDescriptorTable, OpenFileTable, Process, ProcessRunState, VnodeTable,
 } from '../common/communication';
 import { DebugDataError } from './error';
 
@@ -53,6 +53,7 @@ type RawProcessInfo = {
     containerPID: number;
     containerPPID: number;
     containerPGID: number;
+    runState: ProcessRunState;
     command: string;
     files: {
         [key: number]: RawFileInfo;
@@ -77,6 +78,7 @@ const MOCK_DATA: ContainerInfo = {
         pid: 20,
         ppid: 1,
         pgid: 1,
+        runState: ProcessRunState.Running,
         command: 'output',
         threads: [],
         fds: {
@@ -102,6 +104,7 @@ const MOCK_DATA: ContainerInfo = {
         pid: 21,
         ppid: 20,
         pgid: 1,
+        runState: ProcessRunState.Running,
         command: 'output',
         threads: [],
         fds: {
@@ -202,17 +205,32 @@ function readProcessLine(line: string): RawProcessInfo {
         containerPID, // PID of process as it appears within the container
         containerPPID,
         containerPGID,
+        runState,
         command,
     ] = line.split('\t');
-    return {
+
+    const retVal: RawProcessInfo = {
         namespaceID,
         globalPID: Number(globalPID),
         containerPID: Number(containerPID),
         containerPPID: Number(containerPPID),
         containerPGID: Number(containerPGID),
+        runState: undefined,
         command,
         files: {},
     };
+
+    // ensure the RawProcessInfo object's runState is either undefined or a valid enum value
+    // we want to avoid a "defined" ProcessRunState that isn't actually valid
+    if (Object.values(ProcessRunState).includes(runState as ProcessRunState)) {
+        retVal.runState = runState as ProcessRunState;
+    } else {
+        console.warn(
+            `[container pid ${containerPID}] Unrecognized runstate '${runState}' in PID ${globalPID} (global)`,
+        );
+    }
+
+    return retVal;
 }
 
 /**
@@ -307,12 +325,14 @@ function populateProcessTable(rawProcesses: RawProcessInfo[]): Process[] {
         for (const fd of Object.values(proc.files)) {
             fds[fd.fd] = { file: fd.openFileID, closeOnExec: fd.closeOnExec };
         }
+
         processes.push({
             debuggerId: null,
             pid: proc.containerPID,
             ppid: proc.containerPPID,
             pgid: proc.containerPGID,
             command: proc.command,
+            runState: proc.runState as ProcessRunState,
             threads: [],
             fds,
         });
@@ -505,13 +525,22 @@ export async function getContainerInfo(
     }
     for (const process of kernelData.processes) {
         const gdbProcess = gdbProcesses.find((proc) => proc.pid === process.pid);
+        // we expect to find a GDB process iff the process is not a zombie
         if (!gdbProcess) {
+            if (process.runState !== ProcessRunState.Zombie) {
+                console.warn(
+                    `[container pid ${containerPid}] Could not find gdb inferior with pid ${process.pid}`,
+                    'Kernel data:', kernelData,
+                    'Gdb processes:', gdbProcesses,
+                );
+            }
+            continue;
+        } else if (process.runState === ProcessRunState.Zombie) {
             console.warn(
-                `[container pid ${containerPid}] Could not find gdb inferior with pid ${process.pid}`,
+                `[container pid ${containerPid}] Unexpected gdb process found for zombie pid ${process.pid}`,
                 'Kernel data:', kernelData,
                 'Gdb processes:', gdbProcesses,
             );
-            continue;
         }
         process.debuggerId = gdbProcess.id;
         process.threads = gdbThreads
