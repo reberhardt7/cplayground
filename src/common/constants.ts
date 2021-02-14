@@ -44,6 +44,7 @@ export const LINKER_FLAGS = [
     { flag: '-pthread', label: '-pthread (threading)' },
     { flag: '-lcrypt', label: '-lcrypt (crypto)' },
     { flag: '-lreadline', label: '-lreadline' },
+    { flag: '-ll', label: '-ll (flex)' },
     { flag: '-lrt', label: '-lrt' },
 ] as const;
 

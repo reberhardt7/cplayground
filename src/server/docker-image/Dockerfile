@@ -1,6 +1,6 @@
 FROM ubuntu:latest
 RUN apt-get update && \
-    DEBIAN_FRONTEND="noninteractive" apt-get install -y apt-utils build-essential bc unzip nsnake python3 gdb
+    DEBIAN_FRONTEND="noninteractive" apt-get install -y apt-utils build-essential bc unzip nsnake python3 gdb libreadline-dev flex bison
 
 RUN groupadd -g 999 cplayground \
     && useradd -r -u 999 -g cplayground -d /cplayground cplayground
