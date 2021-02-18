@@ -336,8 +336,9 @@ export default class Container {
         const fg = '\x1b[91m'; // red
         const bg = '\x1b[100m'; // light gray
 
-        const lpad = ' '.repeat(Math.floor((this.terminalWidth - text.length) / 2));
-        const rpad = ' '.repeat(Math.ceil((this.terminalWidth - text.length) / 2));
+        const bannerWidth = Math.max(this.terminalWidth, text.length);
+        const lpad = ' '.repeat(Math.floor((bannerWidth - text.length) / 2));
+        const rpad = ' '.repeat(Math.ceil((bannerWidth - text.length) / 2));
         this.externalOutputCallback(`${fg + bg + lpad + text + rpad}\x1b[0m`);
     };
 

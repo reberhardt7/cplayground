@@ -45,7 +45,7 @@ class App extends React.PureComponent<AppProps, AppState> {
             layout: props.inEmbeddedMode ? Layout.EDIT : Layout.SPLIT,
             showSettingsPane: false,
             // Arbitrary size (this gets changed as soon as Terminal mounts)
-            terminalSize: { rows: 80, cols: 24 },
+            terminalSize: { rows: 24, cols: 80 },
             programRunning: false,
             breakpoints: [],
         };

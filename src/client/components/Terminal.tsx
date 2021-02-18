@@ -88,9 +88,14 @@ class Terminal extends React.Component<TerminalProps> {
         // eslint-disable-next-line @typescript-eslint/ban-ts-ignore
         // @ts-ignore (No TS definitions for xterm-webfont)
         this.term.loadWebfontAndOpen(this.xtermDiv.current)
-            .then(() => this.fitAddon.fit());
-
-        this.resizeSensor = new ResizeSensor(this.xtermDiv.current, this.onResize);
+            .then(() => {
+                this.fitAddon.fit();
+                // Whenever the terminal changes size, notify the parent component. We need to do
+                // this after the terminal has already been rendered/sized in order to avoid
+                // problems where the ResizeSensor tries to access DOM nodes that haven't been
+                // properly created yet
+                this.resizeSensor = new ResizeSensor(this.xtermDiv.current, this.onResize);
+            });
 
         if (this.props.socket) {
             this.bindToSocket(this.props.socket);
