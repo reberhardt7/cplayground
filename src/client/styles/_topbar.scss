@@ -72,17 +72,15 @@
     justify-content: center;
     align-items: center;
 
-    .inactive {
-        position: absolute;
-        transform: rotateX(180deg);
+    .active, .inactive {
         transition: transform 0.4s ease-out;
         backface-visibility: hidden;
+        -webkit-backface-visibility: hidden; // Safari is still prefixed for some reason >:(
     }
 
-    .active {
-        transform: none;
-        transition: transform 0.4s ease-out;
-        backface-visibility: hidden;
+    .inactive {
+        transform: rotateX(180deg);
+        position: absolute;
     }
 }
 
