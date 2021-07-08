@@ -434,6 +434,9 @@ export default class Container {
         await this.gdb.enableAsync();
         await this.gdb.attachOnFork();
 
+        // Setup sandboxing
+        await this.gdb.set('exec-wrapper', '/sandbox');
+
         // Set and save initial breakpoints
         const initialBreakpointObjs = await Promise.all(this.initialBreakpoints.map(
             (lineno) => this.gdb.addBreak(this.codeContainerPath, lineno),
