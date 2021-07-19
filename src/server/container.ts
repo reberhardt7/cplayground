@@ -8,7 +8,7 @@ import uuidv4 from 'uuid/v4';
 import * as ptylib from 'node-pty';
 import semver from 'semver';
 import * as readline from 'readline';
-import { GDB, Breakpoint, Thread, ThreadGroup } from 'gdb-js';
+import { GDB, Breakpoint, Thread, ThreadGroup, Frame } from 'gdb-js';
 // Import regeneratorRuntime as a global to fix errors in gdb-js:
 // eslint-disable-next-line import/extensions
 import 'regenerator-runtime/runtime.js';
@@ -40,6 +40,25 @@ export type ContainerExitNotification = {
     output: string;
 }
 
+interface ThreadStoppedEvent {
+    type: 'stopped';
+    thread: Thread;
+    reason: string;
+    stopSig: string;
+}
+
+interface ThreadRunningEvent {
+    type: 'running';
+    thread: Thread;
+}
+
+interface ThreadExitedEvent {
+    type: 'exited';
+    thread: Thread;
+}
+
+type ThreadEvent = ThreadStoppedEvent | ThreadRunningEvent | ThreadExitedEvent;
+
 export default class Container {
     private readonly logPrefix: string;
 
@@ -64,6 +83,26 @@ export default class Container {
     private breakpoints: {[line: number]: Breakpoint} = {};
     private threads: {[threadId: number]: Thread} = {};
     private processes: {[inferiorId: number]: ThreadGroup} = {};
+    private threadStoppedCallbacks: {[threadId: number]: ((e: ThreadEvent) => unknown)[]} = {};
+    private threadContinuedCallbacks: {[threadId: number]: ((e: ThreadEvent) => unknown)[]} = {};
+    // Store unix timestamp (in ms) of when the debugger finished initializing:
+    private debuggerInitializationFinishedAt: null | number = null;
+    // On regular intervals, we'll momentarily interrupt each thread to examine
+    // where it's running, then continue the thread. We don't want the client
+    // to see this, or else the state display will frequently flash between
+    // stopped/running, and that's not good. So, when we're in the middle of
+    // doing that, we can set this flag to suppress client updates.
+    private suppressDebuggerUpdates = false;
+    // Store the gdb function that was last used to continue a thread. Since we frequently interrupt
+    // threads to inspect them, we need some way to resume them once we're done. We can't just
+    // proceed(), because if we were previously stepping to the next line, then we'll proceed()
+    // without stopping at the next line. This function stores the gdb function that we were
+    // previously running so that we can resume by running it again.
+    // TODO: this is pretty hacky and doesn't work great. For example, what should we do if we want
+    // to step to the next line? If we interrupt the thread while it's in the library function and
+    // then rerun next() to continue, that will step to the next line *in the library*, not in the
+    // user code. We deal with this with some hacks for now, but we need a cleaner solution.
+    private lastRunGdbContinueFunction: {[threadId: number]: ((thread: Thread) => unknown)} = {};
 
     private readonly externalOutputCallback: (data: string) => void;
     private readonly externalExitCallback: (data: ContainerExitNotification) => void;
@@ -386,30 +425,55 @@ export default class Container {
         });
         this.gdb.on('exec', (e) => {
             console.debug(`${this.logPrefix}[gdb] event: exec`, e);
-        });
-        this.gdb.on('stopped', (e) => {
-            console.debug(`${this.logPrefix}[gdb] event: stopped`, e);
-            // Update thread status and frame. We don't replace the whole thread object because
-            // the thread group isn't included in the thread info for these events, so if we do
-            // that, we would lose track of which threads below to which processes.
-            if (e.thread) {
-                this.threads[e.thread.id].status = e.thread.status;
-                this.threads[e.thread.id].frame = e.thread.frame;
+
+            // Handle "stopped" and "running" events here. We do this instead
+            // of using the gdb-js stopped/running events, because the exec
+            // event gives us more info about what happened (e.g. the signal
+            // that caused the thread to stop), and much of this info is lost
+            // in the running/stopped event objects.
+
+            if (e.state === 'stopped' && e.data['thread-id']) {
+                const threadId = parseInt(e.data['thread-id'], 10);
+                this.threads[threadId].status = 'stopped';
+                this.threads[threadId].frame = new Frame({
+                    file: e.data.frame.fullname,
+                    line: parseInt(e.data.frame.line, 10),
+                    func: e.data.frame.func,
+                });
+
+                // Notify anyone waiting for this thread to stop
+                if (this.threadStoppedCallbacks[threadId] !== undefined) {
+                    const callbacks = this.threadStoppedCallbacks[threadId];
+                    delete this.threadStoppedCallbacks[threadId];
+                    for (const callback of callbacks) {
+                        callback({
+                            type: 'stopped',
+                            thread: this.threads[threadId],
+                            reason: e.data.reason,
+                            stopSig: e.data['signal-name'],
+                        });
+                    }
+                }
+            } else if (e.state === 'running' && e.data['thread-id']) {
+                const threadId = parseInt(e.data['thread-id'], 10);
+                this.threads[threadId].status = 'running';
+                this.threads[threadId].frame = null;
+
+                // Notify anyone waiting for this thread to continue
+                if (this.threadContinuedCallbacks[threadId] !== undefined) {
+                    const callbacks = this.threadContinuedCallbacks[threadId];
+                    delete this.threadContinuedCallbacks[threadId];
+                    for (const callback of callbacks) {
+                        callback({ type: 'running', thread: this.threads[threadId] });
+                    }
+                }
             }
-            // Send the client an update. (Reset the debugging monitor so that we don't
-            // inadvertently send two updates in quick succession, which is unnecessary.)
-            this.reportDebugInfo().then(this.setDebuggingMonitor);
-        });
-        this.gdb.on('running', (e) => {
-            console.debug(`${this.logPrefix}[gdb] event: running`, e);
-            // Update thread status and frame
-            if (e.thread) {
-                this.threads[e.thread.id].status = e.thread.status;
-                this.threads[e.thread.id].frame = e.thread.frame;
+
+            if (e.state === 'stopped' || e.state === 'running') {
+                // Send the client an update. (Reset the debugging monitor so that we don't
+                // inadvertently send two updates in quick succession, which is unnecessary.)
+                this.reportDebugInfo().then(this.setDebuggingMonitor);
             }
-            // Send the client an update. (Reset the debugging monitor so that we don't
-            // inadvertently send two updates in quick succession, which is unnecessary.)
-            this.reportDebugInfo().then(this.setDebuggingMonitor);
         });
         this.gdb.on('thread-created', (thread: Thread) => {
             console.debug(`${this.logPrefix}[gdb] event: thread-created`, thread);
@@ -418,6 +482,14 @@ export default class Container {
         this.gdb.on('thread-exited', (thread: Thread) => {
             console.debug(`${this.logPrefix}[gdb] event: thread-exited`, thread);
             delete this.threads[thread.id];
+            if (thread && this.threadStoppedCallbacks[thread.id] !== undefined) {
+                const callbacks = this.threadStoppedCallbacks[thread.id];
+                delete this.threadStoppedCallbacks[thread.id];
+                for (const callback of callbacks) callback({ type: 'exited', thread });
+            }
+            // Send the client an update. (Reset the debugging monitor so that we don't
+            // inadvertently send two updates in quick succession, which is unnecessary.)
+            this.reportDebugInfo().then(this.setDebuggingMonitor);
         });
         this.gdb.on('thread-group-started', (group: ThreadGroup) => {
             console.debug(`${this.logPrefix}[gdb] event: thread-group-started`, group);
@@ -445,6 +517,7 @@ export default class Container {
         // Go!
         console.debug(`${this.logPrefix}Issuing run command!`);
         await this.gdb.run();
+        this.debuggerInitializationFinishedAt = Date.now();
     };
 
     /**
@@ -506,6 +579,74 @@ export default class Container {
         }, 1000);
     };
 
+    private inspectAllThreads = async (): Promise<void> => {
+        // We're about to momentarily interrupt any running threads so that we
+        // can inspect them, and then immediately continue them once we're
+        // done. This will trigger our gdb state change callbacks, but we don't
+        // want to tell the client about these state changes, because we caused
+        // them and are about to quickly change things around
+        this.suppressDebuggerUpdates = true;
+
+        // TODO: this is a blatant race condition, but somehow, we need to wait until the inferior
+        // is up and running before doing this (otherwise, we risk sending SIGSTOP to a process that
+        // is about to stop anyways because it hit a breakpoint, and then we get into a funky state
+        // where we send SIGCONT thinking it stopped because we stopped it, but that ends up
+        // resuming it from where the breakpoint was). A more robust solution should look at *why*
+        // the child stopped and proceed here only if it really stopped because of the signal we
+        // sent, but I need to think more about how to do that
+        if (this.debuggerInitializationFinishedAt
+            && Date.now() - this.debuggerInitializationFinishedAt > 2000) {
+            // Add extra info to processes/threads, momentarily pausing threads as necessary to run
+            // gdb inspection commands on them
+            /* eslint-disable no-await-in-loop */
+            for (const thread of Object.values(this.threads)) {
+                try {
+                    let shouldResumeThread = false;
+                    console.debug(`${this.logPrefix}Inspecting thread`, thread);
+                    if (thread.status === 'running') {
+                        // Stop the thread to see where it currently is
+                        console.debug(`${this.logPrefix}Stopping thread ${thread.id} to get stack info...`);
+                        const stopEvent = await this.stopThread(thread);
+                        // Only resume the thread if it stopped because of our signal. (It could
+                        // have just run into a breakpoint before our interrupt came in, and we
+                        // don't want to resume from there.)
+                        shouldResumeThread = stopEvent.type === 'stopped' && stopEvent.stopSig === '0';
+                    }
+
+                    // Get information about the inferior while it's stopped
+                    console.debug(`${this.logPrefix}Getting stack for thread ${thread.id}...`);
+                    const stack = await this.gdb.callstack(thread);
+
+                    if (shouldResumeThread) {
+                        console.debug(`${this.logPrefix}Continuing thread ${thread.id}...`);
+                        await this.continueThread(
+                            thread, this.lastRunGdbContinueFunction[thread.id] || this.gdb.proceed,
+                        );
+                    }
+
+                    // Update the `frame` property of the thread based on the stack that we pulled.
+                    // We wait until *after* we've already continued the thread, because the gdb
+                    // "run" event handler resets the `frame` of the thread to `null`, which is
+                    // usually good, but we want to keep the frame info we pulled earlier.
+                    // TODO: startsWith /cplayground/code is too brittle
+                    const framesInUserCode = stack.filter(
+                        (frame) => frame.file && frame.file.startsWith('/cplayground/code'),
+                    );
+                    if (framesInUserCode.length > 0) {
+                        thread.frame = framesInUserCode[0];
+                    }
+                    console.debug(`${this.logPrefix}Finished inspecting thread ${thread.id}`);
+                } catch (e) {
+                    console.error(`${this.logPrefix}Error while trying to inspect thread`, thread, e);
+                }
+            }
+            /* eslint-enable no-await-in-loop */
+        }
+
+        // All done, we can report back to the client now!
+        this.suppressDebuggerUpdates = false;
+    }
+
     private reportDebugInfo = async (): Promise<void> => {
         if (!this.containerId) {
             // If the container ID hasn't been set yet, there isn't much we can do
@@ -514,6 +655,13 @@ export default class Container {
         if (!this.containerPid) {
             await this.setContainerPid();
         }
+        if (this.suppressDebuggerUpdates) {
+            console.log(`${this.logPrefix}Debugger updates suppressed, bailing out of reportDebugInfo`);
+            return;
+        }
+
+        await this.inspectAllThreads();
+
         const info = await debugging.getContainerInfo(
             this.containerPid, Object.values(this.processes), Object.values(this.threads),
         );
@@ -525,6 +673,31 @@ export default class Container {
             );
         }
     };
+
+    private stopThread = async (thread: Thread): Promise<ThreadEvent> => {
+        if (this.threadStoppedCallbacks[thread.id] === undefined) {
+            this.threadStoppedCallbacks[thread.id] = [];
+        }
+        const promise = new Promise<ThreadEvent>((resolve) => {
+            this.threadStoppedCallbacks[thread.id].push(resolve);
+        });
+        await this.gdb.interrupt(thread);
+        return promise;
+    }
+
+    private continueThread = async (
+        thread: Thread,
+        continueFunc: (thread: Thread) => unknown,
+    ): Promise<ThreadEvent> => {
+        if (this.threadContinuedCallbacks[thread.id] === undefined) {
+            this.threadContinuedCallbacks[thread.id] = [];
+        }
+        const promise = new Promise<ThreadEvent>((resolve) => {
+            this.threadContinuedCallbacks[thread.id].push(resolve);
+        });
+        await continueFunc.bind(this.gdb)(thread);
+        return promise;
+    }
 
     private setDebuggingMonitor = (): void => {
         // If there is already a timer running, stop it so we can reset it
@@ -597,6 +770,7 @@ export default class Container {
         }
         console.log(`${this.logPrefix} got debugging command: proceed`, threadId);
         await this.gdb.proceed(this.threads[threadId]);
+        this.lastRunGdbContinueFunction[threadId] = this.gdb.proceed;
 
         // Extend run timeout for people in debugging sessions
         this.setRunTimeoutMonitor();
@@ -611,6 +785,7 @@ export default class Container {
         }
         console.log(`${this.logPrefix} got debugging command: step in`, threadId);
         await this.gdb.stepIn(this.threads[threadId]);
+        this.lastRunGdbContinueFunction[threadId] = this.gdb.stepIn;
 
         // Extend run timeout for people in debugging sessions
         this.setRunTimeoutMonitor();
@@ -624,7 +799,11 @@ export default class Container {
             throw new DebugStateError(`No known thread with id ${threadId}`);
         }
         console.log(`${this.logPrefix} got debugging command: next`, threadId);
+        const nextLine = `${this.threads[threadId].frame.file}:${this.threads[threadId].frame.line + 1}`;
         await this.gdb.next(this.threads[threadId]);
+        this.lastRunGdbContinueFunction[threadId] = async (thread: Thread): Promise<void> => {
+            await this.gdb.execMI(`-exec-until ${nextLine}`, thread);
+        };
 
         // Extend run timeout for people in debugging sessions
         this.setRunTimeoutMonitor();

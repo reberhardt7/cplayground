@@ -17,7 +17,7 @@ export default function ProcessRow(props: ProcessProps): React.ReactElement {
     let statusText: string = null;
     if (thread) {
         statusText = thread.status
-            + (thread.status === 'stopped' && thread.stoppedAt ? ` at line ${thread.stoppedAt}` : '');
+            + (thread.status === 'stopped' && thread.currentLine ? ` at line ${thread.currentLine}` : '');
     } else if (props.process.runState === ProcessRunState.Zombie) {
         // "zombie" / unreaped is a processwide, not per-thread, state
         // in fact, when in this state, we won't have threads

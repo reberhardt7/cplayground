@@ -107,17 +107,17 @@ class Editor extends React.Component<EditorProps> {
         if (!this.props.processes) {
             return;
         }
-        const stoppedThreads = this.props.processes.map((process) => (
+        const threadsWithFrameInfo = this.props.processes.map((process) => (
             process.threads
             // Only show threads that are stopped somewhere we can render
-                .filter((thread) => thread.status === 'stopped' && thread.stoppedAt)
+                .filter((thread) => thread.currentLine)
                 .map((thread) => ({ process, thread }))
         )).flat();
-        stoppedThreads.forEach((thread) => {
-            if (this.debugControlWidgets[thread.thread.stoppedAt] === undefined) {
-                this.debugControlWidgets[thread.thread.stoppedAt] = [];
+        threadsWithFrameInfo.forEach((thread) => {
+            if (this.debugControlWidgets[thread.thread.currentLine] === undefined) {
+                this.debugControlWidgets[thread.thread.currentLine] = [];
             }
-            this.debugControlWidgets[thread.thread.stoppedAt].push(
+            this.debugControlWidgets[thread.thread.currentLine].push(
                 generateInlineDebugControlNode(
                     thread.process.pid, this.props.pidColorMap[thread.process.pid],
                     thread.thread, this.props.debugServer,

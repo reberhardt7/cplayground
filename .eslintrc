@@ -45,6 +45,10 @@
             },
         ],
         "no-continue": ["off"],
+        "prefer-destructuring": ["error", {
+            "VariableDeclarator": {"object": true, "array": false},
+            "AssignmentExpression": {"object": false, "array": false}
+        }, {"enforceForRenamedProperties": false}],
         // Airbnb lint sets "never" for js, mjs, and jsx, but we need ts and tsx
         'import/extensions': ['error', 'ignorePackages', {
             js: 'never',

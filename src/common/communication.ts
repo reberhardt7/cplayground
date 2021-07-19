@@ -71,7 +71,7 @@ export type Process = {
 export type Thread = {
     debuggerId: number;
     status: 'running' | 'stopped' | 'terminated' | null;
-    stoppedAt: number | null;
+    currentLine: number | null;
 }
 
 export type FileDescriptorTable = {

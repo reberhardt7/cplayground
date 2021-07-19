@@ -566,7 +566,7 @@ export async function getContainerInfo(
             .map((gdbThread) => ({
                 debuggerId: gdbThread.id,
                 status: gdbThread.status,
-                stoppedAt: gdbThread.frame && gdbThread.frame.file.startsWith('/cplayground/code')
+                currentLine: gdbThread.frame && gdbThread.frame.file.startsWith('/cplayground/code')
                     ? gdbThread.frame.line : null,
             }));
     }
