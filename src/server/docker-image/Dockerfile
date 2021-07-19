@@ -13,4 +13,5 @@ RUN mkdir -p /cplayground \
 
 USER cplayground
 WORKDIR /cplayground
+ENV PATH="${PATH}:/usr/games"
 CMD ["/run.py"]
