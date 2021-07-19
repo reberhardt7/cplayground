@@ -1,0 +1,12 @@
+select, input[type=text] {
+    background-color: $accent-color;
+    border: none;
+    border-radius: 3px;
+    height: 25px;
+    color: inherit;
+
+    &.inline {
+        margin-left: 8px;
+        padding: 0px 3px;
+    }
+}

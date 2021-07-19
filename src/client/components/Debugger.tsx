@@ -1,15 +1,18 @@
 import * as React from 'react';
 import classNames from 'classnames';
+import Url from 'url-parse';
 
 import Diagram from './Diagram';
 import ProcessesListing from './ProcessesListing';
 import { DebugServer } from '../server-comm';
 import { ContainerInfo } from '../../common/communication';
 import { filterKeypress } from '../accessibility-utils';
+import SignalsTab from './SignalsTab';
 
 enum Tab {
-    Processes,
-    OpenFiles,
+    Processes = 'processes',
+    OpenFiles = 'open-files',
+    Signals = 'signals',
 }
 
 type DebuggerProps = {
@@ -28,6 +31,16 @@ class Debugger extends React.PureComponent<DebuggerProps, DebuggerState> {
         this.state = {
             activeTab: Tab.Processes,
         };
+    }
+
+    componentDidMount(): void {
+        const currentLocation = Url(window.location.href, window.location, true);
+        const defaultTab = currentLocation.query.defaultDebugTab as unknown;
+        if (Object.values(Tab as unknown as unknown[]).includes(defaultTab)) {
+            this.setState({
+                activeTab: defaultTab as Tab,
+            });
+        }
     }
 
     renderTab = (title: string, tab: Tab): React.ReactNode => {
@@ -51,6 +64,7 @@ class Debugger extends React.PureComponent<DebuggerProps, DebuggerState> {
                 <div className="debugger-tabbar">
                     {this.renderTab('Processes', Tab.Processes)}
                     {this.renderTab('Open Files', Tab.OpenFiles)}
+                    {this.renderTab('Signals', Tab.Signals)}
                 </div>
                 <div className="debugger-body">
                     {this.state.activeTab === Tab.Processes && (
@@ -64,6 +78,14 @@ class Debugger extends React.PureComponent<DebuggerProps, DebuggerState> {
                     {this.state.activeTab === Tab.OpenFiles && (
                         <Diagram
                             data={this.props.debugData}
+                            pidColorMap={this.props.pidColorMap}
+                        />
+                    )}
+                    {this.state.activeTab === Tab.Signals && (
+                        <SignalsTab
+                            processes={(this.props.debugData && this.props.debugData.processes)
+                                || []}
+                            debugServer={this.props.debugServer}
                             pidColorMap={this.props.pidColorMap}
                         />
                     )}

@@ -3,7 +3,7 @@ import readline from 'readline';
 import { Thread, ThreadGroup } from 'gdb-js';
 
 import {
-    ContainerInfo, FileDescriptorTable, OpenFileTable, Process, ProcessRunState, VnodeTable,
+    ContainerInfo, FileDescriptorTable, OpenFileTable, Process, ProcessRunState, Signal, VnodeTable,
 } from '../common/communication';
 import { DebugDataError } from './error';
 
@@ -54,6 +54,8 @@ type RawProcessInfo = {
     containerPPID: number;
     containerPGID: number;
     runState: ProcessRunState;
+    blockedSignals: Signal[];
+    pendingSignals: Signal[];
     command: string;
     files: {
         [key: number]: RawFileInfo;
@@ -80,6 +82,8 @@ const MOCK_DATA: ContainerInfo = {
         pgid: 1,
         runState: ProcessRunState.Running,
         command: 'output',
+        blockedSignals: [Signal.SIGINT, Signal.SIGCHLD],
+        pendingSignals: [Signal.SIGINT],
         threads: [],
         fds: {
             0: {
@@ -106,6 +110,8 @@ const MOCK_DATA: ContainerInfo = {
         pgid: 1,
         runState: ProcessRunState.Running,
         command: 'output',
+        blockedSignals: [],
+        pendingSignals: [],
         threads: [],
         fds: {
             0: {
@@ -161,6 +167,12 @@ const MOCK_DATA: ContainerInfo = {
     },
 };
 
+function expandSignalSet(set: number): Signal[] {
+    const signals: Signal[] = Object.values(Signal) as Signal[];
+    // eslint-disable-next-line no-bitwise
+    return signals.filter((sig) => set & (1 << sig));
+}
+
 /**
  * Given an octal string, returns an array of flag names
  */
@@ -206,6 +218,8 @@ function readProcessLine(line: string): RawProcessInfo {
         containerPPID,
         containerPGID,
         runState,
+        blockedSignals,
+        pendingSignals,
         command,
     ] = line.split('\t');
 
@@ -216,6 +230,8 @@ function readProcessLine(line: string): RawProcessInfo {
         containerPPID: Number(containerPPID),
         containerPGID: Number(containerPGID),
         runState: undefined,
+        blockedSignals: expandSignalSet(Number(blockedSignals)),
+        pendingSignals: expandSignalSet(Number(pendingSignals)),
         command,
         files: {},
     };
@@ -333,6 +349,8 @@ function populateProcessTable(rawProcesses: RawProcessInfo[]): Process[] {
             pgid: proc.containerPGID,
             command: proc.command,
             runState: proc.runState as ProcessRunState,
+            blockedSignals: proc.blockedSignals,
+            pendingSignals: proc.pendingSignals,
             threads: [],
             fds,
         });
@@ -492,7 +510,7 @@ class Procfile {
                 + 'the last refresh.', new Date().getTime(), this.lastRefresh.getTime(),
             );
             // Not enough time has elapsed since the last refresh. Do another refresh in a few ms
-            await new Promise((resolve) => {
+            await new Promise<void>((resolve) => {
                 console.log(
                     `Enqueueing refresh... Existing queue size is ${this.pendingRefreshes.length}`,
                 );

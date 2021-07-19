@@ -1,4 +1,13 @@
 .button {
   display: inline-block;
   cursor: pointer;
+
+  &.inline-small {
+    background-color: $foreground-color;
+    color: $background-color;
+    border-radius: 4px;
+    height: 25px;
+    margin: 0 8px;
+    padding: 2px 4px;
+  }
 }

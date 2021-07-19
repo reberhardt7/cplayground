@@ -62,6 +62,11 @@ $process-listing-padding: 8px;
   }
 }
 
+.process-body {
+  font-size: 0.85em;
+  padding: 30px;
+}
+
 .debug-controls {
   flex-grow: 2;
   text-align: right;

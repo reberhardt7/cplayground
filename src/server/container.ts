@@ -15,7 +15,7 @@ import 'regenerator-runtime/runtime.js';
 
 import * as db from './db';
 import * as debugging from './debugging';
-import { ContainerInfo } from '../common/communication';
+import { ContainerInfo, Signal } from '../common/communication';
 import { Compiler } from '../common/constants';
 import { getPathFromRoot } from './util';
 import { DebugStateError, SystemConfigurationError } from './error';
@@ -139,7 +139,7 @@ export default class Container {
     private initializeDebugSocket = (): Promise<void> => {
         this.gdbSocketPath = path.join(this.dataHostPath, `${this.containerName}-gdb.sock`);
         this.gdbMiServer = net.createServer(this.onGdbSocketConnection);
-        return new Promise((resolve) => {
+        return new Promise<void>((resolve) => {
             this.gdbMiServer.listen(this.gdbSocketPath, () => {
                 resolve();
             });
@@ -629,4 +629,44 @@ export default class Container {
         // Extend run timeout for people in debugging sessions
         this.setRunTimeoutMonitor();
     };
+
+    sendSignal = async (inferiorId: number, signal: Signal): Promise<void> => {
+        if (!this.gdbSocketPath) {
+            throw new DebugStateError('Debugging is not enabled');
+        }
+        if (this.processes[inferiorId] === undefined) {
+            throw new DebugStateError(`No known process with inferior id ${inferiorId}`);
+        }
+        console.log(`${this.logPrefix} got debugging command: sendSignal`, { inferiorId, signal });
+        const proc = this.processes[inferiorId];
+
+        // GDB prevents some signals from being handled by the child (e.g.
+        // SIGINT). We have to tell GDB to let this signal pass through, and to
+        // not stop the child on receipt of the signal (e.g. SIGINT usually
+        // *stops* the child instead of terminating, but we want whatever the
+        // default behavior is).
+        await this.gdb.execMI(`-interpreter-exec console "handle ${Signal[signal]} nostop pass"`, proc);
+
+        // Run `kill` inside the container to send the signal. I don't love this -- it starts
+        // another process in the container, which can show up in the debugger and be really
+        // confusing -- but the GDB options for sending signals were pretty clunky when I tested
+        // them (there's no way to just *send the signal right now* -- you can either enqueue the
+        // signal for when the child resumes, which doesn't add it to the kernel pending set, or you
+        // can send it now but also continue the child, which doesn't play nicely with
+        // breakpoints... also the commands only work if the child is paused, which adds a lot of
+        // synchronization complexity). A better option would be to run `kill` outside of the docker
+        // container and send to the global namespace PID, but we need to add more code to get that
+        // PID from the kernel module or from /proc.
+        await new Promise<void>((resolve) => {
+            const args = ['exec', this.containerName, 'kill', `-${Signal[signal]}`, `${proc.pid}`];
+            childProcess.execFile('docker', args,
+                (err, out) => {
+                    if (err) throw err;
+                    if (out) {
+                        console.info(`${this.logPrefix}Output of docker ${args.join(' ')}`, out);
+                    }
+                    resolve();
+                });
+        });
+    }
 }

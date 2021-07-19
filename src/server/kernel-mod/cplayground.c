@@ -149,8 +149,19 @@ static void inspect_fds(struct files_struct *files, struct seq_file *sfile) {
     spin_unlock(&files->file_lock);
 }
 
+static unsigned int sigset_as_int(sigset_t *set) {
+    unsigned int out = 0;
+    for (int sig = 0; sig < sizeof(int) * 8; sig++) {
+        if (sigismember(set, sig)) {
+            out |= 1 << sig;
+        }
+    }
+    return out;
+}
+
 static void print_proc_details(void *ns_ptr, int global_pid, int container_pid,
         int container_ppid, int container_pgid, char run_state, const char *command,
+        unsigned int blocked_signals, unsigned int pending_signals,
         struct seq_file *sfile) {
     char ns_ptr_hash[64 + 1];
     hash_pointer(ns_ptr, ns_ptr_hash);
@@ -162,9 +173,11 @@ static void print_proc_details(void *ns_ptr, int global_pid, int container_pid,
             "%d\t"  // container PPID
             "%d\t"  // container PGID
             "%c\t"  // run state
+            "%u\t"  // blocked signals
+            "%u\t"  // pending signals
             "%s\n", // command
             ns_ptr_hash, global_pid, container_pid, container_ppid,
-            container_pgid, run_state, command);
+            container_pgid, run_state, blocked_signals, pending_signals, command);
 }
 
 /**
@@ -250,6 +263,9 @@ static void print_processes(struct task_struct **container_tasks, unsigned int c
         char run_state = get_proc_runstatus(task);
         unsigned char command[sizeof(task->comm)];
         strncpy(command, task->comm, sizeof(task->comm));
+        unsigned int blocked_signals = sigset_as_int(&task->blocked);
+        unsigned int pending_signals = sigset_as_int(&task->pending.signal)
+            | sigset_as_int(&task->signal->shared_pending.signal);
         task_unlock(task);
         // End critical region
 
@@ -261,7 +277,8 @@ static void print_processes(struct task_struct **container_tasks, unsigned int c
         // be deallocated
 
         print_proc_details((void*)ns, global_pid, container_pid,
-                container_ppid, container_pgid, run_state, command, sfile);
+                container_ppid, container_pgid, run_state, command,
+                blocked_signals, pending_signals, sfile);
 
         if (files) {
             inspect_fds(files, sfile);

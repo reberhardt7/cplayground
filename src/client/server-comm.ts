@@ -1,7 +1,9 @@
 import axios, { AxiosResponse } from 'axios';
 import Url from 'url-parse';
 
-import { ContainerInfo, RunEventBody, SavedProgram, Thread } from '../common/communication';
+import {
+    ContainerInfo, Process, RunEventBody, SavedProgram, Signal, Thread,
+} from '../common/communication';
 // eslint-disable-next-line no-undef
 import Socket = SocketIOClient.Socket;
 
@@ -203,6 +205,13 @@ export class DebugServer {
     stepIn(thread: Thread): void {
         this.socket.emit('debugStepIn', {
             threadId: thread.debuggerId,
+        });
+    }
+
+    sendSignal(process: Process, signal: Signal): void {
+        this.socket.emit('debugSendSignal', {
+            debuggerId: process.debuggerId,
+            signal,
         });
     }
 }
