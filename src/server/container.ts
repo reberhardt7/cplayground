@@ -179,9 +179,9 @@ export default class Container {
             // Drop all capabilities. (We add back the ptrace capability if debugging is enabled)
             '--cap-drop=all',
             // Set more resource limits and disable networking
-            '--memory', '96mb',
-            '--memory-swap', '128mb',
-            '--memory-reservation', '32mb',
+            '--memory', '256mb',
+            '--memory-swap', '256mb',
+            '--memory-reservation', '96mb',
             '--cpu-shares', '512',
             '--pids-limit', '16',
             '--ulimit', 'cpu=10:11',
