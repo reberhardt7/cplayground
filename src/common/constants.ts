@@ -19,11 +19,11 @@ const COMPILERS_ARR = ['gcc', 'g++'] as const;
 export const COMPILERS = COMPILERS_ARR as ReadonlyArray<string>;
 export type Compiler = typeof COMPILERS_ARR[number];
 
-const SUPPORTED_VERSIONS_ARR = ['C99', 'C11', 'C++11', 'C++14', 'C++17'] as const;
+const SUPPORTED_VERSIONS_ARR = ['C99', 'C11', 'C++11', 'C++14', 'C++17', 'C++20'] as const;
 export const SUPPORTED_VERSIONS = SUPPORTED_VERSIONS_ARR as ReadonlyArray<string>;
 export type SupportedVersion = typeof SUPPORTED_VERSIONS_ARR[number];
 
-export const DEFAULT_VERSION = 'C++17';
+export const DEFAULT_VERSION = 'C++20';
 
 const OPTIMIZATION_LEVELS_ARR = ['-O0', '-O1', '-O2', '-O3'] as const;
 export const OPTIMIZATION_LEVELS = OPTIMIZATION_LEVELS_ARR as ReadonlyArray<string>;
