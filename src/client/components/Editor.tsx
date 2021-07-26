@@ -24,6 +24,7 @@ type EditorProps = {
     onBreakpointChange: (breakpoints: number[]) => void;
     processes: Process[] | null;
     pidColorMap: {[pid: number]: string};
+    tidColorMap: {[tid: number]: string};
     debugServer: DebugServer;
 };
 
@@ -119,8 +120,9 @@ class Editor extends React.Component<EditorProps> {
             }
             this.debugControlWidgets[thread.thread.currentLine].push(
                 generateInlineDebugControlNode(
-                    thread.process.pid, this.props.pidColorMap[thread.process.pid],
-                    thread.thread, this.props.debugServer,
+                    thread.process, this.props.pidColorMap[thread.process.pid],
+                    thread.thread, this.props.tidColorMap[thread.thread.debuggerId],
+                    this.props.debugServer,
                 ),
             );
         });

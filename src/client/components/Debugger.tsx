@@ -19,6 +19,7 @@ type DebuggerProps = {
     debugServer?: DebugServer;
     debugData?: ContainerInfo;
     pidColorMap?: {[pid: number]: string};
+    tidColorMap?: {[tid: number]: string};
 }
 
 type DebuggerState = {

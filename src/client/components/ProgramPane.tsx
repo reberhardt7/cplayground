@@ -11,6 +11,7 @@ type ProgramPaneProps = {
     debugServer?: DebugServer;
     debugData?: ContainerInfo;
     pidColorMap?: {[pid: number]: string};
+    tidColorMap?: {[tid: number]: string};
     onResize?: (rows: number, cols: number) => void;
 }
 
@@ -22,6 +23,7 @@ const ProgramPane: React.FunctionComponent<ProgramPaneProps> = (props: ProgramPa
                 debugServer={props.debugServer}
                 debugData={props.debugData}
                 pidColorMap={props.pidColorMap}
+                tidColorMap={props.tidColorMap}
             />
         )}
     </div>

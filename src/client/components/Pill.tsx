@@ -6,6 +6,7 @@ type PillProps = {
     color?: string;
     className?: string;
     style?: React.CSSProperties;
+    children?: React.ReactNode;
 };
 
 const Pill: React.FunctionComponent<PillProps> = (props: PillProps) => {
@@ -15,7 +16,8 @@ const Pill: React.FunctionComponent<PillProps> = (props: PillProps) => {
     };
     return (
         <div className={classNames('pill', props.className)} style={style}>
-            {props.text}
+            <div className="pill-text">{props.text}</div>
+            {props.children}
         </div>
     );
 };

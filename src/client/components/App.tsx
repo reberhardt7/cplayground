@@ -236,7 +236,23 @@ class App extends React.PureComponent<AppProps, AppState> {
         return colorMap;
     };
 
+    generateTidColorMap = (pidColorMap: {[pid: number]: string}): {[tid: number]: string} => {
+        const colorMap: {[tid: number]: string} = {};
+        if (this.state.debugData) {
+            this.state.debugData.processes.forEach((proc) => {
+                const colors = PROCESS_COLORS.filter((color) => color !== pidColorMap[proc.pid]);
+                proc.threads.forEach((thread) => {
+                    colorMap[thread.debuggerId] = (
+                        colors[thread.debuggerId % colors.length]
+                    );
+                });
+            });
+        }
+        return colorMap;
+    };
+
     render(): React.ReactNode {
+        const pidColorMap = this.generatePidColorMap();
         return (
             <>
                 <Topbar
@@ -281,7 +297,8 @@ class App extends React.PureComponent<AppProps, AppState> {
                         breakpoints={this.state.breakpoints}
                         onBreakpointChange={this.onBreakpointChange}
                         processes={this.state.debugData && this.state.debugData.processes}
-                        pidColorMap={this.generatePidColorMap()}
+                        pidColorMap={pidColorMap}
+                        tidColorMap={this.generateTidColorMap(pidColorMap)}
                         debugServer={this.state.debugServer}
                     />
                     <ProgramPane
@@ -291,7 +308,8 @@ class App extends React.PureComponent<AppProps, AppState> {
                             || Boolean(this.state.debugData)}
                         debugServer={this.state.debugServer}
                         debugData={this.state.debugData}
-                        pidColorMap={this.generatePidColorMap()}
+                        pidColorMap={pidColorMap}
+                        tidColorMap={this.generateTidColorMap(pidColorMap)}
                     />
                 </div>
             </>

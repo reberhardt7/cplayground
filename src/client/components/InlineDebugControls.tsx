@@ -1,22 +1,25 @@
 import * as React from 'react';
 import ReactDOM from 'react-dom';
 
-import { Thread } from '../../common/communication';
+import { Process, Thread } from '../../common/communication';
 import { DebugServer } from '../server-comm';
 import Pill from './Pill';
 import DebugControls from './DebugControls';
 
 type InlineDebugControlsProps = {
-    pid: number;
-    color: string;
+    process: Process;
+    processColor: string;
     thread: Thread;
+    threadColor: string;
     debugServer: DebugServer;
 }
 
 const InlineDebugControls:
     React.FunctionComponent<InlineDebugControlsProps> = (props: InlineDebugControlsProps) => (
         <>
-            <Pill text={props.pid.toString()} color={props.color} />
+            <Pill text={props.process.pid.toString()} color={props.processColor}>
+                <Pill text={props.thread.debuggerId.toString()} color={props.threadColor} />
+            </Pill>
             <DebugControls thread={props.thread} debugServer={props.debugServer} />
         </>
     );
@@ -24,15 +27,17 @@ const InlineDebugControls:
 export default InlineDebugControls;
 
 export function generateInlineDebugControlNode(
-    pid: number, color: string, thread: Thread, debugServer: DebugServer,
+    process: Process, processColor: string, thread: Thread, threadColor: string,
+    debugServer: DebugServer,
 ): HTMLDivElement {
     const controlWidget = document.createElement('div');
     controlWidget.className = 'inline-controls';
     ReactDOM.render((
         <InlineDebugControls
-            pid={pid}
-            color={color}
+            process={process}
+            processColor={processColor}
             thread={thread}
+            threadColor={threadColor}
             debugServer={debugServer}
         />
     ), controlWidget);
