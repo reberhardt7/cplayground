@@ -9,7 +9,10 @@ import Editor from './Editor';
 import ProgramPane from './ProgramPane';
 
 import { ContainerInfo, SavedProgram } from '../../common/communication';
-import { CompilerFlag, SupportedVersion } from '../../common/constants';
+import {
+    Compiler, CompilerFlag, DEFAULT_CXX_COMPILER, DEFAULT_CXX_VERSION, DEFAULT_C_COMPILER,
+    DEFAULT_C_VERSION, SupportedVersion,
+} from '../../common/constants';
 import * as Server from '../server-comm';
 
 // Layouts for embedded mode (where split pane doesn't look so good)
@@ -175,13 +178,36 @@ class App extends React.PureComponent<AppProps, AppState> {
     };
 
     setLanguage = (language: SupportedVersion): void => {
+        let { compiler } = this.state.program;
+        if (language.includes('++') && !compiler.includes('++')) {
+            compiler = DEFAULT_CXX_COMPILER;
+        } else if (!language.includes('++') && compiler.includes('++')) {
+            compiler = DEFAULT_C_COMPILER;
+        }
         this.setState({
             program: {
                 ...this.state.program,
                 language,
+                compiler,
             },
         });
     };
+
+    setCompiler = (compiler: Compiler): void => {
+        let { language } = this.state.program;
+        if (compiler.includes('++') && !language.includes('++')) {
+            language = DEFAULT_CXX_VERSION;
+        } else if (!compiler.includes('++') && language.includes('++')) {
+            language = DEFAULT_C_VERSION;
+        }
+        this.setState({
+            program: {
+                ...this.state.program,
+                compiler,
+                language,
+            },
+        });
+    }
 
     setCFlags = (flags: CompilerFlag[]): void => {
         this.setState({
@@ -279,10 +305,12 @@ class App extends React.PureComponent<AppProps, AppState> {
                     {this.state.program && (
                         <Sidebar
                             selectedVersion={this.state.program.language}
+                            selectedCompiler={this.state.program.compiler}
                             selectedFlags={this.state.program.flags}
                             runtimeArgs={this.state.program.runtimeArgs}
                             includeFileName={this.state.program.includeFileName}
                             onVersionChange={this.setLanguage}
+                            onCompilerChange={this.setCompiler}
                             onFlagsChange={this.setCFlags}
                             onRuntimeArgsChange={this.setRuntimeArgs}
                             onIncludeFileChange={this.setIncludeFile}

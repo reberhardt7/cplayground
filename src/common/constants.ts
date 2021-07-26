@@ -15,15 +15,20 @@
 //
 // Maybe in the future I will figure out some less ugly way of doing this...
 
-const COMPILERS_ARR = ['gcc', 'g++'] as const;
+const COMPILERS_ARR = ['gcc', 'g++', 'clang', 'clang++'] as const;
 export const COMPILERS = COMPILERS_ARR as ReadonlyArray<string>;
 export type Compiler = typeof COMPILERS_ARR[number];
+export const DEFAULT_C_COMPILER = 'clang';
+export const DEFAULT_CXX_COMPILER = 'clang++';
+export const DEFAULT_COMPILER = DEFAULT_CXX_COMPILER;
 
 const SUPPORTED_VERSIONS_ARR = ['C99', 'C11', 'C++11', 'C++14', 'C++17', 'C++20'] as const;
 export const SUPPORTED_VERSIONS = SUPPORTED_VERSIONS_ARR as ReadonlyArray<string>;
 export type SupportedVersion = typeof SUPPORTED_VERSIONS_ARR[number];
 
-export const DEFAULT_VERSION = 'C++20';
+export const DEFAULT_C_VERSION = 'C11';
+export const DEFAULT_CXX_VERSION = 'C++20';
+export const DEFAULT_VERSION = DEFAULT_CXX_VERSION;
 
 const OPTIMIZATION_LEVELS_ARR = ['-O0', '-O1', '-O2', '-O3'] as const;
 export const OPTIMIZATION_LEVELS = OPTIMIZATION_LEVELS_ARR as ReadonlyArray<string>;

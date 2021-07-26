@@ -147,7 +147,7 @@ export default class Container {
         // Save the code to disk so that the files can be mounted into the container
         this.saveCodeFiles(code, includeFileData);
 
-        const fileExtension = compiler === 'gcc' ? '.c' : '.cpp';
+        const fileExtension = compiler.includes('++') ? '.cpp' : '.c';
         this.codeContainerPath = `/cplayground/code${fileExtension}`;
 
         // Add -g flag to compiler if debugging is enabled. (Otherwise, the compiler won't

@@ -17,6 +17,7 @@ import {
     FLAG_WHITELIST,
     DEFAULT_VERSION,
     Compiler,
+    COMPILERS,
 } from '../common/constants';
 import { ClientValidationError, DebugStateError } from './error';
 import { getSourceIpFromSocket, getUserAgentFromSocket } from './util';
@@ -33,8 +34,10 @@ async function getRunParams(request: RunEventBody): Promise<{
 }> {
     const lang = SUPPORTED_VERSIONS.includes(request.language)
         ? request.language : DEFAULT_VERSION;
-    const compiler = ['C99', 'C11'].indexOf(lang) > -1
-        ? 'gcc' : 'g++';
+    // eslint-disable-next-line no-nested-ternary
+    const compiler = COMPILERS.includes(request.compiler)
+        ? (request.compiler as Compiler)
+        : (['C99', 'C11'].indexOf(lang) > -1 ? 'clang' : 'clang++');
 
     const suppliedCflags = (Array.isArray(request.flags) ? request.flags : []).filter(
         (flag: string) => FLAG_WHITELIST.includes(flag),

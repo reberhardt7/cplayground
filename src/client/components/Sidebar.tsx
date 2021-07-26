@@ -4,17 +4,19 @@ import {
     SUPPORTED_VERSIONS,
     OPTIMIZATION_LEVELS,
     COMPILER_FLAGS,
-    LINKER_FLAGS, SupportedVersion, CompilerFlag, OptimizationLevel,
+    LINKER_FLAGS, SupportedVersion, CompilerFlag, OptimizationLevel, Compiler, COMPILERS,
 } from '../../common/constants';
 import { uploadFile } from '../server-comm';
 import { filterKeypress } from '../accessibility-utils';
 
 type SidebarProps = {
     selectedVersion: SupportedVersion;
+    selectedCompiler: Compiler;
     selectedFlags: CompilerFlag[];
     runtimeArgs: string;
     includeFileName: string;
     onVersionChange: (version: SupportedVersion) => void;
+    onCompilerChange: (version: Compiler) => void;
     onFlagsChange: (flags: CompilerFlag[]) => void;
     onRuntimeArgsChange: (args: string) => void;
     onIncludeFileChange: (file: {id: string; name: string} | null) => void;
@@ -39,6 +41,10 @@ class Sidebar extends React.PureComponent<SidebarProps, SidebarState> {
 
     setCompilerVersion = (e: React.ChangeEvent<HTMLSelectElement>): void => {
         this.props.onVersionChange(e.currentTarget.value as SupportedVersion);
+    };
+
+    setCompiler = (e: React.ChangeEvent<HTMLSelectElement>): void => {
+        this.props.onCompilerChange(e.currentTarget.value as Compiler);
     };
 
     setOptimizationLevel = (e: React.ChangeEvent<HTMLSelectElement>): void => {
@@ -128,6 +134,23 @@ class Sidebar extends React.PureComponent<SidebarProps, SidebarState> {
                 >
                     { SUPPORTED_VERSIONS.map((lang) => (
                         <option key={lang} value={lang}>{lang}</option>)) }
+                </select>
+
+                <h3>Compiler</h3>
+                <select
+                    id="compiler-select"
+                    value={this.props.selectedCompiler}
+                    onChange={this.setCompiler}
+                >
+                    { COMPILERS.filter((comp) => (
+                        this.props.selectedVersion.includes('++')
+                            ? comp.includes('++')
+                            : !comp.includes('++')
+                    )).map(
+                        (lang) => (
+                            <option key={lang} value={lang}>{lang}</option>
+                        ),
+                    ) }
                 </select>
 
                 <h3>Compiler flags</h3>

@@ -8,23 +8,26 @@ import {
     SUPPORTED_VERSIONS,
     SupportedVersion,
     DEFAULT_VERSION,
+    Compiler,
     CompilerFlag,
+    DEFAULT_COMPILER,
+    COMPILERS,
 } from '../common/constants';
 import { getPathFromRoot, getSourceIpFromRequest } from './util';
 import { ClientValidationError } from './error';
 
 function generateProgramJson(
     code: string, runtimeArgs: string, includeFileId: string, includeFileName: string,
-    language: SupportedVersion, flags: CompilerFlag[],
+    language: SupportedVersion, compiler: Compiler, flags: CompilerFlag[],
 ): SavedProgram {
     return {
-        code, runtimeArgs, includeFileId, includeFileName, language, flags,
+        code, runtimeArgs, includeFileId, includeFileName, language, compiler, flags,
     };
 }
 
 const DEFAULT_CODE = fs.readFileSync(getPathFromRoot('src/server/default-code.cpp')).toString().trim();
 const DEFAULT_PROGRAM_JSON = generateProgramJson(
-    DEFAULT_CODE, '', null, null, DEFAULT_VERSION,
+    DEFAULT_CODE, '', null, null, DEFAULT_VERSION, DEFAULT_COMPILER,
     ['-O0', '-Wall', '-no-pie', '-lm', '-pthread'],
 );
 
@@ -47,9 +50,12 @@ export function getProgram(req: Request, res: Response): void {
                 const lang = SUPPORTED_VERSIONS.includes(parsedLang)
                     ? (parsedLang as SupportedVersion)
                     : DEFAULT_VERSION;
+                const compiler = COMPILERS.includes(result.compiler)
+                    ? (result.compiler as Compiler)
+                    : DEFAULT_COMPILER;
                 res.send(generateProgramJson(
-                    result.code, result.args, includeFileId, includeFileName,
-                    lang, stringArgv.parseArgsStringToArgv(result.cflags) as CompilerFlag[],
+                    result.code, result.args, includeFileId, includeFileName, lang,
+                    compiler, stringArgv.parseArgsStringToArgv(result.cflags) as CompilerFlag[],
                 ));
             } else {
                 console.info('Program not found, sending default!');

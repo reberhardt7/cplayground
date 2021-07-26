@@ -1,4 +1,4 @@
-import { CompilerFlag, SupportedVersion } from './constants';
+import { Compiler, CompilerFlag, SupportedVersion } from './constants';
 
 export type SavedProgram = {
     code: string;
@@ -6,6 +6,7 @@ export type SavedProgram = {
     includeFileId: string | null;
     includeFileName: string | null;
     language: SupportedVersion;
+    compiler: Compiler;
     flags: CompilerFlag[];
 }
 
@@ -110,6 +111,7 @@ export type ContainerInfo = {
 export type RunEventBody = {
     code: string;
     language: string;
+    compiler: string;
     flags: string[];
     args: string;
     includeFileId: string | null;

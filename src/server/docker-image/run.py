@@ -63,9 +63,11 @@ def compile():
     compile_cmd = [os.environ['COMPILER'], '-o', '/cplayground/cplayground', os.environ['SRCPATH'],
         '-I/cplayground/include', '-L/cplayground/lib', *static_libraries,
         *shlex.split(os.environ['CFLAGS'])]
+    compile_env = os.environ.copy()
+    compile_env['TMPDIR'] = '/cplayground/tmp'
     print(' '.join(compile_cmd))
     compile_start_time = time.time()
-    compile_proc = subprocess.run(compile_cmd)
+    compile_proc = subprocess.run(compile_cmd, env=compile_env)
     return (compile_proc.returncode, time.time() - compile_start_time)
 
 def run():
@@ -86,6 +88,7 @@ def run():
 def main():
     os.mkdir('/cplayground/include')
     os.mkdir('/cplayground/lib')
+    os.mkdir('/cplayground/tmp')
     if os.path.isfile('/cplayground/include.zip'):
         subprocess.check_call(['unzip', '-q', '/cplayground/include.zip', '-d', '/cplayground/'])
 

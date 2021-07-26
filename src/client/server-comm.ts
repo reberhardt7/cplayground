@@ -15,6 +15,7 @@ export function getProgram(programId?: string): Promise<SavedProgram> {
             includeFileId: resp.data.includeFileId,
             includeFileName: resp.data.includeFileName,
             language: resp.data.language,
+            compiler: resp.data.compiler,
             flags: resp.data.flags,
         }));
 }
@@ -65,6 +66,7 @@ export function startProgram(
     const body: RunEventBody = {
         code: program.code,
         language: program.language,
+        compiler: program.compiler,
         flags: [...program.flags],
         args: program.runtimeArgs,
         includeFileId: program.includeFileId,
