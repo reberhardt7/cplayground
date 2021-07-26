@@ -444,7 +444,7 @@ export default class Container {
                 // TODO: /cplayground/code check is brittle
                 if ((e.data.reason === 'location-reached' || e.data.reason === 'function-finished'
                         || e.data.reason === 'end-stepping-range')
-                    && !e.data.frame.fullname.startsWith('/cplayground/code.')) {
+                    && !((e.data.frame && e.data.frame.fullname) || '').startsWith('/cplayground/code.')) {
                     // We stopped in a function in a different file (e.g. maybe in the standard
                     // library). Step debugging is going to be rough here, because the source isn't
                     // shown to the user. Let's step out of this code until we get back to user
@@ -815,11 +815,8 @@ export default class Container {
             throw new DebugStateError(`No known thread with id ${threadId}`);
         }
         console.log(`${this.logPrefix} got debugging command: next`, threadId);
-        const nextLine = `${this.threads[threadId].frame.file}:${this.threads[threadId].frame.line + 1}`;
         await this.gdb.next(this.threads[threadId]);
-        this.lastRunGdbContinueFunction[threadId] = async (thread: Thread): Promise<void> => {
-            await this.gdb.execMI(`-exec-until ${nextLine}`, thread);
-        };
+        this.lastRunGdbContinueFunction[threadId] = this.gdb.next;
 
         // Extend run timeout for people in debugging sessions
         this.setRunTimeoutMonitor();
