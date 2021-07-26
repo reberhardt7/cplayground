@@ -441,6 +441,22 @@ export default class Container {
                     func: e.data.frame.func,
                 });
 
+                // TODO: /cplayground/code check is brittle
+                if ((e.data.reason === 'location-reached' || e.data.reason === 'function-finished'
+                        || e.data.reason === 'end-stepping-range')
+                    && !e.data.frame.fullname.startsWith('/cplayground/code.')) {
+                    // We stopped in a function in a different file (e.g. maybe in the standard
+                    // library). Step debugging is going to be rough here, because the source isn't
+                    // shown to the user. Let's step out of this code until we get back to user
+                    // code.
+                    console.debug(`${this.logPrefix}Stopped within non-user code. Stepping out...`);
+                    this.gdb.stepOut(this.threads[threadId]);
+                    // Cancel any further processing. When the inferior stops after getting out of
+                    // this function, this callback will be invoked again, and we can run any later
+                    // logic at that point.
+                    return;
+                }
+
                 // Notify anyone waiting for this thread to stop
                 if (this.threadStoppedCallbacks[threadId] !== undefined) {
                     const callbacks = this.threadStoppedCallbacks[threadId];
