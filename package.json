@@ -9,7 +9,7 @@
         "@babel/preset-react": "^7.9.1",
         "ace-builds": "^1.4.8",
         "async-mutex": "^0.3.1",
-        "axios": "^0.19.2",
+        "axios": "^0.21.1",
         "babel-loader": "^8.1.0",
         "bufferutil": "^4.0.1",
         "classnames": "^2.2.6",
