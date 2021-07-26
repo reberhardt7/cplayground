@@ -8,6 +8,7 @@ import uuidv4 from 'uuid/v4';
 import * as ptylib from 'node-pty';
 import semver from 'semver';
 import * as readline from 'readline';
+import * as asyncMutex from 'async-mutex';
 import { GDB, Breakpoint, Thread, ThreadGroup, Frame } from 'gdb-js';
 // Import regeneratorRuntime as a global to fix errors in gdb-js:
 // eslint-disable-next-line import/extensions
@@ -15,7 +16,7 @@ import 'regenerator-runtime/runtime.js';
 
 import * as db from './db';
 import * as debugging from './debugging';
-import { ContainerInfo, Signal } from '../common/communication';
+import { ContainerInfo, Signal, Mutex, Semaphore, ConditionVariable } from '../common/communication';
 import { Compiler } from '../common/constants';
 import { getPathFromRoot } from './util';
 import { DebugStateError, SystemConfigurationError } from './error';
@@ -45,6 +46,7 @@ interface ThreadStoppedEvent {
     thread: Thread;
     reason: string;
     stopSig: string;
+    func: string;
 }
 
 interface ThreadRunningEvent {
@@ -85,6 +87,7 @@ export default class Container {
     private processes: {[inferiorId: number]: ThreadGroup} = {};
     private threadStoppedCallbacks: {[threadId: number]: ((e: ThreadEvent) => unknown)[]} = {};
     private threadContinuedCallbacks: {[threadId: number]: ((e: ThreadEvent) => unknown)[]} = {};
+    private threadControlLock = new asyncMutex.Mutex();
     // Store unix timestamp (in ms) of when the debugger finished initializing:
     private debuggerInitializationFinishedAt: null | number = null;
     // On regular intervals, we'll momentarily interrupt each thread to examine
@@ -103,6 +106,14 @@ export default class Container {
     // then rerun next() to continue, that will step to the next line *in the library*, not in the
     // user code. We deal with this with some hacks for now, but we need a cleaner solution.
     private lastRunGdbContinueFunction: {[threadId: number]: ((thread: Thread) => unknown)} = {};
+
+    // Store breakpoints that were created by cplayground (not the user) for
+    // the purposes of seeing when code calls methods on synchronization
+    // primitives
+    private threadVisualizationBreakpoints: {[breakpointId: number]: Breakpoint} = {};
+    private mutexes: {[inferiorId: number]: {[address: string]: Mutex}} = {};
+    private semaphores: {[inferiorId: number]: {[address: string]: Semaphore}} = {};
+    private conditionVariables: {[inferiorId: number]: {[address: string]: ConditionVariable}} = {};
 
     private readonly externalOutputCallback: (data: string) => void;
     private readonly externalExitCallback: (data: ContainerExitNotification) => void;
@@ -457,6 +468,17 @@ export default class Container {
                     return;
                 }
 
+                if (e.data.reason === 'breakpoint-hit'
+                    && this.threadVisualizationBreakpoints[parseInt(e.data.bkptno, 10)]) {
+                    this.threadControlLock.runExclusive(
+                        () => this.updateThreadVisualization(threadId, e.data.frame.func),
+                    );
+                    // Cancel any further processing. We've hit an internal breakpoint for
+                    // inspecting what the program is doing, and we don't actually want to expose
+                    // this to the user
+                    return;
+                }
+
                 // Notify anyone waiting for this thread to stop
                 if (this.threadStoppedCallbacks[threadId] !== undefined) {
                     const callbacks = this.threadStoppedCallbacks[threadId];
@@ -467,6 +489,7 @@ export default class Container {
                             thread: this.threads[threadId],
                             reason: e.data.reason,
                             stopSig: e.data['signal-name'],
+                            func: e.data.frame && e.data.frame.func,
                         });
                     }
                 }
@@ -522,13 +545,37 @@ export default class Container {
         await this.gdb.enableAsync();
         await this.gdb.attachOnFork();
 
-        // Set and save initial breakpoints
+        // Set and save initial breakpoints for intercepting calls to library functions
         const initialBreakpointObjs = await Promise.all(this.initialBreakpoints.map(
             (lineno) => this.gdb.addBreak(this.codeContainerPath, lineno),
         ));
         initialBreakpointObjs.forEach((bp) => { this.breakpoints[bp.line] = bp; });
         console.debug(`${this.logPrefix}Set ${initialBreakpointObjs.length} initial breakpoints`,
             initialBreakpointObjs);
+        for (const func of [
+            'std::mutex::mutex',
+            'std::mutex::lock',
+            'std::mutex::unlock',
+            // 'semaphore::semaphore',
+            // 'semaphore::signal',
+            // 'semaphore::wait',
+            // 'std::condition_variable::condition_variable',
+            // 'std::condition_variable::wait',
+        ]) {
+            try {
+                const { bkpt } = await this.gdb.execMI(`-break-insert ${func}`);
+                const breakpointObj = new Breakpoint(parseInt(bkpt.number, 10), {
+                    file: bkpt.fullname,
+                    line: parseInt(bkpt.line, 10),
+                    func: bkpt.func,
+                });
+                this.threadVisualizationBreakpoints[breakpointObj.id] = breakpointObj;
+            } catch (e) {
+                console.debug(`${this.logPrefix}[gdb] Encountered error setting breakpoint for ${func}; user's program probably just doesn't use this, so it's probably fine`, e);
+            }
+        }
+        console.log(`${this.logPrefix}Done setting extra breakpoints for thread synchronization visualization`,
+            this.threadVisualizationBreakpoints);
 
         // Go!
         console.debug(`${this.logPrefix}Issuing run command!`);
@@ -614,7 +661,6 @@ export default class Container {
             && Date.now() - this.debuggerInitializationFinishedAt > 2000) {
             // Add extra info to processes/threads, momentarily pausing threads as necessary to run
             // gdb inspection commands on them
-            /* eslint-disable no-await-in-loop */
             for (const thread of Object.values(this.threads)) {
                 try {
                     let shouldResumeThread = false;
@@ -623,10 +669,12 @@ export default class Container {
                         // Stop the thread to see where it currently is
                         console.debug(`${this.logPrefix}Stopping thread ${thread.id} to get stack info...`);
                         const stopEvent = await this.stopThread(thread);
+                        console.debug(`${this.logPrefix}Thread stopped, about to inspect stack`, stopEvent);
                         // Only resume the thread if it stopped because of our signal. (It could
                         // have just run into a breakpoint before our interrupt came in, and we
                         // don't want to resume from there.)
                         shouldResumeThread = stopEvent.type === 'stopped' && stopEvent.stopSig === '0';
+                        console.debug(`${this.logPrefix}`, { shouldResumeThread });
                     }
 
                     // Get information about the inferior while it's stopped
@@ -656,7 +704,6 @@ export default class Container {
                     console.error(`${this.logPrefix}Error while trying to inspect thread`, thread, e);
                 }
             }
-            /* eslint-enable no-await-in-loop */
         }
 
         // All done, we can report back to the client now!
@@ -676,10 +723,11 @@ export default class Container {
             return;
         }
 
-        await this.inspectAllThreads();
+        await this.threadControlLock.runExclusive(this.inspectAllThreads);
 
         const info = await debugging.getContainerInfo(
             this.containerPid, Object.values(this.processes), Object.values(this.threads),
+            this.mutexes, this.semaphores, this.conditionVariables,
         );
         if (info) {
             this.externalDebugCallback(info);
@@ -861,4 +909,91 @@ export default class Container {
                 });
         });
     }
+
+    private updateThreadVisualization = async (threadId: number, func: string): Promise<void> => {
+        console.debug(`${this.logPrefix}Updating thread visualization for thread`, this.threads[threadId], func);
+        this.suppressDebuggerUpdates = true;
+        if (func.startsWith('std::mutex')) {
+            await this.updateMutexVisualization(threadId, func);
+        } else if (func.startsWith('semaphore')) {
+            // await this.updateSemaphoreVisualization(threadId, func);
+        } else if (func.startsWith('std::condition_variable') && func.endsWith('@plt')) {
+            console.debug(`${this.logPrefix}Skipping over PLT stub`);
+            await this.gdb.proceed(this.threads[threadId]);
+        } else if (func.startsWith('std::condition_variable')) {
+            // await this.updateCvVisualization(threadId, func);
+        } else {
+            console.warn(`${this.logPrefix}updateThreadVisualization was called with unknown func:`, func);
+        }
+        console.debug(`${this.logPrefix}Done updating thread visualization for thread`, this.threads[threadId]);
+        this.suppressDebuggerUpdates = false;
+        this.reportDebugInfo().then(this.setDebuggingMonitor);
+    };
+
+    private updateMutexVisualization = async (threadId: number, func: string): Promise<void> => {
+        console.debug(`${this.logPrefix}Updating mutex`);
+        const variables = await this.gdb.context(this.threads[threadId]);
+        const thisVar = variables.find((variable) => variable.name === 'this');
+        if (!thisVar || !thisVar.value) {
+            console.warn(`${this.logPrefix}Hit mutex breakpoint, but can't find address of "this"`, variables);
+            return;
+        }
+        const processId = this.threads[threadId].group.id;
+        if (this.mutexes[processId] === undefined) {
+            this.mutexes[processId] = {};
+        }
+
+        const mutexAddr = thisVar.value.split(' ')[0];
+        if (this.mutexes[processId][mutexAddr] === undefined) {
+            this.mutexes[processId][mutexAddr] = {
+                address: mutexAddr, owner: null, waiters: [],
+            };
+        }
+
+        if (func.endsWith('::lock')) {
+            const mutex = this.mutexes[processId][mutexAddr];
+            if (mutex.owner == null) {
+                mutex.owner = threadId;
+            } else {
+                console.debug(`${this.logPrefix}Waiting for lock`);
+                // This thread is waiting for the lock
+                mutex.waiters.push(threadId);
+                // Wait for the thread to get the lock
+                if (this.threadStoppedCallbacks[threadId] === undefined) {
+                    this.threadStoppedCallbacks[threadId] = [];
+                }
+                new Promise<ThreadEvent>((resolve) => {
+                    const callback = (event: ThreadEvent): void => {
+                        if (event.type === 'stopped' && event.reason === 'breakpoint-hit') {
+                            resolve(event);
+                        } else {
+                            if (this.threadStoppedCallbacks[threadId] === undefined) {
+                                this.threadStoppedCallbacks[threadId] = [];
+                            }
+                            this.threadStoppedCallbacks[threadId].push(callback);
+                        }
+                    };
+                    this.threadStoppedCallbacks[threadId].push(callback);
+                }).then(async () => {
+                    // Thread got the lock
+                    mutex.waiters.splice(mutex.waiters.indexOf(threadId), 1);
+                    mutex.owner = threadId;
+                    await this.continueThread(
+                        this.threads[threadId],
+                        this.lastRunGdbContinueFunction[threadId] || this.gdb.proceed,
+                    );
+                });
+            }
+        } else if (func.endsWith('::unlock')) {
+            this.mutexes[processId][mutexAddr].owner = null;
+        }
+        console.debug(`${this.logPrefix}Finished updateMutexVisualization. mutexes:`, this.mutexes);
+        // TODO: need to implement other mutex methods? Maybe it's better to
+        // continue until the end of the mutex:: function, then look at the
+        // internal mutex state to see what happened?
+        await this.continueThread(
+            this.threads[threadId],
+            this.lastRunGdbContinueFunction[threadId] || this.gdb.proceed,
+        );
+    };
 }

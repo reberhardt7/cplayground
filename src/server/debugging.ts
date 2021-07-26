@@ -4,6 +4,7 @@ import { Thread, ThreadGroup } from 'gdb-js';
 
 import {
     ContainerInfo, FileDescriptorTable, OpenFileTable, Process, ProcessRunState, Signal, VnodeTable,
+    Mutex, Semaphore, ConditionVariable,
 } from '../common/communication';
 import { DebugDataError } from './error';
 
@@ -103,6 +104,9 @@ const MOCK_DATA: ContainerInfo = {
                 closeOnExec: false,
             },
         },
+        mutexes: [],
+        semaphores: [],
+        conditionVariables: [],
     }, {
         debuggerId: null,
         pid: 21,
@@ -127,6 +131,9 @@ const MOCK_DATA: ContainerInfo = {
                 closeOnExec: false,
             },
         },
+        mutexes: [],
+        semaphores: [],
+        conditionVariables: [],
     }],
     openFiles: {
         '6d2b62b056631445f3a906498f0ab45fea4c4e68a198af6f268a34269fb30caa': {
@@ -353,6 +360,9 @@ function populateProcessTable(rawProcesses: RawProcessInfo[]): Process[] {
             pendingSignals: proc.pendingSignals,
             threads: [],
             fds,
+            mutexes: [],
+            semaphores: [],
+            conditionVariables: [],
         });
     }
 
@@ -423,7 +433,7 @@ function cleanContainerData(
 
     const processes = Object.values(rawProcesses)
     // Omit the runc container-creating process, our run.py script, and any other processes that
-    // are run from the run.py script (e.g. gcc and gdb)
+    // are run from the run.py script (e.g. clang and gdb)
         .filter((proc) => proc.containerPID > 1
             && !(proc.containerPPID === 1 && proc.command !== 'cplayground'));
     const files = processes
@@ -531,6 +541,9 @@ const procfile = new Procfile();
 
 export async function getContainerInfo(
     containerPid: number, gdbProcesses: ThreadGroup[], gdbThreads: Thread[],
+    mutexes: {[inferiorId: number]: {[address: string]: Mutex}},
+    semaphores: {[inferiorId: number]: {[address: string]: Semaphore}},
+    conditionVariables: {[inferiorId: number]: {[address: string]: ConditionVariable}},
 ): Promise<ContainerInfo | null> {
     if (USE_MOCK_DATA) {
         console.warn('CP_MOCK_DEBUGGER is set. Mock container data will be used.');
@@ -566,9 +579,14 @@ export async function getContainerInfo(
             .map((gdbThread) => ({
                 debuggerId: gdbThread.id,
                 status: gdbThread.status,
-                currentLine: gdbThread.frame && gdbThread.frame.file.startsWith('/cplayground/code')
+                currentLine: gdbThread.frame && gdbThread.frame.file && gdbThread.frame.file.startsWith('/cplayground/code')
                     ? gdbThread.frame.line : null,
             }));
+        process.mutexes = mutexes[gdbProcess.id] ? Object.values(mutexes[gdbProcess.id]) : [];
+        process.semaphores = semaphores[gdbProcess.id]
+            ? Object.values(semaphores[gdbProcess.id]) : [];
+        process.conditionVariables = conditionVariables[gdbProcess.id]
+            ? Object.values(conditionVariables[gdbProcess.id]) : [];
     }
 
     // Check for any processes that seem to be missing in our kernel data

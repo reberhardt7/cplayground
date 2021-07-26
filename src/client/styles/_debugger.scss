@@ -32,6 +32,10 @@ $debugger-tabbar-height: 30px;
   height: calc(100% - #{$debugger-tabbar-height});
   padding: $pane-padding;
   overflow: auto;
+
+  h2 {
+    margin: 18px 0px 0px 0px
+  }
 }
 
 $process-listing-padding: 8px;
@@ -103,3 +107,30 @@ $process-listing-padding: 8px;
   width: 100%;
   height: 100%;
 }
+
+.mutex {
+  border: 1px solid $topbar-bg-color;
+  display: inline-block;
+  margin: 15px;
+  font-size: 90%;
+  $padding: 10px;
+
+  &:first-child {
+    margin-left: 0px;
+  }
+
+  .mutex-header {
+    background-color: $topbar-border-color;
+    padding: $padding;
+  }
+
+  p {
+    margin: 8px 0;
+    padding: 0 $padding;
+  }
+
+  ul {
+    margin: 0;
+  }
+}
+

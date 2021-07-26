@@ -45,6 +45,7 @@
             },
         ],
         "no-continue": ["off"],
+        "no-await-in-loop": ["off"],
         "prefer-destructuring": ["error", {
             "VariableDeclarator": {"object": true, "array": false},
             "AssignmentExpression": {"object": false, "array": false}

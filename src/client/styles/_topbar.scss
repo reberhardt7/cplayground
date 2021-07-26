@@ -96,6 +96,13 @@
     left: 0;
 }
 
+#run-btn .inactive .run-icon:after {
+    // The run btn has two divs inside: the debug button, and the run button. Only one is shown at a
+    // time (via `backface-visibility: none`), but for some reason, Chrome renders the ::after
+    // pseudo-element within the hidden div... so we need to explicitly make it go away.
+    display: none;
+}
+
 #run-btn .run-icon:after {
     content: " ";
     position: absolute;

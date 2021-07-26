@@ -67,6 +67,26 @@ export type Process = {
     pendingSignals: Signal[];
     threads: Thread[];
     fds: FileDescriptorTable;
+    mutexes: Mutex[];
+    semaphores: Semaphore[];
+    conditionVariables: ConditionVariable[];
+}
+
+export type Mutex = {
+    address: string;
+    owner: number | null;
+    waiters: number[];
+}
+
+export type Semaphore = {
+    address: string;
+    count: number;
+    waiters: number[];
+}
+
+export type ConditionVariable = {
+    address: string;
+    waiters: number[];
 }
 
 export type Thread = {

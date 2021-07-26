@@ -2,8 +2,9 @@ import * as React from 'react';
 import classNames from 'classnames';
 import Url from 'url-parse';
 
-import Diagram from './Diagram';
+import OpenFilesDiagram from './OpenFilesDiagram';
 import ProcessesListing from './ProcessesListing';
+import ThreadsListing from './ThreadsListing';
 import { DebugServer } from '../server-comm';
 import { ContainerInfo } from '../../common/communication';
 import { filterKeypress } from '../accessibility-utils';
@@ -13,6 +14,7 @@ enum Tab {
     Processes = 'processes',
     OpenFiles = 'open-files',
     Signals = 'signals',
+    Threads = 'threads',
 }
 
 type DebuggerProps = {
@@ -66,6 +68,7 @@ class Debugger extends React.PureComponent<DebuggerProps, DebuggerState> {
                     {this.renderTab('Processes', Tab.Processes)}
                     {this.renderTab('Open Files', Tab.OpenFiles)}
                     {this.renderTab('Signals', Tab.Signals)}
+                    {this.renderTab('Threads', Tab.Threads)}
                 </div>
                 <div className="debugger-body">
                     {this.state.activeTab === Tab.Processes && (
@@ -77,7 +80,7 @@ class Debugger extends React.PureComponent<DebuggerProps, DebuggerState> {
                         />
                     )}
                     {this.state.activeTab === Tab.OpenFiles && (
-                        <Diagram
+                        <OpenFilesDiagram
                             data={this.props.debugData}
                             pidColorMap={this.props.pidColorMap}
                         />
@@ -88,6 +91,14 @@ class Debugger extends React.PureComponent<DebuggerProps, DebuggerState> {
                                 || []}
                             debugServer={this.props.debugServer}
                             pidColorMap={this.props.pidColorMap}
+                        />
+                    )}
+                    {this.state.activeTab === Tab.Threads && (
+                        <ThreadsListing
+                            processes={(this.props.debugData && this.props.debugData.processes)
+                                || []}
+                            pidColorMap={this.props.pidColorMap}
+                            tidColorMap={this.props.tidColorMap}
                         />
                     )}
                 </div>
