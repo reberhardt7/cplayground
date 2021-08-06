@@ -6,11 +6,14 @@
         "module": "commonjs",
         "target": "es2019",
         "jsx": "react",
-        "esModuleInterop": true
+        "esModuleInterop": true,
+        "allowJs": true
     },
     "include": [
         "src/common",
         "src/server"
     ],
-    "files": [ "src/client/img/svg.d.ts" ]
+    "files": [
+        "src/client/img/svg.d.ts"
+    ]
 }
