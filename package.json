@@ -22,6 +22,7 @@
         "mysql": "^2.18.1",
         "mysql-migrations": "^1.0.6",
         "node-pty": "^0.10.0",
+        "nodemon": "^2.0.12",
         "react": "^16.13.1",
         "react-ace": "^8.1.0",
         "react-dom": "^16.13.1",
@@ -31,6 +32,7 @@
         "socket.io": "^2.3.0",
         "source-map-support": "^0.5.16",
         "string-argv": "^0.3.0",
+        "ts-node": "^10.1.0",
         "url-parse": "^1.4.7",
         "utf-8-validate": "^5.0.2",
         "uuid": "^3.4.0",
@@ -46,8 +48,8 @@
         "build-client": "webpack",
         "build": "tsc && webpack",
         "watch-client": "webpack --watch",
-        "serve": "tsc && node ./dist/server/index.js",
-        "serve-debug": "tsc && node --inspect ./dist/server/index.js"
+        "serve": "nodemon -L --exec 'ts-node --files' ./src/server/index.ts",
+        "serve-debug": "nodemon -L --exec 'ts-node --files --inspect' ./src/server/index.ts"
     },
     "devDependencies": {
         "@svgr/webpack": "^5.3.0",
@@ -86,5 +88,13 @@
         "ts-loader": "^6.2.2",
         "typescript": "^3.8.3",
         "webpack": "^4.43.0"
+    },
+    "nodemonConfig": {
+        "ignore": [
+            "./src/client/*"
+        ],
+        "restartable": "rs",
+        "verbose": true,
+        "ext": "js json ts txt c py deb"
     }
 }
