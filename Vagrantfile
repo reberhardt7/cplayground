@@ -67,7 +67,7 @@ Vagrant.configure("2") do |config|
     # there's no sensitive data, so I don't think the security concerns are
     # significant.)
     echo -e "\e[96m""Configuring cplayground database...""\e[0m"
-    sudo mysql -u root -e "
+    sudo mysql -u root --password=root -e "
       CREATE USER 'cplayground'@'localhost'
       IDENTIFIED WITH mysql_native_password BY 'cplayground';
       CREATE DATABASE cplayground;
@@ -81,6 +81,7 @@ Vagrant.configure("2") do |config|
   # Set up dependencies
   config.vm.provision "shell", inline: <<-SHELL
     cd /cplayground
+    sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 467B942D3A79BD29
     sudo -Hu vagrant ./install-deps.sh
   SHELL
 
